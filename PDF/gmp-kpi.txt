@@ -1,0 +1,317 @@
+KPI 1 — Percentage of pharmaceutical manufacturing facilities inspected for GMP as per plan
+
+Maturity Level: 3
+Type: Output
+Definition: Measures how well the regulator executes its annual/quarterly GMP inspection plan.
+
+Formula:
+
+Numerator: Number of pharmaceutical manufacturing facilities inspected as per the plan
+
+Denominator: Total number of facilities planned for inspection
+
+Calculation: (N ÷ D) × 100
+
+Unit: %
+
+Reporting Frequency: Quarterly
+
+Disaggregations:
+
+On-site domestic inspections
+
+On-site foreign inspections
+
+Joint on-site foreign inspections (reliance)
+
+Notes:
+
+Remote/desk-based reviews are not counted here (they fall under KPI 3).
+
+EFDA and TMDA plan to inspect all domestic facilities annually.
+
+Alignment:
+
+Harmonized for TMDA, EFDA, Rwanda FDA
+
+Uganda NDA IRIMS does not support planning yet (future inclusion)
+
+🔹 KPI 2 — Percentage of complaint-triggered GMP inspections conducted
+
+Maturity Level: 3
+Type: Process
+Definition: Measures responsiveness to complaints requiring GMP investigations.
+
+Formula:
+
+Numerator: Number of complaint-triggered GMP inspections conducted
+
+Denominator: Total number of complaints requiring GMP inspection
+
+Calculation: (N ÷ D) × 100
+
+Unit: %
+
+Frequency: Quarterly
+
+Disaggregations:
+
+Domestic inspections
+
+Foreign inspections (any mode)
+
+Notes:
+
+Ad-hoc indicator; cannot be planned in advance.
+
+Important for public confidence.
+
+Alignment:
+
+TMDA, EFDA, Rwanda FDA — aligned
+
+Uganda NDA — will not report
+
+🔹 KPI 3 — Percentage of GMP on-site inspections waived
+
+Maturity Level: 3
+Type: Process
+Definition: Measures the use of risk-based and reliance mechanisms to waive on-site inspections.
+
+Formula:
+
+Numerator: Facilities where on-site inspection was waived (remote/desk review done instead)
+
+Denominator: Total GMP inspections completed (physical or remote)
+
+Calculation: (N ÷ D) × 100
+
+Unit: %
+
+Frequency: Quarterly
+
+Notes:
+
+An inspection is “completed” when an official decision is communicated.
+
+Only remote/desk inspections are counted in numerator.
+
+Alignment:
+
+Fully harmonized across TMDA, EFDA, Rwanda FDA, Uganda NDA
+
+🔹 KPI 4 — Percentage of facilities compliant with GMP requirements
+
+Maturity Level: 3
+Type: Outcome
+Definition: Measures extent of GMP compliance across inspected facilities.
+
+Formula:
+
+Numerator: Number of facilities compliant with GMP requirements
+
+Denominator: Total number of facilities inspected
+
+Calculation: (N ÷ D) × 100
+
+Unit: %
+
+Frequency: Annual
+
+Disaggregations:
+
+On-site domestic
+
+On-site foreign
+
+Joint on-site foreign
+
+Remote/desk-based inspections
+
+Alignment:
+
+Harmonized across TMDA, EFDA, Rwanda FDA, Uganda NDA
+
+🔹 KPI 5 — Percentage of final CAPA decisions issued within a specified timeline
+
+Maturity Level: 3
+Type: Process
+Definition: Measures efficiency in evaluating and concluding CAPA responses from manufacturers.
+
+Formula:
+
+Numerator: Final CAPA decisions issued within timeline
+
+Denominator: Total CAPA responses received
+
+Calculation: (N ÷ D) × 100
+
+Unit: %
+
+Frequency: Quarterly
+
+Disaggregations:
+
+Direct inspections (domestic + foreign)
+
+Joint inspections (reliance, REC-led)
+
+Notes:
+
+“Waiting time” for applicants is excluded.
+
+Requires integration with EAC systems for reliance reporting.
+
+Alignment:
+
+Fully harmonized across all four NRAs
+
+🔹 KPI 6 — Percentage of GMP inspection applications completed within the set timeline
+
+Maturity Level: 3
+Type: Process
+Definition: Measures efficiency of processing GMP applications end-to-end.
+
+Formula:
+
+Numerator: Applications completed within NRA SLA timeline
+
+Denominator: Total GMP inspection applications received
+
+Calculation: (N ÷ D) × 100
+
+Unit: %
+
+Frequency: Quarterly
+
+Disaggregations:
+
+Domestic applicants
+
+Foreign (direct review)
+
+Foreign (reliance-based review)
+
+Stop-clock rules:
+
+Clock starts after payment
+
+TMDA, EFDA, UNDA: payment after screening
+
+Rwanda FDA: payment before screening
+
+Clock stops when final decision issued
+
+Alignment:
+
+Harmonized across all NRAs
+
+🔹 KPI 7 — Average turnaround time to complete GMP applications
+
+Maturity Level: 3
+Type: Process
+Definition: Average number of days NRAs take to complete GMP inspection applications.
+
+Formula:
+
+Numerator: Sum of processing days for all applications completed
+
+Denominator: Number of applications completed
+
+Calculation: N ÷ D
+
+Unit: Days
+
+Frequency: Quarterly
+
+Disaggregations:
+
+On-site domestic
+
+On-site foreign
+
+Joint on-site foreign
+
+EFDA additionally measures document review for reference authority waivers
+
+Notes:
+
+Applicant waiting time is excluded.
+
+“First decision” counts (compliant / non-compliant / CAPA required).
+
+Alignment:
+
+Harmonized across TMDA, EFDA, Rwanda FDA, Uganda NDA
+
+🔹 KPI 8 — Median turnaround time to complete GMP inspection applications
+
+Maturity Level: 3
+Type: Process
+Definition: Median number of days required to process GMP inspections.
+
+Formula:
+
+Arrange all completion times in order
+
+If odd: median is middle value
+
+If even: median is average of two middle values
+
+Unit: Days
+
+Frequency: Annual
+
+Notes:
+
+Measured from payment to first decision (excluding applicant time).
+
+Can be reported manually until systems improve.
+
+Alignment:
+
+Harmonized for TMDA, Rwanda FDA
+
+EFDA and UNDA will adopt later
+
+🔹 KPI 9 — Percentage of GMP inspection reports published within a specified timeline
+
+Maturity Level: 4
+Type: Output
+Definition: Tracks transparency and timely publication of GMP inspection outcomes.
+
+Formula:
+
+Numerator: Inspection reports published within timeline
+
+Denominator: Total inspections completed
+
+Calculation: (N ÷ D) × 100
+
+Unit: %
+
+Frequency: Annual
+
+Disaggregations:
+
+On-site domestic
+
+On-site foreign
+
+Joint inspections
+
+Remote/desk-based
+
+EFDA also includes document review results for reliance-based waivers
+
+Notes:
+
+TMDA publishes only reports deemed “public interest” according to internal criteria
+
+UNDA requires SOP development to manage confidentiality and publication
+
+Alignment:
+
+Harmonized for TMDA, EFDA, Rwanda FDA
+
+Uganda NDA — future adoption

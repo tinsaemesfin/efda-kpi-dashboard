@@ -1,0 +1,206 @@
+1. Percentage of new clinical trial applications evaluated within a specified timeline
+
+Maturity Level: 3
+Indicator Type: Process
+Definition: Measures how many new CT applications are evaluated within a predefined evaluation period.
+
+Numerator: Number of new clinical trial applications evaluated within the specified timeline
+
+Denominator: Total number of new clinical trial applications received
+
+Formula: (N ÷ D) × 100
+
+Unit: %
+
+Reporting Frequency: Quarterly
+
+Notes: Fully harmonized across all four NRAs (TMDA, EFDA, RFDA, UNDA)
+
+2. Percentage of clinical trial amendments evaluated within specified timelines
+
+Maturity Level: 3
+Indicator Type: Process
+Definition: Tracks timeliness of reviewing protocol amendments.
+
+Numerator: Number of CT amendments evaluated within timeline
+
+Denominator: Total CT amendments received
+
+Formula: (N ÷ D) × 100
+
+Unit: %
+
+Reporting Frequency: Quarterly
+
+Notes: Fully harmonized for all four NRAs
+
+3. Percentage of approved and ongoing clinical trials inspected as per the GCP plan
+
+Maturity Level: 3
+Indicator Type: Output
+Definition: Measures how many scheduled GCP inspections were completed.
+
+Numerator: Number of approved & ongoing CTs inspected
+
+Denominator: Total approved & ongoing CTs scheduled for GCP inspection
+
+Formula: (N ÷ D) × 100
+
+Unit: %
+
+Reporting Frequency: Annual
+
+Notes:
+
+Harmonized for TMDA, EFDA, RFDA
+
+Uganda NDA uses a modified definition (measured for CTs in a specific time period)
+
+4. Percentage of field and safety reports assessed within a specified timeline
+
+Maturity Level: 3
+Indicator Type: Process
+Definition: Measures timeliness of evaluating safety and field reports.
+
+Numerator: Number of field & safety reports assessed within timeline
+
+Denominator: Total field & safety reports received
+
+Formula: (N ÷ D) × 100
+
+Unit: %
+
+Reporting Frequency: Quarterly
+
+Differences:
+
+Ethiopia FDA: counts safety reports only
+
+Rwanda FDA: counts all reports
+
+Uganda NDA: safety reports only + denominator tied to specific time period
+
+5. Percentage of clinical trials compliant with GCP requirements
+
+Maturity Level: 3
+Indicator Type: Outcome
+Definition: Tracks compliance with GCP based on inspection results.
+
+Numerator: Number of clinical trials compliant with GCP
+
+Denominator: Total number of CTs inspected
+
+Formula: (N ÷ D) × 100
+
+Unit: %
+
+Reporting Frequency: Quarterly
+
+Notes:
+
+Harmonized for EFDA & UNDA
+
+TMDA includes GCP + GCLP compliance
+
+Rwanda FDA does not track as KPI (GCP is prerequisite for application)
+
+6. Percentage of approved clinical trials listed in national registry
+
+Maturity Level: 4
+Indicator Type: Output
+Definition: Measures publication of approved CTs to national registry.
+
+Numerator: Number of approved CTs submitted for registry publication
+
+Denominator: Total approved CTs
+
+Formula: (N ÷ D) × 100
+
+Unit: %
+
+Reporting Frequency: Quarterly
+
+Notes:
+
+TMDA, EFDA, UNDA harmonized
+
+UNDA registry automatically publishes → always 100%
+
+RFDA: automatic publication → not tracked
+
+7. Percentage of CAPA (Corrective and Preventive Actions) evaluated within specified timeline
+
+Maturity Level: 3
+Indicator Type: Process
+Definition: Measures timeliness of CAPA evaluation following GCP inspections.
+
+Numerator: Number of CAPA evaluated within timeline
+
+Denominator: Total CAPA received
+
+Formula: (N ÷ D) × 100
+
+Unit: %
+
+Reporting Frequency: Quarterly
+
+Notes:
+
+EFDA & UNDA harmonized
+
+TMDA reports annually
+
+Rwanda FDA tracks "technically" but not institutionally
+
+8. Average turnaround time to complete evaluation of CT applications
+
+Maturity Level: 3
+Indicator Type: Process
+Definition: Measures how long it takes to evaluate CT applications (in days).
+
+Numerator: Sum of evaluation times for each application
+
+Denominator: Total number of evaluated applications
+
+Formula: N ÷ D
+
+Unit: Days
+
+Reporting Frequency: Quarterly
+
+Notes:
+
+Rwanda FDA, TMDA, Uganda NDA harmonized
+
+EFDA reports semi-annually
+
+This KPI supports KPI #1 (helps define timeline rules)
+
+Supplemental KPIs (Not Harmonized)
+
+These are extra KPIs tracked by individual NRAs.
+
+📌 Supplemental KPIs — Ethiopia FDA
+2.1 Percentage of received amendments of CTs evaluated
+
+Indicator Type: Output
+
+Formula: (Evaluated amendments ÷ amendments received) × 100
+
+Frequency: Quarterly
+
+3.1 Percentage of regulatory measures taken due to GCP findings and safety concerns
+
+Indicator Type: Outcome
+
+Formula: (Regulatory measures taken ÷ CTs conducted) × 100
+
+Frequency: Quarterly
+
+4.1 Percentage of received safety reports assessed
+
+Indicator Type: Output
+
+Formula: (Safety reports assessed ÷ received safety reports) × 100
+
+Frequency: Quarterly
