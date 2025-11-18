@@ -1,0 +1,274 @@
+MARKETING AUTHORIZATION KPIs — Full Detailed List (Medicine, Medical devices, Food )
+
+(Converted from tables → clean structured list)
+
+🔹 KPI 1 — Percentage of New MA Applications Completed Within a Specified Time Period
+
+Maturity Level: 3
+Type: Process
+Definition: Measures how many new MA applications were completed within the official processing timeline.
+
+Formula:
+
+Numerator: Number of new MA applications completed within the specified timeline
+
+Denominator: Total number of new MA applications received in that period
+
+(UNDA version): Denominator = number of new MA applications planned for completion
+
+Calculation: (N ÷ D) × 100
+
+Unit: %
+
+Frequency: Quarterly
+
+Timing rules:
+
+Time counted from start of regulatory processing (screening/validation)
+
+Excludes time when application is paused waiting for applicant input
+
+Uses each NRA’s official public SLA timeline
+
+AMRH Additional Requirement:
+Two sub-indicators must also be tracked:
+
+KPI 1.1 – Regional reliance positive outcomes within 90 working days
+
+KPI 1.2 – Continental reliance positive outcomes within 90 working days
+
+Alignment:
+
+Harmonized across TMDA, EFDA, Rwanda FDA
+
+UNDA uses target-based denominator
+
+🔹 KPI 2 — Percentage of Renewal MA Applications Completed Within a Specified Time Period
+
+Maturity Level: 3
+Type: Process
+Definition: Measures efficiency in completing renewal applications on time.
+
+Formula:
+
+Numerator: Renewal MA applications completed within timeline
+
+Denominator: Renewal MA applications received
+
+Calculation: (N ÷ D) × 100
+
+Unit: %
+
+Frequency: Quarterly
+
+Timing rules:
+
+Clock runs from screening/validation → final decision
+
+Excludes applicant waiting time
+
+Alignment:
+
+Harmonized across TMDA, EFDA, Rwanda FDA
+
+UNDA does not track this KPI (renewals not yet priority)
+
+🔹 KPI 3 — Percentage of Minor Variation MA Applications Completed Within a Specified Time Period
+
+Maturity Level: 3
+Type: Process
+Definition: Measures timeliness in evaluating minor variations.
+
+Formula:
+
+Numerator: Minor variation applications completed within timeline
+
+Denominator: Minor variations received
+
+UNDA denominator: minor variations planned for completion
+
+Calculation: (N ÷ D) × 100
+
+Unit: %
+
+Frequency: Quarterly
+
+Timing rules:
+
+Start = screening/validation
+
+End = final decision
+
+Excludes hold time
+
+Alignment:
+
+TMDA, EFDA, Rwanda FDA = fully harmonized
+
+UNDA uses target-based denominator
+
+🔹 KPI 4 — Percentage of Major Variation MA Applications Completed Within a Specified Time Period
+
+Maturity Level: 3
+Type: Process
+Definition: Measures if major variations are completed within required timelines.
+
+Formula:
+
+Numerator: Major variations completed on time
+
+Denominator: Major variations received (UNDA = planned)
+
+Calculation: (N ÷ D) × 100
+
+Unit: %
+
+Frequency: Quarterly
+
+Timing rules:
+Same as minor variations — measure only regulator processing times.
+
+Alignment:
+
+Harmonized across TMDA, EFDA, Rwanda FDA
+
+UNDA again uses planned denominator
+
+🔹 KPI 5 — Percentage of Queries / Additional Information / FIRs Completed Within a Specified Time Period
+
+Maturity Level: 3
+Type: Process
+Definition: Tracks the efficiency of responding to queries, requests for additional information, and FIRs.
+
+Formula:
+
+Numerator: Queries / FIRs completed on time
+
+Denominator: Queries / FIRs received (UNDA = planned)
+
+Calculation: (N ÷ D) × 100
+
+Unit: %
+
+Frequency: Quarterly
+
+Timing rules:
+
+Measured from date of applicant's response → date regulator marks the query/FIR as completed
+
+Applicant waiting time is excluded
+
+Alignment:
+
+Harmonized across TMDA, EFDA, Rwanda FDA
+
+UNDA uses planned denominator
+
+🔹 KPI 6 — Median Time Taken to Complete a New MA Application
+
+Maturity Level: 3
+Type: Process
+Definition: Measures the median number of days needed to complete new MA applications.
+
+Formula:
+
+Arrange all completion times in ascending order
+
+If odd number: median = middle value
+
+If even: median = average of the two middle values
+
+Unit: Days
+
+Frequency: Annually
+
+Timing rules:
+
+Time measured from screening → final decision
+
+Excludes applicant hold time
+
+Notes:
+
+Median preferred because mean can be distorted by outliers
+
+Accepted as harmonized continental practice
+
+Alignment:
+
+Harmonized across all four NRAs (TMDA, EFDA, Rwanda FDA, UNDA)
+
+AMRH Extension:
+
+KPI 6.1 – Median time for regional reliance pathway
+
+KPI 6.2 – Median time for continental reliance pathway
+
+🔹 KPI 7 — Average Time Taken to Complete a New MA Application
+
+Maturity Level: 3
+Type: Process
+Definition: Measures the average time (mean) required to complete new MA applications.
+
+Formula:
+
+Numerator: Sum of all MA application completion times
+
+Denominator: Number of new MA applications completed
+
+Calculation: N ÷ D
+
+Unit: Days
+
+Frequency: Annually
+
+Timing rules:
+Same as KPI 6.
+
+Notes:
+
+NRAs comfortable using mean, but must check for outliers.
+
+If too skewed, median should be preferred.
+
+Alignment:
+
+Harmonized across all four NRAs
+
+🔹 KPI 8 — Percentage of Public Assessment Reports (PARs) Published Within Specified Timelines
+
+Maturity Level: 4
+Type: Output
+Definition: Measures transparency by tracking publication of PARs for approved medicines.
+
+Formula:
+
+Numerator: PARs published within the specified timeline
+
+Denominator: Total MAs granted in the period
+
+Calculation: (N ÷ D) × 100
+
+Unit: %
+
+Frequency: Quarterly
+
+Timing rules:
+
+Time measured from final MA decision → publication date
+
+Specified timelines:
+
+EFDA: 60 days
+
+TMDA: 90 days
+
+Rwanda FDA: TBD
+
+Uganda NDA: TBD
+
+Alignment:
+
+Harmonized across TMDA, EFDA, Rwanda FDA, UNDA
+
+Rwanda & UNDA still implementing publication systems

@@ -2,27 +2,39 @@
 
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout";
-import { KPICardWithRequirement, MetricGrid, StatsCard, RequirementToggle } from "@/components/kpi";
-import { KPILineChart, KPIBarChart, KPIPieChart } from "@/components/charts";
+import { KPICardWithRequirement, MetricGrid, RequirementToggle } from "@/components/kpi";
+import { KPILineChart, KPIBarChart } from "@/components/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { marketAuthorizationData } from "@/data/dummy-data";
-import { marketAuthorizationRequirements, getRequirementByKpiId } from "@/data/requirements-mapping";
+import { Separator } from "@/components/ui/separator";
+import { maKPIData } from "@/data/ma-dummy-data";
+import { getMARequirementByKpiId } from "@/data/ma-requirements-mapping";
 import {
   ClipboardCheckIcon,
   ClockIcon,
   CheckCircle2Icon,
-  XCircleIcon,
-  AlertTriangleIcon,
   FileTextIcon,
   TrendingUpIcon,
-  PillIcon,
-  StarIcon
+  TrendingDownIcon,
+  ActivityIcon,
+  AlertCircleIcon,
+  FileSearchIcon,
+  BarChart3Icon,
+  RefreshCwIcon,
+  FileEditIcon
 } from "lucide-react";
 
 export default function MarketAuthorizationsPage() {
-  const data = marketAuthorizationData;
+  const data = maKPIData;
   const [showRequirements, setShowRequirements] = useState(false);
+
+  // Helper function to get status based on percentage
+  const getStatus = (percentage: number): "excellent" | "good" | "warning" | "critical" => {
+    if (percentage >= 90) return "excellent";
+    if (percentage >= 80) return "good";
+    if (percentage >= 70) return "warning";
+    return "critical";
+  };
 
   return (
     <DashboardLayout>
@@ -30,10 +42,10 @@ export default function MarketAuthorizationsPage() {
       <RequirementToggle 
         enabled={showRequirements}
         onChange={setShowRequirements}
-        category="Market Authorization"
+        category="Market Authorizations"
       />
       
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Header */}
         <div>
           <div className="flex items-center gap-3 mb-2">
@@ -41,384 +53,687 @@ export default function MarketAuthorizationsPage() {
             <h1 className="text-3xl font-bold tracking-tight">Market Authorization KPIs</h1>
           </div>
           <p className="text-muted-foreground">
-            Comprehensive tracking of drug authorization applications, review timelines, and approval metrics
+            Regulatory performance metrics for marketing authorization applications (Medicine, Medical devices, Food)
           </p>
         </div>
 
-        {/* Key Metrics */}
-        <div className="space-y-3">
-          <h2 className="text-xl font-semibold">Application Overview</h2>
-          <MetricGrid columns={4}>
-            <KPICardWithRequirement
-              title="Total Applications"
-              value={data.totalApplications}
-              description="All time applications"
-              icon={<FileTextIcon className="h-4 w-4" />}
-              trend="up"
-              trendValue="+11.3%"
-              status="good"
-              requirement={getRequirementByKpiId('ma-total-applications', 'MA')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Pending Applications"
-              value={data.pendingApplications}
-              description="Currently under review"
-              icon={<ClockIcon className="h-4 w-4" />}
-              status="good"
-              requirement={getRequirementByKpiId('ma-pending-applications', 'MA')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Approved Applications"
-              value={data.approvedApplications}
-              description={`${data.approvalRate.toFixed(1)}% approval rate`}
-              icon={<CheckCircle2Icon className="h-4 w-4" />}
-              trend="up"
-              trendValue="+7.2%"
-              status="excellent"
-              requirement={getRequirementByKpiId('ma-approved-applications', 'MA')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Rejected Applications"
-              value={data.rejectedApplications}
-              description={`${((data.rejectedApplications / data.totalApplications) * 100).toFixed(1)}% rejection rate`}
-              icon={<XCircleIcon className="h-4 w-4" />}
-              status="good"
-              requirement={getRequirementByKpiId('ma-rejected-applications', 'MA')}
-              showRequirement={showRequirements}
-            />
-          </MetricGrid>
-        </div>
+        {/* KPI 1: Percentage of New MA Applications Completed Within a Specified Time Period */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-purple-600">KPI 1: New MA Applications Completed on Time</h2>
+              <p className="text-sm text-muted-foreground mt-1">{data.kpi1.definition}</p>
+            </div>
+            <div className="flex gap-2">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                {data.kpi1.reportingFrequency}
+              </Badge>
+              <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                {data.kpi1.type}
+              </Badge>
+              <Badge variant="outline" className="bg-orange-50 text-orange-700">
+                Level {data.kpi1.maturityLevel}
+              </Badge>
+            </div>
+          </div>
 
-        {/* Review Timeline Metrics */}
-        <div className="space-y-3">
-          <h2 className="text-xl font-semibold">Review Timeline Performance</h2>
           <MetricGrid columns={3}>
             <KPICardWithRequirement
-              title="Average Review Time"
-              value={data.averageReviewTime}
-              suffix=" days"
-              description={`Target: ${data.targetReviewTime} days`}
-              icon={<ClockIcon className="h-4 w-4" />}
-              status={data.averageReviewTime <= data.targetReviewTime ? "excellent" : "warning"}
-              trend="down"
-              trendValue="-22 days"
-              requirement={getRequirementByKpiId('ma-avg-review-time', 'MA')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Median Review Time"
-              value={data.medianReviewTime}
-              suffix=" days"
-              description="50th percentile"
-              status="excellent"
-              requirement={getRequirementByKpiId('ma-median-review-time', 'MA')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Target Achievement"
-              value={((data.targetReviewTime - data.averageReviewTime) / data.targetReviewTime * 100).toFixed(1)}
+              title="Completion Rate"
+              value={data.kpi1.currentQuarter.percentage?.toFixed(1) || "0"}
               suffix="%"
-              description="Ahead of target"
-              status="excellent"
-              trend="up"
-              trendValue="+5%"
-              requirement={getRequirementByKpiId('ma-target-achievement', 'MA')}
-              showRequirement={showRequirements}
-            />
-          </MetricGrid>
-        </div>
-
-        {/* Product Type Metrics */}
-        <div className="space-y-3">
-          <h2 className="text-xl font-semibold">Application Types</h2>
-          <MetricGrid columns={4}>
-            <KPICardWithRequirement
-              title="New Drug Applications"
-              value={data.newDrugApplications}
-              description={`${((data.newDrugApplications / data.totalApplications) * 100).toFixed(1)}% of total`}
-              icon={<PillIcon className="h-4 w-4" />}
-              status="good"
-              requirement={getRequirementByKpiId('ma-new-drug-applications', 'MA')}
+              description="Applications completed on time"
+              icon={<ClipboardCheckIcon className="h-4 w-4" />}
+              status={getStatus(data.kpi1.currentQuarter.percentage || 0)}
+              requirement={getMARequirementByKpiId('ma-new-applications')}
               showRequirement={showRequirements}
             />
             <KPICardWithRequirement
-              title="Generic Applications"
-              value={data.genericApplications}
-              description={`${((data.genericApplications / data.totalApplications) * 100).toFixed(1)}% of total`}
-              icon={<FileTextIcon className="h-4 w-4" />}
-              status="good"
-              requirement={getRequirementByKpiId('ma-generic-applications', 'MA')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Biosimilar Applications"
-              value={data.biosimilarApplications}
-              description={`${((data.biosimilarApplications / data.totalApplications) * 100).toFixed(1)}% of total`}
-              icon={<PillIcon className="h-4 w-4" />}
-              status="good"
-              requirement={getRequirementByKpiId('ma-biosimilar-applications', 'MA')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Withdrawn Applications"
-              value={data.withdrawnApplications}
-              description="Voluntarily withdrawn"
-              icon={<AlertTriangleIcon className="h-4 w-4" />}
-              status="good"
-              requirement={getRequirementByKpiId('ma-withdrawn-applications', 'MA')}
-              showRequirement={showRequirements}
-            />
-          </MetricGrid>
-        </div>
-
-        {/* Priority and Performance Metrics */}
-        <div className="space-y-3">
-          <h2 className="text-xl font-semibold">Review Priority & Performance</h2>
-          <MetricGrid columns={4}>
-            <KPICardWithRequirement
-              title="Priority Reviews"
-              value={data.priorityReviews}
-              description="Expedited review track"
-              icon={<StarIcon className="h-4 w-4" />}
-              status="excellent"
-              requirement={getRequirementByKpiId('ma-priority-reviews', 'MA')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Standard Reviews"
-              value={data.standardReviews}
-              description="Regular review process"
-              icon={<FileTextIcon className="h-4 w-4" />}
-              status="good"
-              requirement={getRequirementByKpiId('ma-standard-reviews', 'MA')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="First Cycle Approval Rate"
-              value={data.firstCycleApprovalRate}
-              suffix="%"
-              description="Approved in first cycle"
+              title="Completed on Time"
+              value={data.kpi1.currentQuarter.numerator}
+              description={data.kpi1.numeratorDescription}
               icon={<CheckCircle2Icon className="h-4 w-4" />}
-              trend="up"
-              trendValue="+4.2%"
-              status="excellent"
-              requirement={getRequirementByKpiId('ma-first-cycle-approval', 'MA')}
+              status="good"
+              requirement={getMARequirementByKpiId('ma-new-applications-num')}
               showRequirement={showRequirements}
             />
             <KPICardWithRequirement
-              title="Orphan Drug Designations"
-              value={data.orphanDrugDesignations}
-              description="Rare disease treatments"
-              icon={<StarIcon className="h-4 w-4" />}
+              title="Total New Applications"
+              value={data.kpi1.currentQuarter.denominator}
+              description={data.kpi1.denominatorDescription}
+              icon={<ActivityIcon className="h-4 w-4" />}
               status="good"
-              requirement={getRequirementByKpiId('ma-orphan-drug', 'MA')}
+              requirement={getMARequirementByKpiId('ma-new-applications-den')}
               showRequirement={showRequirements}
             />
           </MetricGrid>
-        </div>
 
-        {/* Charts Section */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Application Trends */}
-          <KPILineChart
-            data={data.applicationTrends.map(item => ({
-              date: item.label || item.date,
-              value: item.value,
-              target: item.target
-            }))}
-            title="Monthly Application Trends"
-            description="Number of applications received per month"
-          />
-
-          {/* Review Time Trends */}
-          <KPILineChart
-            data={data.reviewTimeTrends.map(item => ({
-              date: item.label || item.date,
-              value: item.value,
-              target: item.target
-            }))}
-            title="Review Time Trends"
-            description="Average review time in days"
-          />
-        </div>
-
-        {/* Distribution Charts */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Product Type Distribution */}
-          <KPIPieChart
-            data={data.productTypeDistribution.map(item => ({
-              name: item.name,
-              value: item.value
-            }))}
-            title="Product Type Distribution"
-            description="Distribution by application type"
-          />
-
-          {/* Approval Rate Trends */}
-          <KPIBarChart
-            data={data.approvalRateTrends.slice(-6).map(item => ({
-              name: item.label || item.date,
-              value: item.value,
-              target: item.target
-            }))}
-            title="Approval Rate Trends"
-            description="Monthly approval rates (%)"
-          />
-        </div>
-
-        {/* Therapeutic Area Distribution */}
-        <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Therapeutic Area Distribution</CardTitle>
-              <CardDescription>Applications by therapeutic category</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {data.therapeuticAreaDistribution.map((area, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{area.name}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">
-                          {area.value} ({area.percentage.toFixed(1)}%)
-                        </span>
-                      </div>
-                    </div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full transition-all"
-                        style={{
-                          width: `${area.percentage}%`,
-                          backgroundColor: area.color || '#8b5cf6'
-                        }}
-                      />
+          {/* AMRH Extensions for KPI 1 */}
+          {data.kpi1.amrhExtensions && (
+            <Card className="bg-gradient-to-r from-purple-50 to-blue-50">
+              <CardHeader>
+                <CardTitle className="text-lg">AMRH Additional Requirements</CardTitle>
+                <CardDescription>Reliance pathway performance tracking</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="bg-white p-4 rounded-lg">
+                    <h4 className="text-sm font-semibold mb-2">KPI 1.1: Regional Reliance</h4>
+                    <p className="text-xs text-muted-foreground mb-3">{data.kpi1.amrhExtensions.kpi1_1.title}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-bold">{data.kpi1.amrhExtensions.kpi1_1.value.percentage?.toFixed(1)}%</span>
+                      <Badge variant="outline" className="bg-green-100 text-green-800">
+                        {data.kpi1.amrhExtensions.kpi1_1.value.numerator}/{data.kpi1.amrhExtensions.kpi1_1.value.denominator}
+                      </Badge>
                     </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="bg-white p-4 rounded-lg">
+                    <h4 className="text-sm font-semibold mb-2">KPI 1.2: Continental Reliance</h4>
+                    <p className="text-xs text-muted-foreground mb-3">{data.kpi1.amrhExtensions.kpi1_2.title}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-bold">{data.kpi1.amrhExtensions.kpi1_2.value.percentage?.toFixed(1)}%</span>
+                      <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                        {data.kpi1.amrhExtensions.kpi1_2.value.numerator}/{data.kpi1.amrhExtensions.kpi1_2.value.denominator}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Timing Rules</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-xs space-y-1 text-muted-foreground">
+                  {data.kpi1.timingRules.map((rule, idx) => (
+                    <li key={idx}>• {rule}</li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            <KPIBarChart
+              data={data.kpi1.quarterlyData.map(item => ({
+                name: item.quarter,
+                value: item.value.percentage || 0
+              }))}
+              title="Quarterly Completion Rate"
+              description="New MA applications completed on time"
+            />
+          </div>
         </div>
 
-        {/* Detailed Statistics */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Application Status Breakdown */}
-          <StatsCard
-            title="Application Status"
-            description="Current status of all applications"
-            stats={[
-              {
-                label: "Approved",
-                value: data.approvedApplications,
-                total: data.totalApplications,
-                percentage: (data.approvedApplications / data.totalApplications) * 100
-              },
-              {
-                label: "Pending",
-                value: data.pendingApplications,
-                total: data.totalApplications,
-                percentage: (data.pendingApplications / data.totalApplications) * 100
-              },
-              {
-                label: "Rejected",
-                value: data.rejectedApplications,
-                total: data.totalApplications,
-                percentage: (data.rejectedApplications / data.totalApplications) * 100
-              },
-              {
-                label: "Withdrawn",
-                value: data.withdrawnApplications,
-                total: data.totalApplications,
-                percentage: (data.withdrawnApplications / data.totalApplications) * 100
-              }
-            ]}
-          />
+        <Separator />
 
-          {/* Product Types */}
-          <StatsCard
-            title="Product Type Breakdown"
-            description="Distribution by product category"
-            stats={data.productTypeDistribution.map(type => ({
-              label: type.name,
-              value: type.value,
-              total: data.totalApplications,
-              percentage: type.percentage
+        {/* KPI 2: Percentage of Renewal MA Applications Completed Within a Specified Time Period */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-purple-600">KPI 2: Renewal MA Applications Completed on Time</h2>
+              <p className="text-sm text-muted-foreground mt-1">{data.kpi2.definition}</p>
+            </div>
+            <div className="flex gap-2">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                {data.kpi2.reportingFrequency}
+              </Badge>
+              <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                {data.kpi2.type}
+              </Badge>
+              <Badge variant="outline" className="bg-orange-50 text-orange-700">
+                Level {data.kpi2.maturityLevel}
+              </Badge>
+            </div>
+          </div>
+
+          <MetricGrid columns={3}>
+            <KPICardWithRequirement
+              title="Renewal Completion Rate"
+              value={data.kpi2.currentQuarter.percentage?.toFixed(1) || "0"}
+              suffix="%"
+              description="Renewals completed on time"
+              icon={<RefreshCwIcon className="h-4 w-4" />}
+              status={getStatus(data.kpi2.currentQuarter.percentage || 0)}
+              requirement={getMARequirementByKpiId('ma-renewal-applications')}
+              showRequirement={showRequirements}
+            />
+            <KPICardWithRequirement
+              title="Renewals Completed"
+              value={data.kpi2.currentQuarter.numerator}
+              description={data.kpi2.numeratorDescription}
+              icon={<CheckCircle2Icon className="h-4 w-4" />}
+              status="good"
+              requirement={getMARequirementByKpiId('ma-renewal-applications-num')}
+              showRequirement={showRequirements}
+            />
+            <KPICardWithRequirement
+              title="Total Renewals Received"
+              value={data.kpi2.currentQuarter.denominator}
+              description={data.kpi2.denominatorDescription}
+              icon={<ActivityIcon className="h-4 w-4" />}
+              status="good"
+              requirement={getMARequirementByKpiId('ma-renewal-applications-den')}
+              showRequirement={showRequirements}
+            />
+          </MetricGrid>
+
+          <KPILineChart
+            data={data.kpi2.quarterlyData.map(item => ({
+              date: item.quarter,
+              value: item.value.percentage || 0,
+              target: 85
             }))}
+            title="Quarterly Renewal Performance"
+            description="Efficiency in completing renewal applications"
           />
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Review Performance</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Avg Review Time:</span>
-                <span className="font-medium">{data.averageReviewTime} days</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">vs Target:</span>
-                <Badge variant="outline" className="bg-green-100 text-green-800">
-                  {data.targetReviewTime - data.averageReviewTime} days ahead
-                </Badge>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Performance:</span>
-                <span className="font-medium text-green-600">Excellent</span>
-              </div>
-            </CardContent>
-          </Card>
+        <Separator />
+
+        {/* KPI 3: Percentage of Minor Variation MA Applications Completed Within a Specified Time Period */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-purple-600">KPI 3: Minor Variation Applications Completed on Time</h2>
+              <p className="text-sm text-muted-foreground mt-1">{data.kpi3.definition}</p>
+            </div>
+            <div className="flex gap-2">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                {data.kpi3.reportingFrequency}
+              </Badge>
+              <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                {data.kpi3.type}
+              </Badge>
+              <Badge variant="outline" className="bg-orange-50 text-orange-700">
+                Level {data.kpi3.maturityLevel}
+              </Badge>
+            </div>
+          </div>
+
+          <MetricGrid columns={3}>
+            <KPICardWithRequirement
+              title="Minor Variation Rate"
+              value={data.kpi3.currentQuarter.percentage?.toFixed(1) || "0"}
+              suffix="%"
+              description="Minor variations completed on time"
+              icon={<FileEditIcon className="h-4 w-4" />}
+              status={getStatus(data.kpi3.currentQuarter.percentage || 0)}
+              requirement={getMARequirementByKpiId('ma-minor-variations')}
+              showRequirement={showRequirements}
+            />
+            <KPICardWithRequirement
+              title="Minor Variations Completed"
+              value={data.kpi3.currentQuarter.numerator}
+              description={data.kpi3.numeratorDescription}
+              icon={<CheckCircle2Icon className="h-4 w-4" />}
+              status="excellent"
+              requirement={getMARequirementByKpiId('ma-minor-variations-num')}
+              showRequirement={showRequirements}
+            />
+            <KPICardWithRequirement
+              title="Minor Variations Received"
+              value={data.kpi3.currentQuarter.denominator}
+              description={data.kpi3.denominatorDescription}
+              icon={<ActivityIcon className="h-4 w-4" />}
+              status="good"
+              requirement={getMARequirementByKpiId('ma-minor-variations-den')}
+              showRequirement={showRequirements}
+            />
+          </MetricGrid>
+
+          <KPIBarChart
+            data={data.kpi3.quarterlyData.map(item => ({
+              name: item.quarter,
+              value: item.value.percentage || 0
+            }))}
+            title="Quarterly Minor Variation Performance"
+            description="Timeliness in evaluating minor variations"
+          />
+        </div>
+
+        <Separator />
+
+        {/* KPI 4: Percentage of Major Variation MA Applications Completed Within a Specified Time Period */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-purple-600">KPI 4: Major Variation Applications Completed on Time</h2>
+              <p className="text-sm text-muted-foreground mt-1">{data.kpi4.definition}</p>
+            </div>
+            <div className="flex gap-2">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                {data.kpi4.reportingFrequency}
+              </Badge>
+              <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                {data.kpi4.type}
+              </Badge>
+              <Badge variant="outline" className="bg-orange-50 text-orange-700">
+                Level {data.kpi4.maturityLevel}
+              </Badge>
+            </div>
+          </div>
+
+          <MetricGrid columns={3}>
+            <KPICardWithRequirement
+              title="Major Variation Rate"
+              value={data.kpi4.currentQuarter.percentage?.toFixed(1) || "0"}
+              suffix="%"
+              description="Major variations completed on time"
+              icon={<FileSearchIcon className="h-4 w-4" />}
+              status={getStatus(data.kpi4.currentQuarter.percentage || 0)}
+              requirement={getMARequirementByKpiId('ma-major-variations')}
+              showRequirement={showRequirements}
+            />
+            <KPICardWithRequirement
+              title="Major Variations Completed"
+              value={data.kpi4.currentQuarter.numerator}
+              description={data.kpi4.numeratorDescription}
+              icon={<CheckCircle2Icon className="h-4 w-4" />}
+              status="good"
+              requirement={getMARequirementByKpiId('ma-major-variations-num')}
+              showRequirement={showRequirements}
+            />
+            <KPICardWithRequirement
+              title="Major Variations Received"
+              value={data.kpi4.currentQuarter.denominator}
+              description={data.kpi4.denominatorDescription}
+              icon={<ActivityIcon className="h-4 w-4" />}
+              status="good"
+              requirement={getMARequirementByKpiId('ma-major-variations-den')}
+              showRequirement={showRequirements}
+            />
+          </MetricGrid>
+
+          <KPILineChart
+            data={data.kpi4.quarterlyData.map(item => ({
+              date: item.quarter,
+              value: item.value.percentage || 0,
+              target: 85
+            }))}
+            title="Quarterly Major Variation Performance"
+            description="Major variations completed within required timelines"
+          />
+        </div>
+
+        <Separator />
+
+        {/* KPI 5: Percentage of Queries / Additional Information / FIRs Completed Within a Specified Time Period */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-purple-600">KPI 5: Queries / FIRs Completed on Time</h2>
+              <p className="text-sm text-muted-foreground mt-1">{data.kpi5.definition}</p>
+            </div>
+            <div className="flex gap-2">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                {data.kpi5.reportingFrequency}
+              </Badge>
+              <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                {data.kpi5.type}
+              </Badge>
+              <Badge variant="outline" className="bg-orange-50 text-orange-700">
+                Level {data.kpi5.maturityLevel}
+              </Badge>
+            </div>
+          </div>
+
+          <MetricGrid columns={3}>
+            <KPICardWithRequirement
+              title="Query Response Rate"
+              value={data.kpi5.currentQuarter.percentage?.toFixed(1) || "0"}
+              suffix="%"
+              description="Queries/FIRs completed on time"
+              icon={<AlertCircleIcon className="h-4 w-4" />}
+              status={getStatus(data.kpi5.currentQuarter.percentage || 0)}
+              requirement={getMARequirementByKpiId('ma-queries-firs')}
+              showRequirement={showRequirements}
+            />
+            <KPICardWithRequirement
+              title="Queries/FIRs Completed"
+              value={data.kpi5.currentQuarter.numerator}
+              description={data.kpi5.numeratorDescription}
+              icon={<CheckCircle2Icon className="h-4 w-4" />}
+              status="good"
+              requirement={getMARequirementByKpiId('ma-queries-firs-num')}
+              showRequirement={showRequirements}
+            />
+            <KPICardWithRequirement
+              title="Queries/FIRs Received"
+              value={data.kpi5.currentQuarter.denominator}
+              description={data.kpi5.denominatorDescription}
+              icon={<ActivityIcon className="h-4 w-4" />}
+              status="good"
+              requirement={getMARequirementByKpiId('ma-queries-firs-den')}
+              showRequirement={showRequirements}
+            />
+          </MetricGrid>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Timing Rules</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-xs space-y-1 text-muted-foreground">
+                  {data.kpi5.timingRules.map((rule, idx) => (
+                    <li key={idx}>• {rule}</li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            <KPIBarChart
+              data={data.kpi5.quarterlyData.map(item => ({
+                name: item.quarter,
+                value: item.value.percentage || 0
+              }))}
+              title="Quarterly Query Response Performance"
+              description="Efficiency in responding to queries and FIRs"
+            />
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* KPI 6: Median Time Taken to Complete a New MA Application */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-purple-600">KPI 6: Median Time for New MA Applications</h2>
+              <p className="text-sm text-muted-foreground mt-1">{data.kpi6.definition}</p>
+            </div>
+            <div className="flex gap-2">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                {data.kpi6.reportingFrequency}
+              </Badge>
+              <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                {data.kpi6.type}
+              </Badge>
+              <Badge variant="outline" className="bg-orange-50 text-orange-700">
+                Level {data.kpi6.maturityLevel}
+              </Badge>
+            </div>
+          </div>
+
+          <MetricGrid columns={2}>
+            <KPICardWithRequirement
+              title="Median Processing Time"
+              value={data.kpi6.currentYear.median?.toFixed(0) || "0"}
+              suffix=" days"
+              description="Median time to complete new MA"
+              icon={<ClockIcon className="h-4 w-4" />}
+              status="excellent"
+              requirement={getMARequirementByKpiId('ma-median-time')}
+              showRequirement={showRequirements}
+            />
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Formula</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">{data.kpi6.formula}</p>
+              </CardContent>
+            </Card>
+          </MetricGrid>
+
+          {/* AMRH Extensions for KPI 6 */}
+          {data.kpi6.amrhExtensions && (
+            <Card className="bg-gradient-to-r from-purple-50 to-blue-50">
+              <CardHeader>
+                <CardTitle className="text-lg">AMRH Extensions - Reliance Pathways</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="bg-white p-4 rounded-lg">
+                    <h4 className="text-sm font-semibold mb-2">KPI 6.1: Regional Reliance</h4>
+                    <p className="text-xs text-muted-foreground mb-3">{data.kpi6.amrhExtensions.kpi6_1.title}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-3xl font-bold">{data.kpi6.amrhExtensions.kpi6_1.value.median}</span>
+                      <span className="text-sm text-muted-foreground">days</span>
+                    </div>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg">
+                    <h4 className="text-sm font-semibold mb-2">KPI 6.2: Continental Reliance</h4>
+                    <p className="text-xs text-muted-foreground mb-3">{data.kpi6.amrhExtensions.kpi6_2.title}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-3xl font-bold">{data.kpi6.amrhExtensions.kpi6_2.value.median}</span>
+                      <span className="text-sm text-muted-foreground">days</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <KPIBarChart
+            data={data.kpi6.annualData.map(item => ({
+              name: item.year,
+              value: item.value.median || 0
+            }))}
+            title="Annual Median Processing Time"
+            description="Year-over-year median completion time"
+          />
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Approval Metrics</CardTitle>
+              <CardTitle className="text-sm">Notes</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Overall Rate:</span>
-                <span className="font-medium">{data.approvalRate.toFixed(1)}%</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">First Cycle:</span>
-                <span className="font-medium">{data.firstCycleApprovalRate.toFixed(1)}%</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Status:</span>
-                <Badge variant="outline" className="bg-green-100 text-green-800">
-                  High Performance
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Workload Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total Applications:</span>
-                <span className="font-medium">{data.totalApplications}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">In Review:</span>
-                <span className="font-medium">{data.pendingApplications}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Priority Reviews:</span>
-                <span className="font-medium text-purple-600">{data.priorityReviews}</span>
-              </div>
+            <CardContent>
+              <ul className="text-xs space-y-1 text-muted-foreground">
+                {data.kpi6.notes.map((note, idx) => (
+                  <li key={idx}>• {note}</li>
+                ))}
+              </ul>
             </CardContent>
           </Card>
         </div>
+
+        <Separator />
+
+        {/* KPI 7: Average Time Taken to Complete a New MA Application */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-purple-600">KPI 7: Average Time for New MA Applications</h2>
+              <p className="text-sm text-muted-foreground mt-1">{data.kpi7.definition}</p>
+            </div>
+            <div className="flex gap-2">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                {data.kpi7.reportingFrequency}
+              </Badge>
+              <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                {data.kpi7.type}
+              </Badge>
+              <Badge variant="outline" className="bg-orange-50 text-orange-700">
+                Level {data.kpi7.maturityLevel}
+              </Badge>
+            </div>
+          </div>
+
+          <MetricGrid columns={3}>
+            <KPICardWithRequirement
+              title="Average Processing Time"
+              value={data.kpi7.currentYear.average?.toFixed(1) || "0"}
+              suffix=" days"
+              description="Mean time to complete new MA"
+              icon={<ClockIcon className="h-4 w-4" />}
+              status="excellent"
+              requirement={getMARequirementByKpiId('ma-average-time')}
+              showRequirement={showRequirements}
+            />
+            <KPICardWithRequirement
+              title="Total Processing Days"
+              value={data.kpi7.currentYear.numerator.toLocaleString()}
+              description={data.kpi7.numeratorDescription}
+              icon={<BarChart3Icon className="h-4 w-4" />}
+              status="good"
+              requirement={getMARequirementByKpiId('ma-average-time-num')}
+              showRequirement={showRequirements}
+            />
+            <KPICardWithRequirement
+              title="Applications Completed"
+              value={data.kpi7.currentYear.denominator}
+              description={data.kpi7.denominatorDescription}
+              icon={<CheckCircle2Icon className="h-4 w-4" />}
+              status="good"
+              requirement={getMARequirementByKpiId('ma-average-time-den')}
+              showRequirement={showRequirements}
+            />
+          </MetricGrid>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Notes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-xs space-y-1 text-muted-foreground">
+                  {data.kpi7.notes.map((note, idx) => (
+                    <li key={idx}>• {note}</li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            <KPILineChart
+              data={data.kpi7.annualData.map(item => ({
+                date: item.year,
+                value: item.value.average || 0,
+                target: 160
+              }))}
+              title="Annual Average Processing Time"
+              description="Year-over-year improvement trend"
+            />
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* KPI 8: Percentage of Public Assessment Reports (PARs) Published Within Specified Timelines */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-purple-600">KPI 8: Public Assessment Reports (PARs) Published on Time</h2>
+              <p className="text-sm text-muted-foreground mt-1">{data.kpi8.definition}</p>
+            </div>
+            <div className="flex gap-2">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                {data.kpi8.reportingFrequency}
+              </Badge>
+              <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                {data.kpi8.type}
+              </Badge>
+              <Badge variant="outline" className="bg-amber-50 text-amber-700">
+                Level {data.kpi8.maturityLevel}
+              </Badge>
+            </div>
+          </div>
+
+          <MetricGrid columns={3}>
+            <KPICardWithRequirement
+              title="Publication Rate"
+              value={data.kpi8.currentQuarter.percentage?.toFixed(1) || "0"}
+              suffix="%"
+              description="PARs published on time"
+              icon={<FileTextIcon className="h-4 w-4" />}
+              status={getStatus(data.kpi8.currentQuarter.percentage || 0)}
+              requirement={getMARequirementByKpiId('ma-pars-published')}
+              showRequirement={showRequirements}
+            />
+            <KPICardWithRequirement
+              title="PARs Published"
+              value={data.kpi8.currentQuarter.numerator}
+              description={data.kpi8.numeratorDescription}
+              icon={<CheckCircle2Icon className="h-4 w-4" />}
+              status="good"
+              requirement={getMARequirementByKpiId('ma-pars-published-num')}
+              showRequirement={showRequirements}
+            />
+            <KPICardWithRequirement
+              title="Total MAs Granted"
+              value={data.kpi8.currentQuarter.denominator}
+              description={data.kpi8.denominatorDescription}
+              icon={<ActivityIcon className="h-4 w-4" />}
+              status="good"
+              requirement={getMARequirementByKpiId('ma-pars-published-den')}
+              showRequirement={showRequirements}
+            />
+          </MetricGrid>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Specified Timelines by NRA</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center p-2 bg-muted rounded">
+                    <span className="text-sm font-medium">EFDA</span>
+                    <Badge variant="outline">{data.kpi8.specifiedTimelines.efda}</Badge>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-muted rounded">
+                    <span className="text-sm font-medium">TMDA</span>
+                    <Badge variant="outline">{data.kpi8.specifiedTimelines.tmda}</Badge>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-muted rounded">
+                    <span className="text-sm font-medium">Rwanda FDA</span>
+                    <Badge variant="outline">{data.kpi8.specifiedTimelines.rwandaFDA}</Badge>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-muted rounded">
+                    <span className="text-sm font-medium">Uganda NDA</span>
+                    <Badge variant="outline">{data.kpi8.specifiedTimelines.ugandaNDA}</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <KPILineChart
+              data={data.kpi8.quarterlyData.map(item => ({
+                date: item.quarter,
+                value: item.value.percentage || 0,
+                target: 85
+              }))}
+              title="Quarterly Publication Performance"
+              description="Transparency through timely PAR publication"
+            />
+          </div>
+        </div>
+
+        {/* Harmonization Summary */}
+        <Card className="bg-gradient-to-r from-purple-50 to-pink-50">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CheckCircle2Icon className="h-5 w-5 text-purple-600" />
+              Harmonization Status
+            </CardTitle>
+            <CardDescription>
+              Regional Alignment across NRAs
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="bg-white p-3 rounded-lg">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Fully Harmonized (All 4 NRAs)</p>
+                <p className="text-xs">KPI 6, KPI 7</p>
+              </div>
+              <div className="bg-white p-3 rounded-lg">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Harmonized (3 NRAs)</p>
+                <p className="text-xs">KPI 1, KPI 2, KPI 3, KPI 4, KPI 5, KPI 8</p>
+              </div>
+              <div className="bg-white p-3 rounded-lg">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">NRA-Specific Notes</p>
+                <p className="text-xs">UNDA uses target-based denominators for KPI 1, 3, 4, 5</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              * TMDA (Tanzania), EFDA (Ethiopia), Rwanda FDA, UNDA (Uganda)
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );
 }
-

@@ -1,13 +1,10 @@
 // Requirement mapping types
 export interface RequirementMapping {
   kpiId: string;
-  requirementNumbers: string[];
+  requirementId: string;  // Single requirement ID (e.g., 'CT-KPI-1', 'GMP-KPI-1', 'MA-KPI-1')
+  category: string;
   description: string;
-  source: 'CT' | 'GMP' | 'MA'; // Clinical Trial, GMP, or Market Authorization
 }
 
-export interface RequirementCategory {
-  category: string;
-  mappings: RequirementMapping[];
-}
+export type KpiCategory = 'CT' | 'GMP' | 'MA';
 

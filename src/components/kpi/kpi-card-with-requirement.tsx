@@ -58,7 +58,7 @@ export function KPICardWithRequirement({
             variant="outline" 
             className="bg-purple-600 text-white border-purple-700 shadow-lg text-xs px-2 py-1 font-semibold"
           >
-            {requirement.requirementNumbers.join(', ')}
+            {requirement.requirementId}
           </Badge>
         </div>
       )}
