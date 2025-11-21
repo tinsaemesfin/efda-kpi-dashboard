@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import AuthGuard from "@/components/auth/AuthGuard";
 import { DashboardLayout } from "@/components/layout";
 import { KPICardWithRequirement, MetricGrid, RequirementToggle } from "@/components/kpi";
 import { KPILineChart, KPIBarChart } from "@/components/charts";
@@ -44,7 +45,8 @@ export default function GMPInspectionsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <AuthGuard>
+      <DashboardLayout>
       {/* Requirement Toggle */}
       <RequirementToggle 
         enabled={showRequirements}
@@ -833,5 +835,6 @@ export default function GMPInspectionsPage() {
         </Card>
       </div>
     </DashboardLayout>
+    </AuthGuard>
   );
 }
