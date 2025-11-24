@@ -3,13 +3,14 @@
 import { useState } from "react";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { DashboardLayout } from "@/components/layout";
-import { KPICardWithRequirement, MetricGrid, RequirementToggle } from "@/components/kpi";
+import { KPICardWithRequirement, MetricGrid, RequirementToggle, KPIFilter, type KPIFilterState } from "@/components/kpi";
 import { KPILineChart, KPIBarChart } from "@/components/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { maKPIData } from "@/data/ma-dummy-data";
 import { getMARequirementByKpiId } from "@/data/ma-requirements-mapping";
+import { filterQuarterlyData, filterAnnualData, getFilteredQuarterlyValue, getFilteredAnnualValue, parseQuarter } from "@/lib/utils/kpi-filter";
 import {
   ClipboardCheckIcon,
   ClockIcon,
@@ -28,6 +29,33 @@ import {
 export default function MarketAuthorizationsPage() {
   const data = maKPIData;
   const [showRequirements, setShowRequirements] = useState(false);
+  const [filter, setFilter] = useState<KPIFilterState>({
+    mode: "quarterly",
+    quarter: "Q4",
+    year: 2024,
+  });
+
+  // Helper function to get filtered quarterly value for MA KPIs
+  const getFilteredMAQuarterly = (kpiData: typeof data.kpi1) => {
+    if (!kpiData.quarterlyData) return kpiData.currentQuarter;
+    const filtered = getFilteredQuarterlyValue(kpiData.quarterlyData.map(q => ({
+      quarter: q.quarter,
+      year: parseQuarter(q.quarter)?.year,
+      quarterNumber: parseQuarter(q.quarter)?.quarter,
+      ...q.value
+    })), filter);
+    return filtered || kpiData.currentQuarter;
+  };
+
+  // Helper function to get filtered annual value for MA KPIs
+  const getFilteredMAAnnual = (kpiData: typeof data.kpi6) => {
+    if (!kpiData.annualData) return kpiData.currentYear;
+    const filtered = getFilteredAnnualValue(kpiData.annualData.map(a => ({
+      year: a.year,
+      ...a.value
+    })), filter);
+    return filtered || kpiData.currentYear;
+  };
 
   // Helper function to get status based on percentage
   const getStatus = (percentage: number): "excellent" | "good" | "warning" | "critical" => {
@@ -59,6 +87,14 @@ export default function MarketAuthorizationsPage() {
           </p>
         </div>
 
+        {/* KPI Filter */}
+        <KPIFilter
+          reportingFrequency="Quarterly"
+          onFilterChange={setFilter}
+          defaultYear={2024}
+          defaultQuarter="Q4"
+        />
+
         {/* KPI 1: Percentage of New MA Applications Completed Within a Specified Time Period */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -79,36 +115,41 @@ export default function MarketAuthorizationsPage() {
             </div>
           </div>
 
-          <MetricGrid columns={3}>
-            <KPICardWithRequirement
-              title="Completion Rate"
-              value={data.kpi1.currentQuarter.percentage?.toFixed(1) || "0"}
-              suffix="%"
-              description="Applications completed on time"
-              icon={<ClipboardCheckIcon className="h-4 w-4" />}
-              status={getStatus(data.kpi1.currentQuarter.percentage || 0)}
-              requirement={getMARequirementByKpiId('ma-new-applications')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Completed on Time"
-              value={data.kpi1.currentQuarter.numerator}
-              description={data.kpi1.numeratorDescription}
-              icon={<CheckCircle2Icon className="h-4 w-4" />}
-              status="good"
-              requirement={getMARequirementByKpiId('ma-new-applications-num')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Total New Applications"
-              value={data.kpi1.currentQuarter.denominator}
-              description={data.kpi1.denominatorDescription}
-              icon={<ActivityIcon className="h-4 w-4" />}
-              status="good"
-              requirement={getMARequirementByKpiId('ma-new-applications-den')}
-              showRequirement={showRequirements}
-            />
-          </MetricGrid>
+          {(() => {
+            const filteredValue = getFilteredMAQuarterly(data.kpi1);
+            return (
+              <MetricGrid columns={3}>
+                <KPICardWithRequirement
+                  title="Completion Rate"
+                  value={filteredValue.percentage?.toFixed(1) || "0"}
+                  suffix="%"
+                  description="Applications completed on time"
+                  icon={<ClipboardCheckIcon className="h-4 w-4" />}
+                  status={getStatus(filteredValue.percentage || 0)}
+                  requirement={getMARequirementByKpiId('ma-new-applications')}
+                  showRequirement={showRequirements}
+                />
+                <KPICardWithRequirement
+                  title="Completed on Time"
+                  value={filteredValue.numerator}
+                  description={data.kpi1.numeratorDescription}
+                  icon={<CheckCircle2Icon className="h-4 w-4" />}
+                  status="good"
+                  requirement={getMARequirementByKpiId('ma-new-applications-num')}
+                  showRequirement={showRequirements}
+                />
+                <KPICardWithRequirement
+                  title="Total New Applications"
+                  value={filteredValue.denominator}
+                  description={data.kpi1.denominatorDescription}
+                  icon={<ActivityIcon className="h-4 w-4" />}
+                  status="good"
+                  requirement={getMARequirementByKpiId('ma-new-applications-den')}
+                  showRequirement={showRequirements}
+                />
+              </MetricGrid>
+            );
+          })()}
 
           {/* AMRH Extensions for KPI 1 */}
           {data.kpi1.amrhExtensions && (
@@ -159,9 +200,14 @@ export default function MarketAuthorizationsPage() {
             </Card>
 
             <KPIBarChart
-              data={data.kpi1.quarterlyData.map(item => ({
+              data={filterQuarterlyData(data.kpi1.quarterlyData.map(q => ({
+                quarter: q.quarter,
+                year: parseQuarter(q.quarter)?.year,
+                quarterNumber: parseQuarter(q.quarter)?.quarter,
+                ...q.value
+              })), filter).map(item => ({
                 name: item.quarter,
-                value: item.value.percentage || 0
+                value: item.percentage || 0
               }))}
               title="Quarterly Completion Rate"
               description="New MA applications completed on time"
@@ -460,17 +506,20 @@ export default function MarketAuthorizationsPage() {
             </div>
           </div>
 
-          <MetricGrid columns={2}>
-            <KPICardWithRequirement
-              title="Median Processing Time"
-              value={data.kpi6.currentYear.median?.toFixed(0) || "0"}
-              suffix=" days"
-              description="Median time to complete new MA"
-              icon={<ClockIcon className="h-4 w-4" />}
-              status="excellent"
-              requirement={getMARequirementByKpiId('ma-median-time')}
-              showRequirement={showRequirements}
-            />
+          {(() => {
+            const filteredValue = getFilteredMAAnnual(data.kpi6);
+            return (
+              <MetricGrid columns={2}>
+                <KPICardWithRequirement
+                  title="Median Processing Time"
+                  value={filteredValue.median?.toFixed(0) || "0"}
+                  suffix=" days"
+                  description="Median time to complete new MA"
+                  icon={<ClockIcon className="h-4 w-4" />}
+                  status="excellent"
+                  requirement={getMARequirementByKpiId('ma-median-time')}
+                  showRequirement={showRequirements}
+                />
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium">Formula</CardTitle>
@@ -480,6 +529,8 @@ export default function MarketAuthorizationsPage() {
               </CardContent>
             </Card>
           </MetricGrid>
+            );
+          })()}
 
           {/* AMRH Extensions for KPI 6 */}
           {data.kpi6.amrhExtensions && (
@@ -511,9 +562,12 @@ export default function MarketAuthorizationsPage() {
           )}
 
           <KPIBarChart
-            data={data.kpi6.annualData.map(item => ({
-              name: item.year,
-              value: item.value.median || 0
+            data={filterAnnualData(data.kpi6.annualData.map(a => ({
+              year: a.year,
+              ...a.value
+            })), filter).map(item => ({
+              name: item.year.toString(),
+              value: item.median || 0
             }))}
             title="Annual Median Processing Time"
             description="Year-over-year median completion time"
@@ -555,36 +609,41 @@ export default function MarketAuthorizationsPage() {
             </div>
           </div>
 
-          <MetricGrid columns={3}>
-            <KPICardWithRequirement
-              title="Average Processing Time"
-              value={data.kpi7.currentYear.average?.toFixed(1) || "0"}
-              suffix=" days"
-              description="Mean time to complete new MA"
-              icon={<ClockIcon className="h-4 w-4" />}
-              status="excellent"
-              requirement={getMARequirementByKpiId('ma-average-time')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Total Processing Days"
-              value={data.kpi7.currentYear.numerator.toLocaleString()}
-              description={data.kpi7.numeratorDescription}
-              icon={<BarChart3Icon className="h-4 w-4" />}
-              status="good"
-              requirement={getMARequirementByKpiId('ma-average-time-num')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Applications Completed"
-              value={data.kpi7.currentYear.denominator}
-              description={data.kpi7.denominatorDescription}
-              icon={<CheckCircle2Icon className="h-4 w-4" />}
-              status="good"
-              requirement={getMARequirementByKpiId('ma-average-time-den')}
-              showRequirement={showRequirements}
-            />
-          </MetricGrid>
+          {(() => {
+            const filteredValue = getFilteredMAAnnual(data.kpi7);
+            return (
+              <MetricGrid columns={3}>
+                <KPICardWithRequirement
+                  title="Average Processing Time"
+                  value={filteredValue.average?.toFixed(1) || "0"}
+                  suffix=" days"
+                  description="Mean time to complete new MA"
+                  icon={<ClockIcon className="h-4 w-4" />}
+                  status="excellent"
+                  requirement={getMARequirementByKpiId('ma-average-time')}
+                  showRequirement={showRequirements}
+                />
+                <KPICardWithRequirement
+                  title="Total Processing Days"
+                  value={filteredValue.numerator?.toLocaleString() || "0"}
+                  description={data.kpi7.numeratorDescription}
+                  icon={<BarChart3Icon className="h-4 w-4" />}
+                  status="good"
+                  requirement={getMARequirementByKpiId('ma-average-time-num')}
+                  showRequirement={showRequirements}
+                />
+                <KPICardWithRequirement
+                  title="Applications Completed"
+                  value={filteredValue.denominator || 0}
+                  description={data.kpi7.denominatorDescription}
+                  icon={<CheckCircle2Icon className="h-4 w-4" />}
+                  status="good"
+                  requirement={getMARequirementByKpiId('ma-average-time-den')}
+                  showRequirement={showRequirements}
+                />
+              </MetricGrid>
+            );
+          })()}
 
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
@@ -601,9 +660,12 @@ export default function MarketAuthorizationsPage() {
             </Card>
 
             <KPILineChart
-              data={data.kpi7.annualData.map(item => ({
-                date: item.year,
-                value: item.value.average || 0,
+              data={filterAnnualData(data.kpi7.annualData.map(a => ({
+                year: a.year,
+                ...a.value
+              })), filter).map(item => ({
+                date: item.year.toString(),
+                value: item.average || 0,
                 target: 160
               }))}
               title="Annual Average Processing Time"

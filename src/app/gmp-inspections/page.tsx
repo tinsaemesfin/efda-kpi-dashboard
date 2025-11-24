@@ -3,13 +3,14 @@
 import { useState } from "react";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { DashboardLayout } from "@/components/layout";
-import { KPICardWithRequirement, MetricGrid, RequirementToggle } from "@/components/kpi";
+import { KPICardWithRequirement, MetricGrid, RequirementToggle, KPIFilter, type KPIFilterState } from "@/components/kpi";
 import { KPILineChart, KPIBarChart } from "@/components/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { gmpKPIData } from "@/data/gmp-dummy-data";
 import { getGMPRequirementByKpiId } from "@/data/gmp-requirements-mapping";
+import { filterQuarterlyData, filterAnnualData, getFilteredQuarterlyValue, getFilteredAnnualValue, parseQuarter } from "@/lib/utils/kpi-filter";
 import {
   ShieldCheckIcon,
   ClockIcon,
@@ -25,6 +26,33 @@ import {
 export default function GMPInspectionsPage() {
   const data = gmpKPIData;
   const [showRequirements, setShowRequirements] = useState(false);
+  const [filter, setFilter] = useState<KPIFilterState>({
+    mode: "quarterly",
+    quarter: "Q4",
+    year: 2024,
+  });
+
+  // Helper function to get filtered quarterly value for GMP KPIs
+  const getFilteredGMPQuarterly = (kpiData: typeof data.kpi1) => {
+    if (!kpiData.quarterlyData) return kpiData.currentQuarter;
+    const filtered = getFilteredQuarterlyValue(kpiData.quarterlyData.map(q => ({
+      quarter: q.quarter,
+      year: parseQuarter(q.quarter)?.year,
+      quarterNumber: parseQuarter(q.quarter)?.quarter,
+      ...q.value
+    })), filter);
+    return filtered || kpiData.currentQuarter;
+  };
+
+  // Helper function to get filtered annual value for GMP KPIs
+  const getFilteredGMPAnnual = (kpiData: typeof data.kpi4) => {
+    if (!kpiData.annualData) return kpiData.currentYear;
+    const filtered = getFilteredAnnualValue(kpiData.annualData.map(a => ({
+      year: a.year,
+      ...a.value
+    })), filter);
+    return filtered || kpiData.currentYear;
+  };
 
   // Helper function to get status based on percentage
   const getStatus = (percentage: number): "excellent" | "good" | "warning" | "critical" => {
@@ -66,6 +94,14 @@ export default function GMPInspectionsPage() {
           </p>
         </div>
 
+        {/* KPI Filter */}
+        <KPIFilter
+          reportingFrequency="Quarterly"
+          onFilterChange={setFilter}
+          defaultYear={2024}
+          defaultQuarter="Q4"
+        />
+
         {/* KPI 1: Percentage of pharmaceutical manufacturing facilities inspected for GMP as per plan */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -86,36 +122,39 @@ export default function GMPInspectionsPage() {
             </div>
           </div>
 
-          <MetricGrid columns={4}>
-            <KPICardWithRequirement
-              title="Performance Rate"
-              value={data.kpi1.currentQuarter.percentage?.toFixed(1) || "0"}
-              suffix="%"
-              description={`${data.kpi1.numeratorDescription}`}
-              icon={<ShieldCheckIcon className="h-4 w-4" />}
-              status={getStatus(data.kpi1.currentQuarter.percentage || 0)}
-              requirement={getGMPRequirementByKpiId('gmp-facilities-inspected')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Facilities Inspected"
-              value={data.kpi1.currentQuarter.numerator}
-              description="As per the plan"
-              icon={<CheckCircle2Icon className="h-4 w-4" />}
-              status="good"
-              requirement={getGMPRequirementByKpiId('gmp-facilities-inspected')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Planned Inspections"
-              value={data.kpi1.currentQuarter.denominator}
-              description="Total facilities planned"
-              icon={<ActivityIcon className="h-4 w-4" />}
-              status="good"
-              requirement={getGMPRequirementByKpiId('gmp-facilities-inspected')}
-              showRequirement={showRequirements}
-            />
-            <Card>
+          {(() => {
+            const filteredValue = getFilteredGMPQuarterly(data.kpi1);
+            return (
+              <MetricGrid columns={4}>
+                <KPICardWithRequirement
+                  title="Performance Rate"
+                  value={filteredValue.percentage?.toFixed(1) || "0"}
+                  suffix="%"
+                  description={`${data.kpi1.numeratorDescription}`}
+                  icon={<ShieldCheckIcon className="h-4 w-4" />}
+                  status={getStatus(filteredValue.percentage || 0)}
+                  requirement={getGMPRequirementByKpiId('gmp-facilities-inspected')}
+                  showRequirement={showRequirements}
+                />
+                <KPICardWithRequirement
+                  title="Facilities Inspected"
+                  value={filteredValue.numerator}
+                  description="As per the plan"
+                  icon={<CheckCircle2Icon className="h-4 w-4" />}
+                  status="good"
+                  requirement={getGMPRequirementByKpiId('gmp-facilities-inspected')}
+                  showRequirement={showRequirements}
+                />
+                <KPICardWithRequirement
+                  title="Planned Inspections"
+                  value={filteredValue.denominator}
+                  description="Total facilities planned"
+                  icon={<ActivityIcon className="h-4 w-4" />}
+                  status="good"
+                  requirement={getGMPRequirementByKpiId('gmp-facilities-inspected')}
+                  showRequirement={showRequirements}
+                />
+                <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium">Formula</CardTitle>
               </CardHeader>
@@ -125,6 +164,8 @@ export default function GMPInspectionsPage() {
               </CardContent>
             </Card>
           </MetricGrid>
+            );
+          })()}
 
           {/* Disaggregations for KPI 1 */}
           <Card>
@@ -156,9 +197,14 @@ export default function GMPInspectionsPage() {
 
           {/* Quarterly Trends for KPI 1 */}
           <KPIBarChart
-            data={data.kpi1.quarterlyData.map(item => ({
+            data={filterQuarterlyData(data.kpi1.quarterlyData.map(q => ({
+              quarter: q.quarter,
+              year: parseQuarter(q.quarter)?.year,
+              quarterNumber: parseQuarter(q.quarter)?.quarter,
+              ...q.value
+            })), filter).map(item => ({
               name: item.quarter,
-              value: item.value.percentage || 0
+              value: item.percentage || 0
             }))}
             title="Quarterly Performance Trend"
             description="Percentage of facilities inspected as per plan"
@@ -187,36 +233,41 @@ export default function GMPInspectionsPage() {
             </div>
           </div>
 
-          <MetricGrid columns={3}>
-            <KPICardWithRequirement
-              title="Response Rate"
-              value={data.kpi2.currentQuarter.percentage?.toFixed(1) || "0"}
-              suffix="%"
-              description="Complaints addressed"
-              icon={<AlertTriangleIcon className="h-4 w-4" />}
-              status={getStatus(data.kpi2.currentQuarter.percentage || 0)}
-              requirement={getGMPRequirementByKpiId('gmp-complaint-inspections')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Inspections Conducted"
-              value={data.kpi2.currentQuarter.numerator}
-              description={data.kpi2.numeratorDescription}
-              icon={<CheckCircle2Icon className="h-4 w-4" />}
-              status="good"
-              requirement={getGMPRequirementByKpiId('gmp-complaint-inspections')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Complaints Requiring Inspection"
-              value={data.kpi2.currentQuarter.denominator}
-              description={data.kpi2.denominatorDescription}
-              icon={<ActivityIcon className="h-4 w-4" />}
-              status="good"
-              requirement={getGMPRequirementByKpiId('gmp-complaint-inspections')}
-              showRequirement={showRequirements}
-            />
-          </MetricGrid>
+          {(() => {
+            const filteredValue = getFilteredGMPQuarterly(data.kpi2);
+            return (
+              <MetricGrid columns={3}>
+                <KPICardWithRequirement
+                  title="Response Rate"
+                  value={filteredValue.percentage?.toFixed(1) || "0"}
+                  suffix="%"
+                  description="Complaints addressed"
+                  icon={<AlertTriangleIcon className="h-4 w-4" />}
+                  status={getStatus(filteredValue.percentage || 0)}
+                  requirement={getGMPRequirementByKpiId('gmp-complaint-inspections')}
+                  showRequirement={showRequirements}
+                />
+                <KPICardWithRequirement
+                  title="Inspections Conducted"
+                  value={filteredValue.numerator}
+                  description={data.kpi2.numeratorDescription}
+                  icon={<CheckCircle2Icon className="h-4 w-4" />}
+                  status="good"
+                  requirement={getGMPRequirementByKpiId('gmp-complaint-inspections')}
+                  showRequirement={showRequirements}
+                />
+                <KPICardWithRequirement
+                  title="Complaints Requiring Inspection"
+                  value={filteredValue.denominator}
+                  description={data.kpi2.denominatorDescription}
+                  icon={<ActivityIcon className="h-4 w-4" />}
+                  status="good"
+                  requirement={getGMPRequirementByKpiId('gmp-complaint-inspections')}
+                  showRequirement={showRequirements}
+                />
+              </MetricGrid>
+            );
+          })()}
 
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
@@ -238,9 +289,14 @@ export default function GMPInspectionsPage() {
             </Card>
 
             <KPILineChart
-              data={data.kpi2.quarterlyData.map(item => ({
+              data={filterQuarterlyData(data.kpi2.quarterlyData.map(q => ({
+                quarter: q.quarter,
+                year: parseQuarter(q.quarter)?.year,
+                quarterNumber: parseQuarter(q.quarter)?.quarter,
+                ...q.value
+              })), filter).map(item => ({
                 date: item.quarter,
-                value: item.value.percentage || 0,
+                value: item.percentage || 0,
                 target: 85
               }))}
               title="Quarterly Response Rate"
@@ -335,36 +391,41 @@ export default function GMPInspectionsPage() {
             </div>
           </div>
 
-          <MetricGrid columns={3}>
-            <KPICardWithRequirement
-              title="Compliance Rate"
-              value={data.kpi4.currentYear.percentage?.toFixed(1) || "0"}
-              suffix="%"
-              description="GMP compliance"
-              icon={<CheckCircle2Icon className="h-4 w-4" />}
-              status={getStatus(data.kpi4.currentYear.percentage || 0)}
-              requirement={getGMPRequirementByKpiId('gmp-facilities-compliant')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Compliant Facilities"
-              value={data.kpi4.currentYear.numerator}
-              description={data.kpi4.numeratorDescription}
-              icon={<CheckCircle2Icon className="h-4 w-4" />}
-              status="excellent"
-              requirement={getGMPRequirementByKpiId('gmp-facilities-compliant')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Total Facilities Inspected"
-              value={data.kpi4.currentYear.denominator}
-              description={data.kpi4.denominatorDescription}
-              icon={<ActivityIcon className="h-4 w-4" />}
-              status="good"
-              requirement={getGMPRequirementByKpiId('gmp-facilities-compliant')}
-              showRequirement={showRequirements}
-            />
-          </MetricGrid>
+          {(() => {
+            const filteredValue = getFilteredGMPAnnual(data.kpi4);
+            return (
+              <MetricGrid columns={3}>
+                <KPICardWithRequirement
+                  title="Compliance Rate"
+                  value={filteredValue.percentage?.toFixed(1) || "0"}
+                  suffix="%"
+                  description="GMP compliance"
+                  icon={<CheckCircle2Icon className="h-4 w-4" />}
+                  status={getStatus(filteredValue.percentage || 0)}
+                  requirement={getGMPRequirementByKpiId('gmp-facilities-compliant')}
+                  showRequirement={showRequirements}
+                />
+                <KPICardWithRequirement
+                  title="Compliant Facilities"
+                  value={filteredValue.numerator}
+                  description={data.kpi4.numeratorDescription}
+                  icon={<CheckCircle2Icon className="h-4 w-4" />}
+                  status="excellent"
+                  requirement={getGMPRequirementByKpiId('gmp-facilities-compliant')}
+                  showRequirement={showRequirements}
+                />
+                <KPICardWithRequirement
+                  title="Total Facilities Inspected"
+                  value={filteredValue.denominator}
+                  description={data.kpi4.denominatorDescription}
+                  icon={<ActivityIcon className="h-4 w-4" />}
+                  status="good"
+                  requirement={getGMPRequirementByKpiId('gmp-facilities-compliant')}
+                  showRequirement={showRequirements}
+                />
+              </MetricGrid>
+            );
+          })()}
 
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
@@ -384,9 +445,12 @@ export default function GMPInspectionsPage() {
             </Card>
 
             <KPILineChart
-              data={data.kpi4.annualData.map(item => ({
-                date: item.year,
-                value: item.value.percentage || 0,
+              data={filterAnnualData(data.kpi4.annualData.map(a => ({
+                year: a.year,
+                ...a.value
+              })), filter).map(item => ({
+                date: item.year.toString(),
+                value: item.percentage || 0,
                 target: 90
               }))}
               title="Annual Compliance Trend"

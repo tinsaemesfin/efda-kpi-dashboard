@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { DashboardLayout } from "@/components/layout";
-import { KPICardWithRequirement, MetricGrid, RequirementToggle } from "@/components/kpi";
+import { KPICardWithRequirement, MetricGrid, RequirementToggle, KPIFilter, type KPIFilterState } from "@/components/kpi";
 import { KPILineChart, KPIBarChart } from "@/components/charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { clinicalTrialKPIData, ctKPIMetadata } from "@/data/clinical-trial-dummy-data";
 import { getCTRequirementByKpiId } from "@/data/ct-requirements-mapping";
+import { filterQuarterlyData, filterAnnualData, getFilteredQuarterlyValue, getFilteredAnnualValue, formatQuarter } from "@/lib/utils/kpi-filter";
 import {
   FlaskConicalIcon,
   ClockIcon,
@@ -24,6 +25,46 @@ import {
 export default function ClinicalTrialsPage() {
   const data = clinicalTrialKPIData;
   const [showRequirements, setShowRequirements] = useState(false);
+  const [filter, setFilter] = useState<KPIFilterState>({
+    mode: "quarterly",
+    quarter: "Q4",
+    year: 2024,
+  });
+
+  // Helper function to get filtered quarterly data for a KPI
+  const getFilteredQuarterlyKPI = (kpiData: typeof data.kpi1) => {
+    if (!kpiData.quarterlyData) return kpiData;
+    const filtered = getFilteredQuarterlyValue(kpiData.quarterlyData, filter);
+    if (filtered) {
+      return {
+        ...kpiData,
+        numerator: filtered.numerator,
+        denominator: filtered.denominator,
+        percentage: filtered.percentage,
+      };
+    }
+    return kpiData;
+  };
+
+  // Helper function to get filtered annual data for a KPI
+  const getFilteredAnnualKPI = (kpiData: typeof data.kpi3) => {
+    if (!kpiData.annualData) return kpiData;
+    const filtered = getFilteredAnnualValue(kpiData.annualData, filter);
+    if (filtered) {
+      return {
+        ...kpiData,
+        numerator: filtered.numerator,
+        denominator: filtered.denominator,
+        percentage: filtered.percentage,
+      };
+    }
+    return kpiData;
+  };
+
+  // Filter chart data
+  const getFilteredChartData = (quarterlyData: typeof data.kpi1.quarterlyData) => {
+    return filterQuarterlyData(quarterlyData, filter);
+  };
 
   return (
     <AuthGuard>
@@ -47,6 +88,14 @@ export default function ClinicalTrialsPage() {
           </p>
         </div>
 
+        {/* KPI Filter */}
+        <KPIFilter
+          reportingFrequency="Quarterly"
+          onFilterChange={setFilter}
+          defaultYear={2024}
+          defaultQuarter="Q4"
+        />
+
         {/* KPI 1: % of new CT applications evaluated within timeline */}
         <Card>
           <CardHeader>
@@ -65,49 +114,57 @@ export default function ClinicalTrialsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <MetricGrid columns={3}>
-              <KPICardWithRequirement
-                title="Performance Rate"
-                value={data.kpi1.percentage}
-                suffix="%"
-                description={`${data.kpi1.numerator} of ${data.kpi1.denominator} evaluated on time`}
-                icon={<CheckCircle2Icon className="h-4 w-4" />}
-                status={data.kpi1.percentage >= 85 ? "excellent" : "warning"}
-                trend="up"
-                trendValue="+2.3%"
-                requirement={getCTRequirementByKpiId('ct-kpi-1')}
-                showRequirement={showRequirements}
-              />
-              <KPICardWithRequirement
-                title="Numerator"
-                value={data.kpi1.numerator}
-                description="Apps evaluated within timeline"
-                icon={<FileTextIcon className="h-4 w-4" />}
-                status="good"
-                requirement={getCTRequirementByKpiId('ct-kpi-1')}
-                showRequirement={showRequirements}
-              />
-              <KPICardWithRequirement
-                title="Denominator"
-                value={data.kpi1.denominator}
-                description="Total new CT apps received"
-                icon={<FileTextIcon className="h-4 w-4" />}
-                status="good"
-                requirement={getCTRequirementByKpiId('ct-kpi-1')}
-                showRequirement={showRequirements}
-              />
-            </MetricGrid>
-            <div className="mt-4">
-              <KPIBarChart
-                data={data.kpi1.quarterlyData.map(q => ({
-                  name: q.quarter,
-                  value: q.percentage,
-                  target: q.target
-                }))}
-                title="Quarterly Performance"
-                description="Performance by quarter against 85% target"
-              />
-            </div>
+            {(() => {
+              const filteredKPI = getFilteredQuarterlyKPI(data.kpi1);
+              const chartData = getFilteredChartData(data.kpi1.quarterlyData);
+              return (
+                <>
+                  <MetricGrid columns={3}>
+                    <KPICardWithRequirement
+                      title="Performance Rate"
+                      value={filteredKPI.percentage}
+                      suffix="%"
+                      description={`${filteredKPI.numerator} of ${filteredKPI.denominator} evaluated on time`}
+                      icon={<CheckCircle2Icon className="h-4 w-4" />}
+                      status={filteredKPI.percentage >= 85 ? "excellent" : "warning"}
+                      trend="up"
+                      trendValue="+2.3%"
+                      requirement={getCTRequirementByKpiId('ct-kpi-1')}
+                      showRequirement={showRequirements}
+                    />
+                    <KPICardWithRequirement
+                      title="Numerator"
+                      value={filteredKPI.numerator}
+                      description="Apps evaluated within timeline"
+                      icon={<FileTextIcon className="h-4 w-4" />}
+                      status="good"
+                      requirement={getCTRequirementByKpiId('ct-kpi-1')}
+                      showRequirement={showRequirements}
+                    />
+                    <KPICardWithRequirement
+                      title="Denominator"
+                      value={filteredKPI.denominator}
+                      description="Total new CT apps received"
+                      icon={<FileTextIcon className="h-4 w-4" />}
+                      status="good"
+                      requirement={getCTRequirementByKpiId('ct-kpi-1')}
+                      showRequirement={showRequirements}
+                    />
+                  </MetricGrid>
+                  <div className="mt-4">
+                    <KPIBarChart
+                      data={chartData.map(q => ({
+                        name: q.quarter,
+                        value: q.percentage,
+                        target: q.target
+                      }))}
+                      title="Quarterly Performance"
+                      description="Performance by quarter against 85% target"
+                    />
+                  </div>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -129,49 +186,57 @@ export default function ClinicalTrialsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <MetricGrid columns={3}>
-              <KPICardWithRequirement
-                title="Performance Rate"
-                value={data.kpi2.percentage}
-                suffix="%"
-                description={`${data.kpi2.numerator} of ${data.kpi2.denominator} amendments reviewed on time`}
-                icon={<CheckCircle2Icon className="h-4 w-4" />}
-                status={data.kpi2.percentage >= 85 ? "excellent" : "warning"}
-                trend="up"
-                trendValue="+1.8%"
-                requirement={getCTRequirementByKpiId('ct-kpi-2')}
-                showRequirement={showRequirements}
-              />
-              <KPICardWithRequirement
-                title="Numerator"
-                value={data.kpi2.numerator}
-                description="Amendments evaluated on time"
-                icon={<ClipboardListIcon className="h-4 w-4" />}
-                status="good"
-                requirement={getCTRequirementByKpiId('ct-kpi-2')}
-                showRequirement={showRequirements}
-              />
-              <KPICardWithRequirement
-                title="Denominator"
-                value={data.kpi2.denominator}
-                description="Total amendments received"
-                icon={<ClipboardListIcon className="h-4 w-4" />}
-                status="good"
-                requirement={getCTRequirementByKpiId('ct-kpi-2')}
-                showRequirement={showRequirements}
-              />
-            </MetricGrid>
-            <div className="mt-4">
-              <KPIBarChart
-                data={data.kpi2.quarterlyData.map(q => ({
-                  name: q.quarter,
-                  value: q.percentage,
-                  target: q.target
-                }))}
-                title="Quarterly Amendment Review Performance"
-                description="Protocol amendments evaluated within specified timelines"
-              />
-            </div>
+            {(() => {
+              const filteredKPI = getFilteredQuarterlyKPI(data.kpi2);
+              const chartData = getFilteredChartData(data.kpi2.quarterlyData);
+              return (
+                <>
+                  <MetricGrid columns={3}>
+                    <KPICardWithRequirement
+                      title="Performance Rate"
+                      value={filteredKPI.percentage}
+                      suffix="%"
+                      description={`${filteredKPI.numerator} of ${filteredKPI.denominator} amendments reviewed on time`}
+                      icon={<CheckCircle2Icon className="h-4 w-4" />}
+                      status={filteredKPI.percentage >= 85 ? "excellent" : "warning"}
+                      trend="up"
+                      trendValue="+1.8%"
+                      requirement={getCTRequirementByKpiId('ct-kpi-2')}
+                      showRequirement={showRequirements}
+                    />
+                    <KPICardWithRequirement
+                      title="Numerator"
+                      value={filteredKPI.numerator}
+                      description="Amendments evaluated on time"
+                      icon={<ClipboardListIcon className="h-4 w-4" />}
+                      status="good"
+                      requirement={getCTRequirementByKpiId('ct-kpi-2')}
+                      showRequirement={showRequirements}
+                    />
+                    <KPICardWithRequirement
+                      title="Denominator"
+                      value={filteredKPI.denominator}
+                      description="Total amendments received"
+                      icon={<ClipboardListIcon className="h-4 w-4" />}
+                      status="good"
+                      requirement={getCTRequirementByKpiId('ct-kpi-2')}
+                      showRequirement={showRequirements}
+                    />
+                  </MetricGrid>
+                  <div className="mt-4">
+                    <KPIBarChart
+                      data={chartData.map(q => ({
+                        name: q.quarter,
+                        value: q.percentage,
+                        target: q.target
+                      }))}
+                      title="Quarterly Amendment Review Performance"
+                      description="Protocol amendments evaluated within specified timelines"
+                    />
+                  </div>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -193,49 +258,57 @@ export default function ClinicalTrialsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <MetricGrid columns={3}>
-              <KPICardWithRequirement
-                title="Inspection Completion Rate"
-                value={data.kpi3.percentage}
-                suffix="%"
-                description={`${data.kpi3.numerator} of ${data.kpi3.denominator} planned inspections completed`}
-                icon={<CheckCircle2Icon className="h-4 w-4" />}
-                status={data.kpi3.percentage >= 80 ? "excellent" : "warning"}
-                trend="up"
-                trendValue="+3.0%"
-                requirement={getCTRequirementByKpiId('ct-kpi-3')}
-                showRequirement={showRequirements}
-              />
-              <KPICardWithRequirement
-                title="Inspections Completed"
-                value={data.kpi3.numerator}
-                description="GCP inspections conducted"
-                icon={<ShieldCheckIcon className="h-4 w-4" />}
-                status="good"
-                requirement={getCTRequirementByKpiId('ct-kpi-3')}
-                showRequirement={showRequirements}
-              />
-              <KPICardWithRequirement
-                title="Scheduled Inspections"
-                value={data.kpi3.denominator}
-                description="Total planned for the year"
-                icon={<ShieldCheckIcon className="h-4 w-4" />}
-                status="good"
-                requirement={getCTRequirementByKpiId('ct-kpi-3')}
-                showRequirement={showRequirements}
-              />
-            </MetricGrid>
-            <div className="mt-4">
-              <KPILineChart
-                data={data.kpi3.annualData.map(y => ({
-                  date: y.year.toString(),
-                  value: y.percentage,
-                  target: y.target
-                }))}
-                title="Annual GCP Inspection Performance"
-                description="Inspection completion trend over years"
-              />
-            </div>
+            {(() => {
+              const filteredKPI = getFilteredAnnualKPI(data.kpi3);
+              const chartData = filterAnnualData(data.kpi3.annualData, filter);
+              return (
+                <>
+                  <MetricGrid columns={3}>
+                    <KPICardWithRequirement
+                      title="Inspection Completion Rate"
+                      value={filteredKPI.percentage}
+                      suffix="%"
+                      description={`${filteredKPI.numerator} of ${filteredKPI.denominator} planned inspections completed`}
+                      icon={<CheckCircle2Icon className="h-4 w-4" />}
+                      status={filteredKPI.percentage >= 80 ? "excellent" : "warning"}
+                      trend="up"
+                      trendValue="+3.0%"
+                      requirement={getCTRequirementByKpiId('ct-kpi-3')}
+                      showRequirement={showRequirements}
+                    />
+                    <KPICardWithRequirement
+                      title="Inspections Completed"
+                      value={filteredKPI.numerator}
+                      description="GCP inspections conducted"
+                      icon={<ShieldCheckIcon className="h-4 w-4" />}
+                      status="good"
+                      requirement={getCTRequirementByKpiId('ct-kpi-3')}
+                      showRequirement={showRequirements}
+                    />
+                    <KPICardWithRequirement
+                      title="Scheduled Inspections"
+                      value={filteredKPI.denominator}
+                      description="Total planned for the year"
+                      icon={<ShieldCheckIcon className="h-4 w-4" />}
+                      status="good"
+                      requirement={getCTRequirementByKpiId('ct-kpi-3')}
+                      showRequirement={showRequirements}
+                    />
+                  </MetricGrid>
+                  <div className="mt-4">
+                    <KPILineChart
+                      data={chartData.map(y => ({
+                        date: y.year.toString(),
+                        value: y.percentage,
+                        target: y.target
+                      }))}
+                      title="Annual GCP Inspection Performance"
+                      description="Inspection completion trend over years"
+                    />
+                  </div>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -257,38 +330,43 @@ export default function ClinicalTrialsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <MetricGrid columns={3}>
-              <KPICardWithRequirement
-                title="Assessment Rate"
-                value={data.kpi4.percentage}
-                suffix="%"
-                description={`${data.kpi4.numerator} of ${data.kpi4.denominator} reports assessed on time`}
-                icon={<CheckCircle2Icon className="h-4 w-4" />}
-                status={data.kpi4.percentage >= 85 ? "excellent" : "warning"}
-                trend="up"
-                trendValue="+4.1%"
-                requirement={getCTRequirementByKpiId('ct-kpi-4')}
-                showRequirement={showRequirements}
-              />
-              <KPICardWithRequirement
-                title="Reports Assessed"
-                value={data.kpi4.numerator}
-                description="Assessed within timeline"
-                icon={<AlertCircleIcon className="h-4 w-4" />}
-                status="good"
-                requirement={getCTRequirementByKpiId('ct-kpi-4')}
-                showRequirement={showRequirements}
-              />
-              <KPICardWithRequirement
-                title="Total Reports"
-                value={data.kpi4.denominator}
-                description="Safety reports received"
-                icon={<AlertCircleIcon className="h-4 w-4" />}
-                status="good"
-                requirement={getCTRequirementByKpiId('ct-kpi-4')}
-                showRequirement={showRequirements}
-              />
-            </MetricGrid>
+            {(() => {
+              const filteredKPI = getFilteredQuarterlyKPI(data.kpi4);
+              return (
+                <MetricGrid columns={3}>
+                  <KPICardWithRequirement
+                    title="Assessment Rate"
+                    value={filteredKPI.percentage}
+                    suffix="%"
+                    description={`${filteredKPI.numerator} of ${filteredKPI.denominator} reports assessed on time`}
+                    icon={<CheckCircle2Icon className="h-4 w-4" />}
+                    status={filteredKPI.percentage >= 85 ? "excellent" : "warning"}
+                    trend="up"
+                    trendValue="+4.1%"
+                    requirement={getCTRequirementByKpiId('ct-kpi-4')}
+                    showRequirement={showRequirements}
+                  />
+                  <KPICardWithRequirement
+                    title="Reports Assessed"
+                    value={filteredKPI.numerator}
+                    description="Assessed within timeline"
+                    icon={<AlertCircleIcon className="h-4 w-4" />}
+                    status="good"
+                    requirement={getCTRequirementByKpiId('ct-kpi-4')}
+                    showRequirement={showRequirements}
+                  />
+                  <KPICardWithRequirement
+                    title="Total Reports"
+                    value={filteredKPI.denominator}
+                    description="Safety reports received"
+                    icon={<AlertCircleIcon className="h-4 w-4" />}
+                    status="good"
+                    requirement={getCTRequirementByKpiId('ct-kpi-4')}
+                    showRequirement={showRequirements}
+                  />
+                </MetricGrid>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -310,37 +388,42 @@ export default function ClinicalTrialsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <MetricGrid columns={3}>
-              <KPICardWithRequirement
-                title="GCP Compliance Rate"
-                value={data.kpi5.percentage}
-                suffix="%"
-                description={`${data.kpi5.numerator} of ${data.kpi5.denominator} CTs compliant`}
-                icon={<CheckCircle2Icon className="h-4 w-4" />}
-                status={data.kpi5.percentage >= 80 ? "excellent" : "warning"}
-                trend="stable"
-                requirement={getCTRequirementByKpiId('ct-kpi-5')}
-                showRequirement={showRequirements}
-              />
-              <KPICardWithRequirement
-                title="Compliant CTs"
-                value={data.kpi5.numerator}
-                description="Meeting GCP standards"
-                icon={<ShieldCheckIcon className="h-4 w-4" />}
-                status="excellent"
-                requirement={getCTRequirementByKpiId('ct-kpi-5')}
-                showRequirement={showRequirements}
-              />
-              <KPICardWithRequirement
-                title="CTs Inspected"
-                value={data.kpi5.denominator}
-                description="Total inspected for GCP"
-                icon={<ShieldCheckIcon className="h-4 w-4" />}
-                status="good"
-                requirement={getCTRequirementByKpiId('ct-kpi-5')}
-                showRequirement={showRequirements}
-              />
-            </MetricGrid>
+            {(() => {
+              const filteredKPI = getFilteredQuarterlyKPI(data.kpi5);
+              return (
+                <MetricGrid columns={3}>
+                  <KPICardWithRequirement
+                    title="GCP Compliance Rate"
+                    value={filteredKPI.percentage}
+                    suffix="%"
+                    description={`${filteredKPI.numerator} of ${filteredKPI.denominator} CTs compliant`}
+                    icon={<CheckCircle2Icon className="h-4 w-4" />}
+                    status={filteredKPI.percentage >= 80 ? "excellent" : "warning"}
+                    trend="stable"
+                    requirement={getCTRequirementByKpiId('ct-kpi-5')}
+                    showRequirement={showRequirements}
+                  />
+                  <KPICardWithRequirement
+                    title="Compliant CTs"
+                    value={filteredKPI.numerator}
+                    description="Meeting GCP standards"
+                    icon={<ShieldCheckIcon className="h-4 w-4" />}
+                    status="excellent"
+                    requirement={getCTRequirementByKpiId('ct-kpi-5')}
+                    showRequirement={showRequirements}
+                  />
+                  <KPICardWithRequirement
+                    title="CTs Inspected"
+                    value={filteredKPI.denominator}
+                    description="Total inspected for GCP"
+                    icon={<ShieldCheckIcon className="h-4 w-4" />}
+                    status="good"
+                    requirement={getCTRequirementByKpiId('ct-kpi-5')}
+                    showRequirement={showRequirements}
+                  />
+                </MetricGrid>
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -357,16 +440,21 @@ export default function ClinicalTrialsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <KPICardWithRequirement
-                title="Registry Publication Rate"
-                value={data.kpi6.percentage}
-                suffix="%"
-                description={`${data.kpi6.numerator}/${data.kpi6.denominator} published`}
-                icon={<CheckCircle2Icon className="h-4 w-4" />}
-                status="excellent"
-                requirement={getCTRequirementByKpiId('ct-kpi-6')}
-                showRequirement={showRequirements}
-              />
+              {(() => {
+                const filteredKPI = getFilteredQuarterlyKPI(data.kpi6);
+                return (
+                  <KPICardWithRequirement
+                    title="Registry Publication Rate"
+                    value={filteredKPI.percentage}
+                    suffix="%"
+                    description={`${filteredKPI.numerator}/${filteredKPI.denominator} published`}
+                    icon={<CheckCircle2Icon className="h-4 w-4" />}
+                    status="excellent"
+                    requirement={getCTRequirementByKpiId('ct-kpi-6')}
+                    showRequirement={showRequirements}
+                  />
+                );
+              })()}
             </CardContent>
           </Card>
 
@@ -381,16 +469,21 @@ export default function ClinicalTrialsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <KPICardWithRequirement
-                title="CAPA Evaluation Rate"
-                value={data.kpi7.percentage}
-                suffix="%"
-                description={`${data.kpi7.numerator}/${data.kpi7.denominator} evaluated`}
-                icon={<CheckCircle2Icon className="h-4 w-4" />}
-                status="excellent"
-                requirement={getCTRequirementByKpiId('ct-kpi-7')}
-                showRequirement={showRequirements}
-              />
+              {(() => {
+                const filteredKPI = getFilteredQuarterlyKPI(data.kpi7);
+                return (
+                  <KPICardWithRequirement
+                    title="CAPA Evaluation Rate"
+                    value={filteredKPI.percentage}
+                    suffix="%"
+                    description={`${filteredKPI.numerator}/${filteredKPI.denominator} evaluated`}
+                    icon={<CheckCircle2Icon className="h-4 w-4" />}
+                    status="excellent"
+                    requirement={getCTRequirementByKpiId('ct-kpi-7')}
+                    showRequirement={showRequirements}
+                  />
+                );
+              })()}
             </CardContent>
           </Card>
 
@@ -405,18 +498,29 @@ export default function ClinicalTrialsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <KPICardWithRequirement
-                title="Average Time"
-                value={data.kpi8.averageDays}
-                suffix=" days"
-                description={`Target: 60 days`}
-                icon={<ClockIcon className="h-4 w-4" />}
-                status={data.kpi8.averageDays <= 60 ? "excellent" : "warning"}
-                trend="down"
-                trendValue="-3.2 days"
-                requirement={getCTRequirementByKpiId('ct-kpi-8')}
-                showRequirement={showRequirements}
-              />
+              {(() => {
+                const filteredQuarterly = getFilteredQuarterlyValue(data.kpi8.quarterlyData.map(q => ({
+                  quarter: q.quarter,
+                  year: q.year,
+                  quarterNumber: q.quarterNumber,
+                  averageDays: q.averageDays
+                })), filter);
+                const averageDays = filteredQuarterly?.averageDays || data.kpi8.averageDays;
+                return (
+                  <KPICardWithRequirement
+                    title="Average Time"
+                    value={averageDays}
+                    suffix=" days"
+                    description={`Target: 60 days`}
+                    icon={<ClockIcon className="h-4 w-4" />}
+                    status={averageDays <= 60 ? "excellent" : "warning"}
+                    trend="down"
+                    trendValue="-3.2 days"
+                    requirement={getCTRequirementByKpiId('ct-kpi-8')}
+                    showRequirement={showRequirements}
+                  />
+                );
+              })()}
             </CardContent>
           </Card>
         </div>
