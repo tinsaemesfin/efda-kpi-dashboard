@@ -169,25 +169,27 @@ export function KPIFilter({
             </div>
           )}
 
-          {/* Year Selection */}
-          <div className="flex flex-col gap-2 min-w-[120px]">
-            <label className="text-xs font-medium text-muted-foreground">Year</label>
-            <Select
-              value={filter.year?.toString()}
-              onValueChange={(value) => handleYearChange(parseInt(value))}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map((year) => (
-                  <SelectItem key={year} value={year.toString()}>
-                    {year}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Year Selection - only show when NOT in date-range mode */}
+          {filter.mode !== "date-range" && (
+            <div className="flex flex-col gap-2 min-w-[120px]">
+              <label className="text-xs font-medium text-muted-foreground">Year</label>
+              <Select
+                value={filter.year?.toString()}
+                onValueChange={(value) => handleYearChange(parseInt(value))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Date Range Selection */}
           {filter.mode === "date-range" && (
@@ -237,4 +239,6 @@ export function KPIFilter({
     </Card>
   );
 }
+
+
 

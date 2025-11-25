@@ -150,3 +150,5 @@ export function getFilteredAnnualValue<T extends AnnualDataPoint>(
   return filtered.length > 0 ? filtered[filtered.length - 1] : null;
 }
 
+
+
