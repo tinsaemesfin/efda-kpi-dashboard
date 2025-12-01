@@ -33,14 +33,17 @@ export default function GMPInspectionsPage() {
   });
 
   // Helper function to get filtered quarterly value for GMP KPIs
-  const getFilteredGMPQuarterly = (kpiData: typeof data.kpi1) => {
+  const getFilteredGMPQuarterly = <T extends { quarterlyData?: typeof data.kpi1.quarterlyData; currentQuarter: typeof data.kpi1.currentQuarter }>(kpiData: T): T['currentQuarter'] => {
     if (!kpiData.quarterlyData) return kpiData.currentQuarter;
-    const filtered = getFilteredQuarterlyValue(kpiData.quarterlyData.map(q => ({
-      quarter: q.quarter,
-      year: parseQuarter(q.quarter)?.year,
-      quarterNumber: parseQuarter(q.quarter)?.quarter,
-      ...q.value
-    })), filter);
+    const filtered = getFilteredQuarterlyValue(kpiData.quarterlyData.map(q => {
+      const parsed = parseQuarter(q.quarter);
+      return {
+        quarter: q.quarter,
+        year: parsed?.year,
+        quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+        ...q.value
+      };
+    }), filter);
     return filtered || kpiData.currentQuarter;
   };
 
@@ -79,7 +82,7 @@ export default function GMPInspectionsPage() {
       <RequirementToggle 
         enabled={showRequirements}
         onChange={setShowRequirements}
-        category="GMP Inspections"
+        category="GMP Inspection"
       />
       
       <div className="space-y-8">
@@ -197,12 +200,15 @@ export default function GMPInspectionsPage() {
 
           {/* Quarterly Trends for KPI 1 */}
           <KPIBarChart
-            data={filterQuarterlyData(data.kpi1.quarterlyData.map(q => ({
-              quarter: q.quarter,
-              year: parseQuarter(q.quarter)?.year,
-              quarterNumber: parseQuarter(q.quarter)?.quarter,
-              ...q.value
-            })), filter).map(item => ({
+            data={filterQuarterlyData(data.kpi1.quarterlyData.map(q => {
+              const parsed = parseQuarter(q.quarter);
+              return {
+                quarter: q.quarter,
+                year: parsed?.year,
+                quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+                ...q.value
+              };
+            }), filter).map(item => ({
               name: item.quarter,
               value: item.percentage || 0
             }))}
@@ -289,12 +295,15 @@ export default function GMPInspectionsPage() {
             </Card>
 
             <KPILineChart
-              data={filterQuarterlyData(data.kpi2.quarterlyData.map(q => ({
-                quarter: q.quarter,
-                year: parseQuarter(q.quarter)?.year,
-                quarterNumber: parseQuarter(q.quarter)?.quarter,
-                ...q.value
-              })), filter).map(item => ({
+              data={filterQuarterlyData(data.kpi2.quarterlyData.map(q => {
+                const parsed = parseQuarter(q.quarter);
+                return {
+                  quarter: q.quarter,
+                  year: parsed?.year,
+                  quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+                  ...q.value
+                };
+              }), filter).map(item => ({
                 date: item.quarter,
                 value: item.percentage || 0,
                 target: 85

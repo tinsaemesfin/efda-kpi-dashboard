@@ -71,7 +71,7 @@ export default function HomeContent() {
             {profile && (
               <div className="text-right">
                 <p className="text-sm font-medium">Welcome, {profile.given_name || profile.email}</p>
-                {profile.role && <p className="text-xs text-muted-foreground">{profile.role}</p>}
+                {profile.role ? <p className="text-xs text-muted-foreground">{String(profile.role)}</p> : null}
               </div>
             )}
           </div>
@@ -119,11 +119,11 @@ export default function HomeContent() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Facilities Inspected</span>
-                  <span className="text-2xl font-bold text-green-600">{gmpData.kpi1.currentQuarter.percentage}%</span>
+                  <span className="text-2xl font-bold text-green-600">{gmpData.kpi1.currentQuarter.percentage?.toFixed(1) || "0"}%</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Facility Compliance</span>
-                  <span className="text-lg font-semibold">{gmpData.kpi4.currentYear.percentage}%</span>
+                  <span className="text-lg font-semibold">{gmpData.kpi4.currentYear.percentage?.toFixed(1) || "0"}%</span>
                 </div>
                 <Link 
                   href="/gmp-inspections" 
@@ -212,11 +212,11 @@ export default function HomeContent() {
             />
             <KPICard
               title="Avg Turnaround Time"
-              value={ctData.kpi8.average}
+              value={ctData.kpi8.averageDays}
               suffix=" days"
-              description={`Target: ${ctData.kpi8.target} days`}
+              description="Target: 60 days"
               icon={<ClockIcon className="h-4 w-4" />}
-              status={ctData.kpi8.average <= ctData.kpi8.target ? "excellent" : "good"}
+              status={ctData.kpi8.averageDays <= 60 ? "excellent" : "good"}
             />
           </MetricGrid>
 
@@ -270,37 +270,37 @@ export default function HomeContent() {
           <MetricGrid columns={4}>
             <KPICard
               title="Facilities Inspected as per Plan"
-              value={gmpData.kpi1.currentQuarter.percentage}
+              value={gmpData.kpi1.currentQuarter.percentage?.toFixed(1) || "0"}
               suffix="%"
               description={`${gmpData.kpi1.currentQuarter.numerator}/${gmpData.kpi1.currentQuarter.denominator} facilities`}
               icon={<CheckCircle2Icon className="h-4 w-4" />}
-              status={gmpData.kpi1.currentQuarter.percentage >= 90 ? "excellent" : "good"}
+              status={(gmpData.kpi1.currentQuarter.percentage || 0) >= 90 ? "excellent" : "good"}
               trend={gmpData.kpi1.quarterlyData && gmpData.kpi1.quarterlyData.length >= 2 ? "up" : undefined}
-              trendValue={calculateTrend(gmpData.kpi1.currentQuarter.percentage, gmpData.kpi1.quarterlyData)}
+              trendValue={calculateTrend(gmpData.kpi1.currentQuarter.percentage || 0, gmpData.kpi1.quarterlyData)}
             />
             <KPICard
               title="GMP Compliance Rate"
-              value={gmpData.kpi4.currentYear.percentage}
+              value={gmpData.kpi4.currentYear.percentage?.toFixed(1) || "0"}
               suffix="%"
               description={`${gmpData.kpi4.currentYear.numerator}/${gmpData.kpi4.currentYear.denominator} compliant`}
               icon={<ShieldCheckIcon className="h-4 w-4" />}
-              status={gmpData.kpi4.currentYear.percentage >= 85 ? "excellent" : "good"}
+              status={(gmpData.kpi4.currentYear.percentage || 0) >= 85 ? "excellent" : "good"}
             />
             <KPICard
               title="CAPA Decisions on Time"
-              value={gmpData.kpi5.currentQuarter.percentage}
+              value={gmpData.kpi5.currentQuarter.percentage?.toFixed(1) || "0"}
               suffix="%"
               description={`${gmpData.kpi5.currentQuarter.numerator}/${gmpData.kpi5.currentQuarter.denominator} CAPA`}
               icon={<ClockIcon className="h-4 w-4" />}
-              status={gmpData.kpi5.currentQuarter.percentage >= 90 ? "excellent" : "good"}
+              status={(gmpData.kpi5.currentQuarter.percentage || 0) >= 90 ? "excellent" : "good"}
             />
             <KPICard
               title="Avg Turnaround Time"
-              value={gmpData.kpi7.currentQuarter.average}
+              value={gmpData.kpi7.currentQuarter.average?.toFixed(1) || "0"}
               suffix=" days"
-              description={`Target: ${gmpData.kpi7.target} days`}
+              description="Target: 60 days"
               icon={<BarChart3Icon className="h-4 w-4" />}
-              status={(gmpData.kpi7.currentQuarter.average || 0) <= gmpData.kpi7.target ? "excellent" : "good"}
+              status={(gmpData.kpi7.currentQuarter.average || 0) <= 60 ? "excellent" : "good"}
             />
           </MetricGrid>
 
@@ -312,7 +312,7 @@ export default function HomeContent() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold">{gmpData.kpi2.currentQuarter.percentage}%</span>
+                  <span className="text-3xl font-bold">{gmpData.kpi2.currentQuarter.percentage?.toFixed(1) || "0"}%</span>
                   <span className="text-sm text-muted-foreground">({gmpData.kpi2.currentQuarter.numerator}/{gmpData.kpi2.currentQuarter.denominator})</span>
                 </div>
               </CardContent>
@@ -324,7 +324,7 @@ export default function HomeContent() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold">{gmpData.kpi6.currentQuarter.percentage}%</span>
+                  <span className="text-3xl font-bold">{gmpData.kpi6.currentQuarter.percentage?.toFixed(1) || "0"}%</span>
                   <span className="text-sm text-muted-foreground">({gmpData.kpi6.currentQuarter.numerator}/{gmpData.kpi6.currentQuarter.denominator})</span>
                 </div>
               </CardContent>
@@ -354,7 +354,7 @@ export default function HomeContent() {
           <MetricGrid columns={4}>
             <KPICard
               title="New MA Applications"
-              value={maData.kpi1.currentQuarter.percentage?.toFixed(1)}
+              value={maData.kpi1.currentQuarter.percentage?.toFixed(1) || "0"}
               suffix="%"
               description={`${maData.kpi1.currentQuarter.numerator}/${maData.kpi1.currentQuarter.denominator} on time`}
               icon={<CheckCircle2Icon className="h-4 w-4" />}
@@ -368,7 +368,7 @@ export default function HomeContent() {
             />
             <KPICard
               title="Renewal Applications"
-              value={maData.kpi2.currentQuarter.percentage?.toFixed(1)}
+              value={maData.kpi2.currentQuarter.percentage?.toFixed(1) || "0"}
               suffix="%"
               description={`${maData.kpi2.currentQuarter.numerator}/${maData.kpi2.currentQuarter.denominator} renewals`}
               icon={<ActivityIcon className="h-4 w-4" />}
@@ -376,7 +376,7 @@ export default function HomeContent() {
             />
             <KPICard
               title="Median Processing Time"
-              value={maData.kpi6.currentYear.median?.toFixed(0)}
+              value={maData.kpi6.currentYear.median?.toFixed(0) || "0"}
               suffix=" days"
               description="New MA applications"
               icon={<ClockIcon className="h-4 w-4" />}
@@ -384,7 +384,7 @@ export default function HomeContent() {
             />
             <KPICard
               title="PARs Published"
-              value={maData.kpi8.currentQuarter.percentage?.toFixed(1)}
+              value={maData.kpi8.currentQuarter.percentage?.toFixed(1) || "0"}
               suffix="%"
               description={`${maData.kpi8.currentQuarter.numerator}/${maData.kpi8.currentQuarter.denominator} reports`}
               icon={<FileTextIcon className="h-4 w-4" />}

@@ -70,11 +70,11 @@ export function DashboardHeader() {
                     <p className="text-xs leading-none text-muted-foreground">
                       {profile.email || 'No email'}
                     </p>
-                    {profile.role && (
+                    {profile.role ? (
                       <p className="text-xs leading-none text-muted-foreground">
-                        {profile.role}
+                        {String(profile.role)}
                       </p>
-                    )}
+                    ) : null}
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />

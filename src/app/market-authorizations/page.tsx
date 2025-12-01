@@ -36,19 +36,22 @@ export default function MarketAuthorizationsPage() {
   });
 
   // Helper function to get filtered quarterly value for MA KPIs
-  const getFilteredMAQuarterly = (kpiData: typeof data.kpi1) => {
+  const getFilteredMAQuarterly = <T extends { quarterlyData?: typeof data.kpi1.quarterlyData; currentQuarter: typeof data.kpi1.currentQuarter }>(kpiData: T): T['currentQuarter'] => {
     if (!kpiData.quarterlyData) return kpiData.currentQuarter;
-    const filtered = getFilteredQuarterlyValue(kpiData.quarterlyData.map(q => ({
-      quarter: q.quarter,
-      year: parseQuarter(q.quarter)?.year,
-      quarterNumber: parseQuarter(q.quarter)?.quarter,
-      ...q.value
-    })), filter);
+    const filtered = getFilteredQuarterlyValue(kpiData.quarterlyData.map(q => {
+      const parsed = parseQuarter(q.quarter);
+      return {
+        quarter: q.quarter,
+        year: parsed?.year,
+        quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+        ...q.value
+      };
+    }), filter);
     return filtered || kpiData.currentQuarter;
   };
 
   // Helper function to get filtered annual value for MA KPIs
-  const getFilteredMAAnnual = (kpiData: typeof data.kpi6) => {
+  const getFilteredMAAnnual = <T extends { annualData?: typeof data.kpi6.annualData; currentYear: typeof data.kpi6.currentYear }>(kpiData: T): T['currentYear'] => {
     if (!kpiData.annualData) return kpiData.currentYear;
     const filtered = getFilteredAnnualValue(kpiData.annualData.map(a => ({
       year: a.year,
@@ -72,7 +75,7 @@ export default function MarketAuthorizationsPage() {
       <RequirementToggle 
         enabled={showRequirements}
         onChange={setShowRequirements}
-        category="Market Authorizations"
+        category="Market Authorization"
       />
       
       <div className="space-y-8">
@@ -200,12 +203,15 @@ export default function MarketAuthorizationsPage() {
             </Card>
 
             <KPIBarChart
-              data={filterQuarterlyData(data.kpi1.quarterlyData.map(q => ({
-                quarter: q.quarter,
-                year: parseQuarter(q.quarter)?.year,
-                quarterNumber: parseQuarter(q.quarter)?.quarter,
-                ...q.value
-              })), filter).map(item => ({
+              data={filterQuarterlyData(data.kpi1.quarterlyData.map(q => {
+                const parsed = parseQuarter(q.quarter);
+                return {
+                  quarter: q.quarter,
+                  year: parsed?.year,
+                  quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+                  ...q.value
+                };
+              }), filter).map(item => ({
                 name: item.quarter,
                 value: item.percentage || 0
               }))}

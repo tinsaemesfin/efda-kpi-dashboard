@@ -32,7 +32,7 @@ export default function ClinicalTrialsPage() {
   });
 
   // Helper function to get filtered quarterly data for a KPI
-  const getFilteredQuarterlyKPI = (kpiData: typeof data.kpi1) => {
+  const getFilteredQuarterlyKPI = <T extends { quarterlyData?: typeof data.kpi1.quarterlyData; numerator: number; denominator: number; percentage: number }>(kpiData: T): T => {
     if (!kpiData.quarterlyData) return kpiData;
     const filtered = getFilteredQuarterlyValue(kpiData.quarterlyData, filter);
     if (filtered) {
