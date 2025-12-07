@@ -6,7 +6,18 @@
 import type { KPIDrillDownData, IndividualApplication, ProcessingStageDrillDown } from '@/types/ma-drilldown';
 
 // Helper function to generate dummy applications
-function generateDummyApplications(count: number, baseMaNumber: string): IndividualApplication[] {
+function generateDummyApplications(
+  count: number,
+  baseMaNumber: string,
+  options?: {
+    applicationTypes?: string[];
+    internalPathways?: string[];
+    reliancePathways?: string[];
+    regulatoryOutcomes?: string[];
+    applicationCategories?: string[];
+    applicationSubTypes?: string[];
+  }
+): IndividualApplication[] {
   const applications: IndividualApplication[] = [];
   const assessors = [
     { prescreener: "John Doe", primary: "Jane Smith", secondary: "Bob Johnson" },
@@ -25,12 +36,35 @@ function generateDummyApplications(count: number, baseMaNumber: string): Individ
     const decisionDate = new Date(submissionDate);
     decisionDate.setDate(decisionDate.getDate() + processingDays);
 
+    const applicationType =
+      options?.applicationTypes?.[i % options.applicationTypes.length] ?? "New Registration";
+    const internalPathway =
+      options?.internalPathways?.[i % options.internalPathways.length] ?? "Standard/regular";
+    const reliancePathway =
+      options?.reliancePathways?.[i % options.reliancePathways.length] ?? "SRA";
+    const regulatoryOutcome =
+      options?.regulatoryOutcomes?.[
+        i % (options.regulatoryOutcomes ? options.regulatoryOutcomes.length : 1)
+      ] ??
+      (i % 3 === 0 ? "Approved" : i % 3 === 1 ? "Rejected" : "Pending");
+    const applicationCategory =
+      options?.applicationCategories?.[i % options.applicationCategories.length] ??
+      ["Medicine", "Food", "Medical Device"][i % 3];
+    const applicationSubType = options?.applicationSubTypes
+      ? options.applicationSubTypes[i % options.applicationSubTypes.length]
+      : undefined;
+
     applications.push({
       maNumber: `${baseMaNumber}-${String(i + 1).padStart(4, '0')}`,
       brandName: `Product ${String.fromCharCode(65 + (i % 26))}`,
       genericName: `Active Ingredient ${i + 1}`,
-      applicationType: "New Registration",
-      status: i % 3 === 0 ? "Approved" : i % 3 === 1 ? "Rejected" : "Pending",
+      applicationType,
+      applicationSubType,
+      applicationCategory,
+      internalPathway,
+      reliancePathway,
+      status: regulatoryOutcome as IndividualApplication["status"],
+      regulatoryOutcome,
       submissionDate: submissionDate.toISOString().split('T')[0],
       decisionDate: decisionDate.toISOString().split('T')[0],
       processingDays,
@@ -52,6 +86,32 @@ function generateDummyApplications(count: number, baseMaNumber: string): Individ
   return applications;
 }
 
+const kpi1ApplicationTypes = [
+  "New Chemical Entity",
+  "Generics",
+  "Biologics",
+  "Vaccines",
+  "Biosimilar",
+  "Radiopharmaceuticals",
+  "Traditional / Herbal",
+  "Plasma Derived Medical Products",
+];
+
+const kpi1InternalPathways = ["Standard/regular", "Fast Track", "Emergency Use", "Conditional"];
+
+const kpi1ReliancePathways = ["WHO PQ", "SRA", "Regional (IGAD MRH)", "Continental (AMA)", "Article 58"];
+
+const kpi1Outcomes = [
+  "Approved",
+  "Rejected",
+  "Cancelled",
+  "Suspended",
+  "Further information requested",
+  "Withdrawn",
+];
+
+const kpi1Categories = ["Medicine", "Food", "Medical Device"];
+
 export const maDrillDownData: Record<string, KPIDrillDownData> = {
   'MA-KPI-1': {
     kpiId: 'MA-KPI-1',
@@ -72,6 +132,74 @@ export const maDrillDownData: Record<string, KPIDrillDownData> = {
       drillable: true,
       nextLevel: 'approval_pathway',
     },
+    dimensionViews: [
+      {
+        id: 'submodule_type',
+        label: 'Submodule type',
+        description: 'Medicine vs food vs medical device split',
+        sourceField: 'applicationCategory',
+        data: [
+          { category: 'Medicine', value: 82.1, count: 120, total: 146, percentage: 82.1 },
+          { category: 'Food', value: 75.0, count: 30, total: 40, percentage: 75.0 },
+          { category: 'Medical Device', value: 50.0, count: 7, total: 14, percentage: 50.0 },
+        ],
+      },
+      {
+        id: 'application_type',
+        label: 'Application type',
+        description: 'Portfolio by product class',
+        sourceField: 'applicationType',
+        data: [
+          { category: 'New Chemical Entity', value: 85.7, count: 60, total: 70, percentage: 85.7 },
+          { category: 'Generics', value: 84.5, count: 120, total: 142, percentage: 84.5 },
+          { category: 'Biologics', value: 78.6, count: 22, total: 28, percentage: 78.6 },
+          { category: 'Vaccines', value: 85.7, count: 18, total: 21, percentage: 85.7 },
+          { category: 'Biosimilar', value: 80.0, count: 12, total: 15, percentage: 80.0 },
+          { category: 'Radiopharmaceuticals', value: 76.0, count: 19, total: 25, percentage: 76.0 },
+          { category: 'Traditional / Herbal', value: 73.3, count: 11, total: 15, percentage: 73.3 },
+          { category: 'Plasma Derived Medical Products', value: 82.4, count: 14, total: 17, percentage: 82.4 },
+        ],
+      },
+      {
+        id: 'internal_pathway',
+        label: 'Internal regulatory pathway',
+        description: 'Standard vs expedited pathways',
+        sourceField: 'internalPathway',
+        data: [
+          { category: 'Standard/regular', value: 81.5, count: 142, total: 174, percentage: 81.5 },
+          { category: 'Fast Track', value: 86.2, count: 69, total: 80, percentage: 86.2 },
+          { category: 'Emergency Use', value: 78.8, count: 26, total: 33, percentage: 78.8 },
+          { category: 'Conditional', value: 83.3, count: 15, total: 18, percentage: 83.3 },
+        ],
+      },
+      {
+        id: 'reliance_pathway',
+        label: 'Reliance pathway',
+        description: 'Reliance / collaborative review pathways',
+        sourceField: 'reliancePathway',
+        data: [
+          { category: 'WHO PQ', value: 88.0, count: 44, total: 50, percentage: 88.0 },
+          { category: 'SRA', value: 85.4, count: 41, total: 48, percentage: 85.4 },
+          { category: 'Regional (IGAD MRH)', value: 80.0, count: 32, total: 40, percentage: 80.0 },
+          { category: 'Continental (AMA)', value: 79.5, count: 31, total: 39, percentage: 79.5 },
+          { category: 'Article 58', value: 77.8, count: 21, total: 27, percentage: 77.8 },
+        ],
+      },
+      {
+        id: 'regulatory_outcome',
+        label: 'Regulatory outcome',
+        description: 'Decision outcomes driving SLA',
+        sourceField: 'regulatoryOutcome',
+        data: [
+          { category: 'Approved', value: 90.0, count: 230, total: 256, percentage: 90.0 },
+          { category: 'Rejected', value: 40.0, count: 8, total: 20, percentage: 40.0 },
+          { category: 'Cancelled', value: 55.6, count: 5, total: 9, percentage: 55.6 },
+          { category: 'Suspended', value: 60.0, count: 3, total: 5, percentage: 60.0 },
+          { category: 'Further information requested', value: 35.0, count: 7, total: 20, percentage: 35.0 },
+          { category: 'Withdrawn', value: 70.0, count: 3, total: 4, percentage: 70.0 },
+        ],
+      },
+    ],
     level2: {
       dimension: 'approval_pathway',
       parentCategory: 'Medicine',
@@ -100,7 +228,13 @@ export const maDrillDownData: Record<string, KPIDrillDownData> = {
     level4: {
       dimension: 'individual_applications',
       parentCategory: 'SRA',
-      data: generateDummyApplications(10, 'MA-2024'),
+      data: generateDummyApplications(42, 'MA-2024', {
+        applicationTypes: kpi1ApplicationTypes,
+        internalPathways: kpi1InternalPathways,
+        reliancePathways: kpi1ReliancePathways,
+        regulatoryOutcomes: kpi1Outcomes,
+        applicationCategories: kpi1Categories,
+      }),
       drillable: false,
     },
     rootCauseAnalysis: [

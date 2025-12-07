@@ -63,7 +63,14 @@ export interface IndividualApplication {
   brandName: string;
   genericName: string;
   applicationType: string;
-  status: "Approved" | "Rejected" | "Pending";
+  status:
+    | "Approved"
+    | "Rejected"
+    | "Pending"
+    | "Cancelled"
+    | "Suspended"
+    | "Withdrawn"
+    | "Further information requested";
   submissionDate: string;
   decisionDate?: string;
   processingDays: number;
@@ -78,6 +85,19 @@ export interface IndividualApplication {
   agent: string;
   supplier: string;
   branchName?: string;
+  internalPathway?: string;
+  reliancePathway?: string;
+  regulatoryOutcome?: string;
+  applicationCategory?: string;
+  applicationSubType?: string;
+}
+
+export interface KPIDimensionView {
+  id: string;
+  label: string;
+  description?: string;
+  sourceField?: keyof IndividualApplication;
+  data: DrillDownItem[];
 }
 
 // Root Cause Analysis Dimensions
@@ -104,6 +124,7 @@ export interface KPIDrillDownData {
     drillable: boolean;
     nextLevel?: string;
   };
+  dimensionViews?: KPIDimensionView[];
   level2?: {
     dimension: string;
     parentCategory?: string;
