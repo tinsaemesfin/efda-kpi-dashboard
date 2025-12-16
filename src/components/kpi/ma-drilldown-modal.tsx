@@ -40,6 +40,14 @@ import {
   LineChart,
   Line,
   ReferenceLine,
+  AreaChart,
+  Area,
+  PieChart,
+  Pie,
+  Cell,
+  ScatterChart,
+  Scatter,
+  ComposedChart,
 } from "recharts";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -447,6 +455,18 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
     const palette = ["#6366f1", "#22c55e", "#f97316", "#0ea5e9", "#ef4444", "#14b8a6"];
     const series = kpi1TimeSeries;
 
+    // Handle empty data for charts that require series data
+    if (
+      !series.length &&
+      ["bar", "column", "line", "area", "groupedBar", "stackedBar", "dualAxis"].includes(kpi1ChartType)
+    ) {
+      return (
+        <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+          No data available for the selected filters.
+        </div>
+      );
+    }
+
     if (kpi1ChartType === "bar") {
       return (
         <ResponsiveContainer width="100%" height={320}>
@@ -556,6 +576,15 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
               { name: "On time", value: kpi1OnTimeRate },
               { name: "Gap", value: Math.max(0, 100 - kpi1OnTimeRate) },
             ];
+      
+      if (!dimensionData.length || dimensionData.every((d) => !d.value || d.value === 0)) {
+        return (
+          <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+            No data available for pie chart.
+          </div>
+        );
+      }
+      
       return (
         <ResponsiveContainer width="100%" height={320}>
           <PieChart>
@@ -582,6 +611,13 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
     }
 
     if (kpi1ChartType === "scatter") {
+      if (!kpi1ScatterData.length) {
+        return (
+          <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+            No data available for scatter plot.
+          </div>
+        );
+      }
       return (
         <ResponsiveContainer width="100%" height={320}>
           <ScatterChart>
@@ -613,6 +649,13 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
     }
 
     if (kpi1ChartType === "histogram") {
+      if (!kpi1HistogramData.length) {
+        return (
+          <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+            No data available for histogram.
+          </div>
+        );
+      }
       return (
         <ResponsiveContainer width="100%" height={320}>
           <BarChart data={kpi1HistogramData}>
