@@ -1056,7 +1056,7 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
           </Card>
         </div>
 
-        {dimensionViews.length > 0 && (
+        {dimensionViews.length > 0 && !isKpi1 && (
           <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
             <span className="text-xs uppercase text-muted-foreground">Perspective</span>
             <div className="flex flex-wrap gap-2">
@@ -1313,6 +1313,37 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
           </div>
         ) : (
           <div className="grid gap-4">
+            {isKpi1 && dimensionViews.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Perspective</CardTitle>
+                  <CardDescription>
+                    Switch between different dimensions to analyze the data from various angles.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {dimensionViews.map((view) => (
+                      <Button
+                        key={view.id}
+                        variant={activeDimensionId === view.id ? "default" : "outline"}
+                        size="sm"
+                        className="h-9"
+                        onClick={() => handleDimensionChange(view.id)}
+                      >
+                        {view.label}
+                      </Button>
+                    ))}
+                  </div>
+                  {activeDimension?.description && (
+                    <p className="mt-3 text-sm text-muted-foreground">
+                      {activeDimension.description}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {level1ChartData.length > 0 && (
               <Card>
                 <CardHeader className="pb-2">
