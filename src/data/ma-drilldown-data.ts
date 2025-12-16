@@ -3,7 +3,7 @@
  * Based on plan.md structure
  */
 
-import type { KPIDrillDownData, IndividualApplication, ProcessingStageDrillDown } from '@/types/ma-drilldown';
+import type { KPIDrillDownData, IndividualApplication, ProcessingStageDrillDown, VariationComplexityDrillDown } from '@/types/ma-drilldown';
 
 // Helper function to generate dummy applications
 function generateDummyApplications(
@@ -76,7 +76,7 @@ function generateDummyApplications(
         { stage: "FIR Response", days: 20 + Math.floor(Math.random() * 10), target: 30, onTime: true },
         { stage: "Final Decision", days: 25 + Math.floor(Math.random() * 10), target: 36, onTime: true },
       ],
-      assessors,
+      assessors: assessor,
       agent: agents[i % agents.length],
       supplier: suppliers[i % suppliers.length],
       branchName: branches[i % branches.length],
@@ -381,7 +381,7 @@ export const maDrillDownData: Record<string, KPIDrillDownData> = {
       data: [
         { category: 'Single FIR', value: 75.0, count: 9, total: 12, percentage: 75.0, firCount: 1, assessmentCycles: 1 },
         { category: 'Multiple FIRs', value: 57.1, count: 8, total: 14, percentage: 57.1, firCount: 3, assessmentCycles: 2 },
-      ],
+      ] as VariationComplexityDrillDown[],
       drillable: true,
       nextLevel: 'processing_stage',
     },

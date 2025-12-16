@@ -168,7 +168,7 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
       setSelectedCategories(newCategories);
       
       // Update breadcrumbs
-      const newBreadcrumbs = [{ level: 1, label: data.kpiName }];
+      const newBreadcrumbs: Array<{ level: number; label: string; category?: string }> = [{ level: 1, label: data.kpiName }];
       for (let i = 0; i < newCategories.length; i++) {
         newBreadcrumbs.push({
           level: i + 2,
@@ -191,7 +191,7 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
       const newCategories = selectedCategories.slice(0, newLevel - 1);
       setSelectedCategories(newCategories);
       
-      const newBreadcrumbs = [{ level: 1, label: data.kpiName }];
+      const newBreadcrumbs: Array<{ level: number; label: string; category?: string }> = [{ level: 1, label: data.kpiName }];
       for (let i = 0; i < newCategories.length; i++) {
         newBreadcrumbs.push({
           level: i + 2,
@@ -1045,9 +1045,7 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
                 Drill depth
               </CardDescription>
               <CardTitle className="text-2xl">
-                {["level1", "level2", "level3", "level4"].filter(
-                  (level) => (data as Record<string, unknown>)[level]
-                ).length} levels
+                {[data.level1, data.level2, data.level3, data.level4].filter(Boolean).length} levels
               </CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
@@ -1370,7 +1368,7 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
                       />
                       <YAxis
                         tickFormatter={(value: number) =>
-                          level1IsPercent ? `${value.toFixed(1)}%` : value
+                          level1IsPercent ? `${value.toFixed(1)}%` : String(value)
                         }
                         label={{
                           value: level1IsPercent ? "Value (%)" : "Value",
