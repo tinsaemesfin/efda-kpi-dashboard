@@ -31,12 +31,13 @@ import {
 } from "recharts";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { DashboardLayout } from "@/components/layout";
-import { RequirementToggle } from "@/components/kpi";
+import { RequirementToggle, KPIFilter, type KPIFilterState } from "@/components/kpi";
 import { MAKPICard } from "@/components/kpi/ma-kpi-card";
 import { MADrillDownModal } from "@/components/kpi/ma-drilldown-modal";
 import { maKPIData } from "@/data/ma-dummy-data";
 import { maDrillDownData } from "@/data/ma-drilldown-data";
 import type { IndividualApplication } from "@/types/ma-drilldown";
+import { filterQuarterlyData, filterAnnualData, parseQuarter } from "@/lib/utils/kpi-filter";
 import {
   AlertCircleIcon,
   BarChart3Icon,
@@ -132,6 +133,11 @@ export default function MarketAuthorizationsPage() {
   const [view, setView] = useState<"performance" | "cycle" | "transparency">(
     "performance"
   );
+  const [dashboardFilter, setDashboardFilter] = useState<KPIFilterState>({
+    mode: "quarterly",
+    quarter: "Q4",
+    year: 2024,
+  });
   const [kpi1ChartType, setKpi1ChartType] = useState<string>("bar");
   const [kpi1DimensionId, setKpi1DimensionId] = useState<string>(
     maDrillDownData["MA-KPI-1"].dimensionViews?.[0]?.id ?? ""
@@ -189,60 +195,92 @@ export default function MarketAuthorizationsPage() {
     return icons[kpiId] || <ClipboardCheckIcon className="h-4 w-4" />;
   };
 
+  // Helper function to get filtered quarterly value
+  const getFilteredQuarterlyValue = useCallback(<T extends { quarterlyData?: Array<{ quarter: string; value: any }>; currentQuarter: any }>(kpiData: T): T['currentQuarter'] => {
+    if (!kpiData.quarterlyData) return kpiData.currentQuarter;
+    const filtered = filterQuarterlyData(
+      kpiData.quarterlyData.map((q) => {
+        const parsed = parseQuarter(q.quarter);
+        return {
+          quarter: q.quarter,
+          year: parsed?.year,
+          quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+          ...q.value,
+        };
+      }),
+      dashboardFilter
+    );
+    // Return the most recent matching value, or fallback to currentQuarter
+    return filtered.length > 0 ? filtered[filtered.length - 1] : kpiData.currentQuarter;
+  }, [dashboardFilter]);
+
+  // Helper function to get filtered annual value
+  const getFilteredAnnualValue = useCallback(<T extends { annualData?: Array<{ year: string | number; value: any }>; currentYear: any }>(kpiData: T): T['currentYear'] => {
+    if (!kpiData.annualData) return kpiData.currentYear;
+    const filtered = filterAnnualData(
+      kpiData.annualData.map((a) => ({
+        year: a.year,
+        ...a.value,
+      })),
+      dashboardFilter
+    );
+    return filtered.length > 0 ? filtered[filtered.length - 1] : kpiData.currentYear;
+  }, [dashboardFilter]);
+
   const kpiCards = [
     {
       id: "MA-KPI-1",
       title: "New MA Applications Completed on Time",
-      data: data.kpi1.currentQuarter,
+      data: getFilteredQuarterlyValue(data.kpi1),
       description: "Applications completed within timeline",
       suffix: "%",
     },
     {
       id: "MA-KPI-2",
       title: "Renewal MA Applications Completed on Time",
-      data: data.kpi2.currentQuarter,
+      data: getFilteredQuarterlyValue(data.kpi2),
       description: "Renewals completed within timeline",
       suffix: "%",
     },
     {
       id: "MA-KPI-3",
       title: "Minor Variation Applications Completed on Time",
-      data: data.kpi3.currentQuarter,
+      data: getFilteredQuarterlyValue(data.kpi3),
       description: "Minor variations completed within timeline",
       suffix: "%",
     },
     {
       id: "MA-KPI-4",
       title: "Major Variation Applications Completed on Time",
-      data: data.kpi4.currentQuarter,
+      data: getFilteredQuarterlyValue(data.kpi4),
       description: "Major variations completed within timeline",
       suffix: "%",
     },
     {
       id: "MA-KPI-5",
       title: "Queries/FIRs Completed on Time",
-      data: data.kpi5.currentQuarter,
+      data: getFilteredQuarterlyValue(data.kpi5),
       description: "Queries/FIRs completed within timeline",
       suffix: "%",
     },
     {
       id: "MA-KPI-6",
       title: "Median Time for New MA Applications",
-      data: data.kpi6.currentYear,
+      data: getFilteredAnnualValue(data.kpi6),
       description: "Median processing time in days",
       suffix: " days",
     },
     {
       id: "MA-KPI-7",
       title: "Average Time for New MA Applications",
-      data: data.kpi7.currentYear,
+      data: getFilteredAnnualValue(data.kpi7),
       description: "Average processing time in days",
       suffix: " days",
     },
     {
       id: "MA-KPI-8",
       title: "PARs Published on Time",
-      data: data.kpi8.currentQuarter,
+      data: getFilteredQuarterlyValue(data.kpi8),
       description: "Public Assessment Reports published within timeline",
       suffix: "%",
     },
@@ -775,71 +813,183 @@ export default function MarketAuthorizationsPage() {
   };
 
   const quarterlyTrend = useMemo(() => {
-    return data.kpi1.quarterlyData.map((entry, index) => {
+    const filteredKpi1 = filterQuarterlyData(
+      data.kpi1.quarterlyData.map((q) => {
+        const parsed = parseQuarter(q.quarter);
+        return {
+          quarter: q.quarter,
+          year: parsed?.year,
+          quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+          ...q.value,
+        };
+      }),
+      dashboardFilter
+    );
+    const filteredKpi2 = filterQuarterlyData(
+      data.kpi2.quarterlyData.map((q) => {
+        const parsed = parseQuarter(q.quarter);
+        return {
+          quarter: q.quarter,
+          year: parsed?.year,
+          quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+          ...q.value,
+        };
+      }),
+      dashboardFilter
+    );
+    const filteredKpi3 = filterQuarterlyData(
+      data.kpi3.quarterlyData.map((q) => {
+        const parsed = parseQuarter(q.quarter);
+        return {
+          quarter: q.quarter,
+          year: parsed?.year,
+          quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+          ...q.value,
+        };
+      }),
+      dashboardFilter
+    );
+    const filteredKpi4 = filterQuarterlyData(
+      data.kpi4.quarterlyData.map((q) => {
+        const parsed = parseQuarter(q.quarter);
+        return {
+          quarter: q.quarter,
+          year: parsed?.year,
+          quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+          ...q.value,
+        };
+      }),
+      dashboardFilter
+    );
+    const filteredKpi5 = filterQuarterlyData(
+      data.kpi5.quarterlyData.map((q) => {
+        const parsed = parseQuarter(q.quarter);
+        return {
+          quarter: q.quarter,
+          year: parsed?.year,
+          quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+          ...q.value,
+        };
+      }),
+      dashboardFilter
+    );
+    const filteredKpi8 = filterQuarterlyData(
+      data.kpi8.quarterlyData.map((q) => {
+        const parsed = parseQuarter(q.quarter);
+        return {
+          quarter: q.quarter,
+          year: parsed?.year,
+          quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+          ...q.value,
+        };
+      }),
+      dashboardFilter
+    );
+
+    // Map filtered data to chart format
+    const maxLength = Math.max(
+      filteredKpi1.length,
+      filteredKpi2.length,
+      filteredKpi3.length,
+      filteredKpi4.length,
+      filteredKpi5.length,
+      filteredKpi8.length
+    );
+
+    return Array.from({ length: maxLength }, (_, index) => {
       const values = {
-        newMA: entry.value.percentage ?? 0,
-        renewals: data.kpi2.quarterlyData[index]?.value.percentage ?? 0,
-        minor: data.kpi3.quarterlyData[index]?.value.percentage ?? 0,
-        major: data.kpi4.quarterlyData[index]?.value.percentage ?? 0,
-        firs: data.kpi5.quarterlyData[index]?.value.percentage ?? 0,
-        pars: data.kpi8.quarterlyData[index]?.value.percentage ?? 0,
+        newMA: filteredKpi1[index]?.percentage ?? 0,
+        renewals: filteredKpi2[index]?.percentage ?? 0,
+        minor: filteredKpi3[index]?.percentage ?? 0,
+        major: filteredKpi4[index]?.percentage ?? 0,
+        firs: filteredKpi5[index]?.percentage ?? 0,
+        pars: filteredKpi8[index]?.percentage ?? 0,
       };
       const valuesArray = Object.values(values);
       const average =
         valuesArray.reduce((sum, val) => sum + val, 0) / valuesArray.length;
-      return { name: entry.quarter, ...values, average };
+      return {
+        name: filteredKpi1[index]?.quarter || `Period ${index + 1}`,
+        ...values,
+        average,
+      };
     });
-  }, [data]);
+  }, [data, dashboardFilter]);
 
   const cycleTimeTrend = useMemo(() => {
-    return data.kpi6.annualData.map((entry, index) => ({
-      year: entry.year,
-      median: entry.value.median ?? 0,
-      average: data.kpi7.annualData[index]?.value.average ?? 0,
+    const filteredKpi6 = filterAnnualData(
+      data.kpi6.annualData.map((a) => ({
+        year: a.year,
+        ...a.value,
+      })),
+      dashboardFilter
+    );
+    const filteredKpi7 = filterAnnualData(
+      data.kpi7.annualData.map((a) => ({
+        year: a.year,
+        ...a.value,
+      })),
+      dashboardFilter
+    );
+
+    const maxLength = Math.max(filteredKpi6.length, filteredKpi7.length);
+    return Array.from({ length: maxLength }, (_, index) => ({
+      year: filteredKpi6[index]?.year || filteredKpi7[index]?.year || `Year ${index + 1}`,
+      median: filteredKpi6[index]?.median ?? 0,
+      average: filteredKpi7[index]?.average ?? 0,
       target: 150,
     }));
-  }, [data]);
+  }, [data, dashboardFilter]);
 
   const onTimeBreakdown = useMemo(
-    () => [
-      {
-        name: "New MA",
-        onTime: data.kpi1.currentQuarter.percentage ?? 0,
-        gap: Math.max(0, 100 - (data.kpi1.currentQuarter.percentage ?? 0)),
-        volume: data.kpi1.currentQuarter.denominator,
-      },
-      {
-        name: "Renewals",
-        onTime: data.kpi2.currentQuarter.percentage ?? 0,
-        gap: Math.max(0, 100 - (data.kpi2.currentQuarter.percentage ?? 0)),
-        volume: data.kpi2.currentQuarter.denominator,
-      },
-      {
-        name: "Minor Var",
-        onTime: data.kpi3.currentQuarter.percentage ?? 0,
-        gap: Math.max(0, 100 - (data.kpi3.currentQuarter.percentage ?? 0)),
-        volume: data.kpi3.currentQuarter.denominator,
-      },
-      {
-        name: "Major Var",
-        onTime: data.kpi4.currentQuarter.percentage ?? 0,
-        gap: Math.max(0, 100 - (data.kpi4.currentQuarter.percentage ?? 0)),
-        volume: data.kpi4.currentQuarter.denominator,
-      },
-      {
-        name: "Queries/FIRs",
-        onTime: data.kpi5.currentQuarter.percentage ?? 0,
-        gap: Math.max(0, 100 - (data.kpi5.currentQuarter.percentage ?? 0)),
-        volume: data.kpi5.currentQuarter.denominator,
-      },
-      {
-        name: "PARs",
-        onTime: data.kpi8.currentQuarter.percentage ?? 0,
-        gap: Math.max(0, 100 - (data.kpi8.currentQuarter.percentage ?? 0)),
-        volume: data.kpi8.currentQuarter.denominator,
-      },
-    ],
-    [data]
+    () => {
+      const kpi1Value = getFilteredQuarterlyValue(data.kpi1);
+      const kpi2Value = getFilteredQuarterlyValue(data.kpi2);
+      const kpi3Value = getFilteredQuarterlyValue(data.kpi3);
+      const kpi4Value = getFilteredQuarterlyValue(data.kpi4);
+      const kpi5Value = getFilteredQuarterlyValue(data.kpi5);
+      const kpi8Value = getFilteredQuarterlyValue(data.kpi8);
+      
+      return [
+        {
+          name: "New MA",
+          onTime: kpi1Value.percentage ?? 0,
+          gap: Math.max(0, 100 - (kpi1Value.percentage ?? 0)),
+          volume: kpi1Value.denominator,
+        },
+        {
+          name: "Renewals",
+          onTime: kpi2Value.percentage ?? 0,
+          gap: Math.max(0, 100 - (kpi2Value.percentage ?? 0)),
+          volume: kpi2Value.denominator,
+        },
+        {
+          name: "Minor Var",
+          onTime: kpi3Value.percentage ?? 0,
+          gap: Math.max(0, 100 - (kpi3Value.percentage ?? 0)),
+          volume: kpi3Value.denominator,
+        },
+        {
+          name: "Major Var",
+          onTime: kpi4Value.percentage ?? 0,
+          gap: Math.max(0, 100 - (kpi4Value.percentage ?? 0)),
+          volume: kpi4Value.denominator,
+        },
+        {
+          name: "Queries/FIRs",
+          onTime: kpi5Value.percentage ?? 0,
+          gap: Math.max(0, 100 - (kpi5Value.percentage ?? 0)),
+          volume: kpi5Value.denominator,
+        },
+        {
+          name: "PARs",
+          onTime: kpi8Value.percentage ?? 0,
+          gap: Math.max(0, 100 - (kpi8Value.percentage ?? 0)),
+          volume: kpi8Value.denominator,
+        },
+      ];
+    },
+    [data, getFilteredQuarterlyValue]
   );
 
   const submoduleSplit =
@@ -889,26 +1039,43 @@ export default function MarketAuthorizationsPage() {
   const scatterData = kpi1ScatterData;
 
   const overallOnTime = useMemo(() => {
+    const kpi1Value = getFilteredQuarterlyValue(data.kpi1);
+    const kpi2Value = getFilteredQuarterlyValue(data.kpi2);
+    const kpi3Value = getFilteredQuarterlyValue(data.kpi3);
+    const kpi4Value = getFilteredQuarterlyValue(data.kpi4);
+    const kpi5Value = getFilteredQuarterlyValue(data.kpi5);
+    const kpi8Value = getFilteredQuarterlyValue(data.kpi8);
+    
     const metrics = [
-      data.kpi1.currentQuarter.percentage ?? 0,
-      data.kpi2.currentQuarter.percentage ?? 0,
-      data.kpi3.currentQuarter.percentage ?? 0,
-      data.kpi4.currentQuarter.percentage ?? 0,
-      data.kpi5.currentQuarter.percentage ?? 0,
-      data.kpi8.currentQuarter.percentage ?? 0,
+      kpi1Value.percentage ?? 0,
+      kpi2Value.percentage ?? 0,
+      kpi3Value.percentage ?? 0,
+      kpi4Value.percentage ?? 0,
+      kpi5Value.percentage ?? 0,
+      kpi8Value.percentage ?? 0,
     ];
     return (
       metrics.reduce((sum, value) => sum + value, 0) / (metrics.length || 1)
     );
-  }, [data]);
+  }, [data, getFilteredQuarterlyValue]);
 
-  const totalVolume =
-    data.kpi1.currentQuarter.denominator +
-    data.kpi2.currentQuarter.denominator +
-    data.kpi3.currentQuarter.denominator +
-    data.kpi4.currentQuarter.denominator +
-    data.kpi5.currentQuarter.denominator +
-    data.kpi8.currentQuarter.denominator;
+  const totalVolume = useMemo(() => {
+    const kpi1Value = getFilteredQuarterlyValue(data.kpi1);
+    const kpi2Value = getFilteredQuarterlyValue(data.kpi2);
+    const kpi3Value = getFilteredQuarterlyValue(data.kpi3);
+    const kpi4Value = getFilteredQuarterlyValue(data.kpi4);
+    const kpi5Value = getFilteredQuarterlyValue(data.kpi5);
+    const kpi8Value = getFilteredQuarterlyValue(data.kpi8);
+    
+    return (
+      kpi1Value.denominator +
+      kpi2Value.denominator +
+      kpi3Value.denominator +
+      kpi4Value.denominator +
+      kpi5Value.denominator +
+      kpi8Value.denominator
+    );
+  }, [data, getFilteredQuarterlyValue]);
 
   return (
     <AuthGuard>
@@ -1027,6 +1194,14 @@ export default function MarketAuthorizationsPage() {
               </div>
             </div>
           </div>
+
+          {/* KPI Filter */}
+          <KPIFilter
+            onFilterChange={setDashboardFilter}
+            defaultYear={2024}
+            defaultQuarter="Q4"
+            showAllModes={true}
+          />
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {kpiCards.map((kpi) => {

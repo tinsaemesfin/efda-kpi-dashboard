@@ -1,913 +1,1070 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  RadialBar,
+  RadialBarChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Scatter,
+  ScatterChart,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { DashboardLayout } from "@/components/layout";
-import { KPICardWithRequirement, MetricGrid, RequirementToggle, KPIFilter, type KPIFilterState } from "@/components/kpi";
-import { KPILineChart, KPIBarChart } from "@/components/charts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { RequirementToggle, KPIFilter, type KPIFilterState } from "@/components/kpi";
+import { GMPKPICard } from "@/components/kpi/gmp-kpi-card";
+import { GMPDrillDownModal } from "@/components/kpi/gmp-drilldown-modal";
 import { gmpKPIData } from "@/data/gmp-dummy-data";
-import { getGMPRequirementByKpiId } from "@/data/gmp-requirements-mapping";
-import { filterQuarterlyData, filterAnnualData, getFilteredQuarterlyValue, getFilteredAnnualValue, parseQuarter } from "@/lib/utils/kpi-filter";
+import { gmpDrillDownData } from "@/data/gmp-drilldown-data";
+import { filterQuarterlyData, filterAnnualData, parseQuarter } from "@/lib/utils/kpi-filter";
 import {
-  ShieldCheckIcon,
-  ClockIcon,
+  AlertCircleIcon,
+  BarChart3Icon,
   CheckCircle2Icon,
-  AlertTriangleIcon,
+  ClipboardCheckIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  FileEditIcon,
+  FileSearchIcon,
   FileTextIcon,
+  GaugeIcon,
+  RefreshCwIcon,
+  ShieldCheckIcon,
+  Wand2Icon,
   TrendingUpIcon,
-  TrendingDownIcon,
   ActivityIcon,
-  BarChart3Icon
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function GMPInspectionsPage() {
   const data = gmpKPIData;
   const [showRequirements, setShowRequirements] = useState(false);
-  const [filter, setFilter] = useState<KPIFilterState>({
+  const [selectedKpiId, setSelectedKpiId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [timeframe, setTimeframe] = useState<"quarter" | "annual">("quarter");
+  const [view, setView] = useState<"performance" | "cycle" | "transparency">(
+    "performance"
+  );
+  const [dashboardFilter, setDashboardFilter] = useState<KPIFilterState>({
     mode: "quarterly",
     quarter: "Q4",
     year: 2024,
   });
 
-  // Helper function to get filtered quarterly value for GMP KPIs
-  const getFilteredGMPQuarterly = <T extends { quarterlyData?: typeof data.kpi1.quarterlyData; currentQuarter: typeof data.kpi1.currentQuarter }>(kpiData: T): T['currentQuarter'] => {
-    if (!kpiData.quarterlyData) return kpiData.currentQuarter;
-    const filtered = getFilteredQuarterlyValue(kpiData.quarterlyData.map(q => {
-      const parsed = parseQuarter(q.quarter);
-      return {
-        quarter: q.quarter,
-        year: parsed?.year,
-        quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
-        ...q.value
-      };
-    }), filter);
-    return filtered || kpiData.currentQuarter;
+  const handleCardClick = (kpiId: string) => {
+    setSelectedKpiId(kpiId);
+    setIsModalOpen(true);
   };
 
-  // Helper function to get filtered annual value for GMP KPIs
-  const getFilteredGMPAnnual = (kpiData: typeof data.kpi4) => {
-    if (!kpiData.annualData) return kpiData.currentYear;
-    const filtered = getFilteredAnnualValue(kpiData.annualData.map(a => ({
-      year: a.year,
-      ...a.value
-    })), filter);
-    return filtered || kpiData.currentYear;
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedKpiId(null);
   };
 
-  // Helper function to get status based on percentage
-  const getStatus = (percentage: number): "excellent" | "good" | "warning" | "critical" => {
-    if (percentage >= 90) return "excellent";
-    if (percentage >= 80) return "good";
-    if (percentage >= 70) return "warning";
-    return "critical";
-  };
-
-  // Helper function to get trend icon
-  const getTrendIcon = (currentValue: number, previousValue: number) => {
-    if (currentValue > previousValue) {
-      return <TrendingUpIcon className="h-4 w-4 text-green-600" />;
-    } else if (currentValue < previousValue) {
-      return <TrendingDownIcon className="h-4 w-4 text-red-600" />;
+  const getStatus = (
+    percentage?: number,
+    median?: number,
+    average?: number
+  ): "excellent" | "good" | "warning" | "critical" => {
+    const value = percentage ?? median ?? average ?? 0;
+    if (percentage !== undefined) {
+      if (value >= 90) return "excellent";
+      if (value >= 80) return "good";
+      if (value >= 70) return "warning";
+      return "critical";
     }
-    return null;
+    if (median !== undefined || average !== undefined) {
+      if (value <= 60) return "excellent";
+      if (value <= 75) return "good";
+      if (value <= 90) return "warning";
+      return "critical";
+    }
+    return "good";
   };
+
+  const getKpiIcon = (kpiId: string) => {
+    const icons: Record<string, React.ReactNode> = {
+      "GMP-KPI-1": <ShieldCheckIcon className="h-4 w-4" />,
+      "GMP-KPI-2": <AlertCircleIcon className="h-4 w-4" />,
+      "GMP-KPI-3": <FileTextIcon className="h-4 w-4" />,
+      "GMP-KPI-4": <CheckCircle2Icon className="h-4 w-4" />,
+      "GMP-KPI-5": <ClockIcon className="h-4 w-4" />,
+      "GMP-KPI-6": <ClockIcon className="h-4 w-4" />,
+      "GMP-KPI-7": <BarChart3Icon className="h-4 w-4" />,
+      "GMP-KPI-8": <BarChart3Icon className="h-4 w-4" />,
+      "GMP-KPI-9": <FileTextIcon className="h-4 w-4" />,
+    };
+    return icons[kpiId] || <ShieldCheckIcon className="h-4 w-4" />;
+  };
+
+  // Helper function to get filtered quarterly value
+  const getFilteredQuarterlyValue = <T extends { quarterlyData?: Array<{ quarter: string; value: any }>; currentQuarter: any }>(kpiData: T): T['currentQuarter'] => {
+    if (!kpiData.quarterlyData) return kpiData.currentQuarter;
+    const filtered = filterQuarterlyData(
+      kpiData.quarterlyData.map((q) => {
+        const parsed = parseQuarter(q.quarter);
+        return {
+          quarter: q.quarter,
+          year: parsed?.year,
+          quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+          ...q.value,
+        };
+      }),
+      dashboardFilter
+    );
+    return filtered.length > 0 ? filtered[filtered.length - 1] : kpiData.currentQuarter;
+  };
+
+  // Helper function to get filtered annual value
+  const getFilteredAnnualValue = <T extends { annualData?: Array<{ year: string | number; value: any }>; currentYear: any }>(kpiData: T): T['currentYear'] => {
+    if (!kpiData.annualData) return kpiData.currentYear;
+    const filtered = filterAnnualData(
+      kpiData.annualData.map((a) => ({
+        year: a.year,
+        ...a.value,
+      })),
+      dashboardFilter
+    );
+    return filtered.length > 0 ? filtered[filtered.length - 1] : kpiData.currentYear;
+  };
+
+  const kpiCards = [
+    {
+      id: "GMP-KPI-1",
+      title: "Facilities Inspected as per Plan",
+      data: getFilteredQuarterlyValue(data.kpi1),
+      description: "Facilities inspected as per plan",
+      suffix: "%",
+    },
+    {
+      id: "GMP-KPI-2",
+      title: "Complaint-Triggered Inspections",
+      data: getFilteredQuarterlyValue(data.kpi2),
+      description: "Complaint-triggered inspections conducted",
+      suffix: "%",
+    },
+    {
+      id: "GMP-KPI-3",
+      title: "On-Site Inspections Waived",
+      data: getFilteredQuarterlyValue(data.kpi3),
+      description: "Inspections waived (remote/desk reviews)",
+      suffix: "%",
+    },
+    {
+      id: "GMP-KPI-4",
+      title: "Facilities Compliant with GMP",
+      data: getFilteredAnnualValue(data.kpi4),
+      description: "Facilities compliant with GMP requirements",
+      suffix: "%",
+    },
+    {
+      id: "GMP-KPI-5",
+      title: "CAPA Decisions Within Timeline",
+      data: getFilteredQuarterlyValue(data.kpi5),
+      description: "CAPA decisions issued within timeline",
+      suffix: "%",
+    },
+    {
+      id: "GMP-KPI-6",
+      title: "Applications Completed Within Timeline",
+      data: getFilteredQuarterlyValue(data.kpi6),
+      description: "Applications completed within timeline",
+      suffix: "%",
+    },
+    {
+      id: "GMP-KPI-7",
+      title: "Average Turnaround Time",
+      data: getFilteredQuarterlyValue(data.kpi7),
+      description: "Average processing time in days",
+      suffix: " days",
+    },
+    {
+      id: "GMP-KPI-8",
+      title: "Median Turnaround Time",
+      data: getFilteredAnnualValue(data.kpi8),
+      description: "Median processing time in days",
+      suffix: " days",
+    },
+    {
+      id: "GMP-KPI-9",
+      title: "Inspection Reports Published on Time",
+      data: getFilteredAnnualValue(data.kpi9),
+      description: "Reports published within timeline",
+      suffix: "%",
+    },
+  ];
+
+  const quarterlyTrend = useMemo(() => {
+    const filteredKpi1 = filterQuarterlyData(
+      data.kpi1.quarterlyData.map((q) => {
+        const parsed = parseQuarter(q.quarter);
+        return {
+          quarter: q.quarter,
+          year: parsed?.year,
+          quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+          ...q.value,
+        };
+      }),
+      dashboardFilter
+    );
+    const filteredKpi2 = filterQuarterlyData(
+      data.kpi2.quarterlyData.map((q) => {
+        const parsed = parseQuarter(q.quarter);
+        return {
+          quarter: q.quarter,
+          year: parsed?.year,
+          quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+          ...q.value,
+        };
+      }),
+      dashboardFilter
+    );
+    const filteredKpi3 = filterQuarterlyData(
+      data.kpi3.quarterlyData.map((q) => {
+        const parsed = parseQuarter(q.quarter);
+        return {
+          quarter: q.quarter,
+          year: parsed?.year,
+          quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+          ...q.value,
+        };
+      }),
+      dashboardFilter
+    );
+    const filteredKpi5 = filterQuarterlyData(
+      data.kpi5.quarterlyData.map((q) => {
+        const parsed = parseQuarter(q.quarter);
+        return {
+          quarter: q.quarter,
+          year: parsed?.year,
+          quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+          ...q.value,
+        };
+      }),
+      dashboardFilter
+    );
+    const filteredKpi6 = filterQuarterlyData(
+      data.kpi6.quarterlyData.map((q) => {
+        const parsed = parseQuarter(q.quarter);
+        return {
+          quarter: q.quarter,
+          year: parsed?.year,
+          quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+          ...q.value,
+        };
+      }),
+      dashboardFilter
+    );
+
+    const maxLength = Math.max(
+      filteredKpi1.length,
+      filteredKpi2.length,
+      filteredKpi3.length,
+      filteredKpi5.length,
+      filteredKpi6.length
+    );
+
+    return Array.from({ length: maxLength }, (_, index) => {
+      const values = {
+        facilitiesInspected: filteredKpi1[index]?.percentage ?? 0,
+        complaintInspections: filteredKpi2[index]?.percentage ?? 0,
+        inspectionsWaived: filteredKpi3[index]?.percentage ?? 0,
+        capaDecisions: filteredKpi5[index]?.percentage ?? 0,
+        applicationsCompleted: filteredKpi6[index]?.percentage ?? 0,
+      };
+      const valuesArray = Object.values(values);
+      const average =
+        valuesArray.reduce((sum, val) => sum + val, 0) / valuesArray.length;
+      return {
+        name: filteredKpi1[index]?.quarter || `Period ${index + 1}`,
+        ...values,
+        average,
+      };
+    });
+  }, [data, dashboardFilter]);
+
+  const cycleTimeTrend = useMemo(() => {
+    const filteredKpi7 = filterQuarterlyData(
+      data.kpi7.quarterlyData.map((q) => {
+        const parsed = parseQuarter(q.quarter);
+        return {
+          quarter: q.quarter,
+          year: parsed?.year,
+          quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
+          ...q.value,
+        };
+      }),
+      dashboardFilter
+    );
+    const filteredKpi8 = filterAnnualData(
+      data.kpi8.annualData.map((a) => ({
+        year: a.year,
+        ...a.value,
+      })),
+      dashboardFilter
+    );
+
+    const maxLength = Math.max(filteredKpi7.length, filteredKpi8.length);
+    return Array.from({ length: maxLength }, (_, index) => ({
+      quarter: filteredKpi7[index]?.quarter || filteredKpi8[index]?.year || `Period ${index + 1}`,
+      average: filteredKpi7[index]?.average ?? 0,
+      median: filteredKpi8[index]?.median ?? 0,
+      target: 60,
+    }));
+  }, [data, dashboardFilter]);
+
+  const onTimeBreakdown = useMemo(
+    () => {
+      const kpi1Value = getFilteredQuarterlyValue(data.kpi1);
+      const kpi2Value = getFilteredQuarterlyValue(data.kpi2);
+      const kpi3Value = getFilteredQuarterlyValue(data.kpi3);
+      const kpi4Value = getFilteredAnnualValue(data.kpi4);
+      const kpi5Value = getFilteredQuarterlyValue(data.kpi5);
+      const kpi6Value = getFilteredQuarterlyValue(data.kpi6);
+      const kpi9Value = getFilteredAnnualValue(data.kpi9);
+      
+      return [
+        {
+          name: "Facilities Inspected",
+          onTime: kpi1Value.percentage ?? 0,
+          gap: Math.max(0, 100 - (kpi1Value.percentage ?? 0)),
+          volume: kpi1Value.denominator,
+        },
+        {
+          name: "Complaint Inspections",
+          onTime: kpi2Value.percentage ?? 0,
+          gap: Math.max(0, 100 - (kpi2Value.percentage ?? 0)),
+          volume: kpi2Value.denominator,
+        },
+        {
+          name: "Inspections Waived",
+          onTime: kpi3Value.percentage ?? 0,
+          gap: Math.max(0, 100 - (kpi3Value.percentage ?? 0)),
+          volume: kpi3Value.denominator,
+        },
+        {
+          name: "Facilities Compliant",
+          onTime: kpi4Value.percentage ?? 0,
+          gap: Math.max(0, 100 - (kpi4Value.percentage ?? 0)),
+          volume: kpi4Value.denominator,
+        },
+        {
+          name: "CAPA Decisions",
+          onTime: kpi5Value.percentage ?? 0,
+          gap: Math.max(0, 100 - (kpi5Value.percentage ?? 0)),
+          volume: kpi5Value.denominator,
+        },
+        {
+          name: "Applications Completed",
+          onTime: kpi6Value.percentage ?? 0,
+          gap: Math.max(0, 100 - (kpi6Value.percentage ?? 0)),
+          volume: kpi6Value.denominator,
+        },
+        {
+          name: "Reports Published",
+          onTime: kpi9Value.percentage ?? 0,
+          gap: Math.max(0, 100 - (kpi9Value.percentage ?? 0)),
+          volume: kpi9Value.denominator,
+        },
+      ];
+    },
+    [data, dashboardFilter]
+  );
+
+  const submoduleSplit =
+    gmpDrillDownData["GMP-KPI-1"].level1?.data?.map((item) => ({
+      name: item.category,
+      value: item.percentage ?? item.value ?? 0,
+      count: item.count,
+      total: item.total,
+    })) ?? [];
+
+  const radarData = useMemo(
+    () => [
+      {
+        category: "Facilities Inspected",
+        performance: data.kpi1.currentQuarter.percentage ?? 0,
+        maturity: data.kpi1.maturityLevel * 25,
+      },
+      {
+        category: "Complaint Inspections",
+        performance: data.kpi2.currentQuarter.percentage ?? 0,
+        maturity: data.kpi2.maturityLevel * 25,
+      },
+      {
+        category: "Inspections Waived",
+        performance: data.kpi3.currentQuarter.percentage ?? 0,
+        maturity: data.kpi3.maturityLevel * 25,
+      },
+      {
+        category: "Facilities Compliant",
+        performance: data.kpi4.currentYear.percentage ?? 0,
+        maturity: data.kpi4.maturityLevel * 25,
+      },
+      {
+        category: "CAPA Decisions",
+        performance: data.kpi5.currentQuarter.percentage ?? 0,
+        maturity: data.kpi5.maturityLevel * 25,
+      },
+      {
+        category: "Applications Completed",
+        performance: data.kpi6.currentQuarter.percentage ?? 0,
+        maturity: data.kpi6.maturityLevel * 25,
+      },
+    ],
+    [data]
+  );
+
+  const overallCompliance = useMemo(() => {
+    const kpi1Value = getFilteredQuarterlyValue(data.kpi1);
+    const kpi2Value = getFilteredQuarterlyValue(data.kpi2);
+    const kpi3Value = getFilteredQuarterlyValue(data.kpi3);
+    const kpi4Value = getFilteredAnnualValue(data.kpi4);
+    const kpi5Value = getFilteredQuarterlyValue(data.kpi5);
+    const kpi6Value = getFilteredQuarterlyValue(data.kpi6);
+    const kpi9Value = getFilteredAnnualValue(data.kpi9);
+    
+    const metrics = [
+      kpi1Value.percentage ?? 0,
+      kpi2Value.percentage ?? 0,
+      kpi3Value.percentage ?? 0,
+      kpi4Value.percentage ?? 0,
+      kpi5Value.percentage ?? 0,
+      kpi6Value.percentage ?? 0,
+      kpi9Value.percentage ?? 0,
+    ];
+    return (
+      metrics.reduce((sum, value) => sum + value, 0) / (metrics.length || 1)
+    );
+  }, [data, dashboardFilter]);
+
+  const totalWorkload = useMemo(() => {
+    const kpi1Value = getFilteredQuarterlyValue(data.kpi1);
+    const kpi2Value = getFilteredQuarterlyValue(data.kpi2);
+    const kpi3Value = getFilteredQuarterlyValue(data.kpi3);
+    const kpi4Value = getFilteredAnnualValue(data.kpi4);
+    const kpi5Value = getFilteredQuarterlyValue(data.kpi5);
+    const kpi6Value = getFilteredQuarterlyValue(data.kpi6);
+    const kpi9Value = getFilteredAnnualValue(data.kpi9);
+    
+    return (
+      kpi1Value.denominator +
+      kpi2Value.denominator +
+      kpi3Value.denominator +
+      kpi4Value.denominator +
+      kpi5Value.denominator +
+      kpi6Value.denominator +
+      kpi9Value.denominator
+    );
+  }, [data, dashboardFilter]);
 
   return (
     <AuthGuard>
       <DashboardLayout>
-      {/* Requirement Toggle */}
-      <RequirementToggle 
-        enabled={showRequirements}
-        onChange={setShowRequirements}
-        category="GMP Inspection"
-      />
-      
-      <div className="space-y-8">
-        {/* Header */}
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <ShieldCheckIcon className="h-8 w-8 text-green-600" />
-            <h1 className="text-3xl font-bold tracking-tight">GMP Inspections KPIs</h1>
-          </div>
-          <p className="text-muted-foreground">
-            Good Manufacturing Practice inspection metrics based on harmonized East African Community standards
-          </p>
-        </div>
-
-        {/* KPI Filter */}
-        <KPIFilter
-          reportingFrequency="Quarterly"
-          onFilterChange={setFilter}
-          defaultYear={2024}
-          defaultQuarter="Q4"
-        />
-
-        {/* KPI 1: Percentage of pharmaceutical manufacturing facilities inspected for GMP as per plan */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-green-600">KPI 1: Facilities Inspected as per Plan</h2>
-              <p className="text-sm text-muted-foreground mt-1">{data.kpi1.definition}</p>
+        <div className="space-y-8">
+          <div className="relative overflow-hidden rounded-3xl border bg-gradient-to-br from-slate-950 via-slate-900 to-green-900 text-white shadow-2xl">
+            <div className="pointer-events-none absolute inset-0 opacity-40">
+              <div className="absolute -left-10 top-10 h-40 w-40 rounded-full bg-emerald-500 blur-3xl" />
+              <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-teal-500 blur-3xl" />
+              <div className="absolute bottom-0 right-20 h-32 w-32 rounded-full bg-green-400 blur-3xl" />
             </div>
-            <div className="flex gap-2">
-              <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                {data.kpi1.reportingFrequency}
-              </Badge>
-              <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                {data.kpi1.type}
-              </Badge>
-              <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                Level {data.kpi1.maturityLevel}
-              </Badge>
+            <div className="relative z-10 p-6 md:p-10 space-y-6">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <ShieldCheckIcon className="h-10 w-10 text-emerald-300" />
+                    <div>
+                      <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+                        GMP Inspections Command Center
+                      </h1>
+                      <p className="text-sm text-white/70">
+                        Comprehensive visibility into GMP inspection performance, compliance, and
+                        efficiency with multi-level drill-downs.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" className="border-white/20 text-white">
+                    <GaugeIcon className="mr-2 h-4 w-4" />
+                    Live governance view
+                  </Button>
+                  <Button className="bg-white text-slate-900 hover:bg-white/90">
+                    <Wand2Icon className="mr-2 h-4 w-4" />
+                    Generate executive PDF
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <Card className="border-white/10 bg-white/5 backdrop-blur">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="text-white/70">
+                      Overall compliance rate
+                    </CardDescription>
+                    <CardTitle className="text-3xl font-bold text-white">
+                      {overallCompliance.toFixed(1)}%
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-white/80">
+                    Weighted across seven GMP KPIs
+                  </CardContent>
+                </Card>
+
+                <Card className="border-white/10 bg-white/5 backdrop-blur">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="text-white/70">
+                      Active workload
+                    </CardDescription>
+                    <CardTitle className="text-3xl font-bold text-white">
+                      {totalWorkload.toLocaleString()}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-white/80">
+                    Inspections across all categories
+                  </CardContent>
+                </Card>
+
+                <Card className="border-white/10 bg-white/5 backdrop-blur">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="text-white/70">
+                      Median turnaround time
+                    </CardDescription>
+                    <CardTitle className="text-3xl font-bold text-white">
+                      {data.kpi8.currentYear.median?.toFixed(0)} days
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-white/80">
+                    Current year median for GMP applications
+                  </CardContent>
+                </Card>
+
+                <Card className="border-white/10 bg-white/5 backdrop-blur">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="text-white/70">
+                      Transparency
+                    </CardDescription>
+                    <CardTitle className="text-3xl font-bold text-white">
+                      {data.kpi9.currentYear.percentage?.toFixed(1)}%
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-white/80">
+                    Reports published within specified timelines
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
 
-          {(() => {
-            const filteredValue = getFilteredGMPQuarterly(data.kpi1);
-            return (
-              <MetricGrid columns={4}>
-                <KPICardWithRequirement
-                  title="Performance Rate"
-                  value={filteredValue.percentage?.toFixed(1) || "0"}
-                  suffix="%"
-                  description={`${data.kpi1.numeratorDescription}`}
-                  icon={<ShieldCheckIcon className="h-4 w-4" />}
-                  status={getStatus(filteredValue.percentage || 0)}
-                  requirement={getGMPRequirementByKpiId('gmp-facilities-inspected')}
-                  showRequirement={showRequirements}
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <RequirementToggle
+                enabled={showRequirements}
+                onChange={setShowRequirements}
+                category="GMP Inspection"
+              />
+              <Badge variant="outline" className="border-dashed">
+                Deep dive & drill-down ready
+              </Badge>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CheckCircle2Icon className="h-4 w-4 text-emerald-500" />
+                SLA-driven targets overlayed on charts
+              </div>
+            </div>
+          </div>
+
+          {/* KPI Filter */}
+          <KPIFilter
+            onFilterChange={setDashboardFilter}
+            defaultYear={2024}
+            defaultQuarter="Q4"
+            showAllModes={true}
+          />
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {kpiCards.map((kpi) => {
+              const value =
+                kpi.data.percentage ??
+                kpi.data.median ??
+                kpi.data.average ??
+                0;
+              const status = getStatus(
+                kpi.data.percentage,
+                kpi.data.median,
+                kpi.data.average
+              );
+
+              return (
+                <GMPKPICard
+                  key={kpi.id}
+                  kpiId={kpi.id}
+                  title={kpi.title}
+                  value={
+                    kpi.data.percentage !== undefined
+                      ? value.toFixed(1)
+                      : kpi.data.median !== undefined
+                      ? value.toFixed(0)
+                      : kpi.data.average !== undefined
+                      ? value.toFixed(1)
+                      : value
+                  }
+                  description={kpi.description}
+                  status={status}
+                  icon={getKpiIcon(kpi.id)}
+                  suffix={kpi.suffix}
+                  numerator={kpi.data.numerator}
+                  denominator={kpi.data.denominator}
+                  onClick={() => handleCardClick(kpi.id)}
                 />
-                <KPICardWithRequirement
-                  title="Facilities Inspected"
-                  value={filteredValue.numerator}
-                  description="As per the plan"
-                  icon={<CheckCircle2Icon className="h-4 w-4" />}
-                  status="good"
-                  requirement={getGMPRequirementByKpiId('gmp-facilities-inspected')}
-                  showRequirement={showRequirements}
-                />
-                <KPICardWithRequirement
-                  title="Planned Inspections"
-                  value={filteredValue.denominator}
-                  description="Total facilities planned"
-                  icon={<ActivityIcon className="h-4 w-4" />}
-                  status="good"
-                  requirement={getGMPRequirementByKpiId('gmp-facilities-inspected')}
-                  showRequirement={showRequirements}
-                />
+              );
+            })}
+          </div>
+
+          <Card className="border-dashed">
+            <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3Icon className="h-5 w-5 text-indigo-600" />
+                  Interactive KPI visual gallery
+                </CardTitle>
+                <CardDescription>
+                  Switch perspectives to highlight performance, cycle time, and
+                  transparency signals.
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Focus</span>
+                  <Select
+                    value={view}
+                    onValueChange={(val) =>
+                      setView(val as "performance" | "cycle" | "transparency")
+                    }
+                  >
+                    <SelectTrigger className="w-[170px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="performance">Performance</SelectItem>
+                      <SelectItem value="cycle">Cycle time</SelectItem>
+                      <SelectItem value="transparency">Transparency</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Period</span>
+                  <Select
+                    value={timeframe}
+                    onValueChange={(val) =>
+                      setTimeframe(val as "quarter" | "annual")
+                    }
+                  >
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="quarter">Quarterly</SelectItem>
+                      <SelectItem value="annual">Annual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-6 xl:grid-cols-3">
                 <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Formula</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <code className="text-xs bg-muted px-2 py-1 rounded">{data.kpi1.formula}</code>
-                <p className="text-xs text-muted-foreground mt-2">Unit: {data.kpi1.unit}</p>
-              </CardContent>
-            </Card>
-          </MetricGrid>
-            );
-          })()}
+                  <CardHeader>
+                    <CardTitle>Multi-KPI performance trend</CardTitle>
+                    <CardDescription>
+                      Quarter-over-quarter movement with aggregated SLA overlay.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <ComposedChart data={quarterlyTrend}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis domain={[60, 100]} />
+                        <Tooltip />
+                        <Legend />
+                        <Area
+                          type="monotone"
+                          dataKey="average"
+                          stroke="#8b5cf6"
+                          fill="#8b5cf6"
+                          fillOpacity={0.12}
+                          name="Average"
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="facilitiesInspected"
+                          stroke="#22c55e"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Facilities Inspected"
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="complaintInspections"
+                          stroke="#0ea5e9"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Complaint Inspections"
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="capaDecisions"
+                          stroke="#f59e0b"
+                          strokeWidth={2}
+                          dot={false}
+                          name="CAPA Decisions"
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="applicationsCompleted"
+                          stroke="#ef4444"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Applications Completed"
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
 
-          {/* Disaggregations for KPI 1 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Inspection Type Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-3 md:grid-cols-3">
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm font-medium">{data.kpi1.disaggregations.onsiteDomestic.label}</span>
-                  <span className="text-lg font-bold">{data.kpi1.disaggregations.onsiteDomestic.value}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm font-medium">{data.kpi1.disaggregations.onsiteForeign.label}</span>
-                  <span className="text-lg font-bold">{data.kpi1.disaggregations.onsiteForeign.value}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <span className="text-sm font-medium">{data.kpi1.disaggregations.jointOnsiteForeign.label}</span>
-                  <span className="text-lg font-bold">{data.kpi1.disaggregations.jointOnsiteForeign.value}</span>
-                </div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Performance vs gap by KPI</CardTitle>
+                    <CardDescription>
+                      Stack shows achieved vs remaining headroom to 100%.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={onTimeBreakdown}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" interval={0} tick={{ fontSize: 12 }} height={60} tickMargin={8} />
+                        <YAxis
+                          tickFormatter={(value) => `${value}%`}
+                          label={{ value: "Performance (%)", angle: -90, position: "insideLeft" }}
+                        />
+                        <Tooltip />
+                        <Legend />
+                        <Bar
+                          dataKey="onTime"
+                          stackId="a"
+                          fill="#22c55e"
+                          radius={[6, 6, 0, 0]}
+                          name="Performance"
+                        />
+                        <Bar
+                          dataKey="gap"
+                          stackId="a"
+                          fill="#f97316"
+                          radius={[6, 6, 0, 0]}
+                          name="Gap to 100%"
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Portfolio split by inspection mode</CardTitle>
+                    <CardDescription>
+                      Quick sense of where volume and performance live.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="relative">
+                    <div className="absolute right-6 top-6 text-sm text-muted-foreground">
+                      Volume{" "}
+                      {gmpDrillDownData["GMP-KPI-1"].level1?.data?.reduce(
+                        (sum, item) => sum + (item.total || 0),
+                        0
+                      ) ?? 0}
+                    </div>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={submoduleSplit}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={90}
+                          paddingAngle={4}
+                          label={({ name, value }) => `${name} ${value.toFixed(1)}%`}
+                        >
+                          {submoduleSplit.map((entry, index) => (
+                            <Cell
+                              key={entry.name}
+                              fill={
+                                ["#6366f1", "#22c55e", "#f97316", "#0ea5e9"][
+                                  index % 4
+                                ]
+                              }
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
               </div>
-              <div className="mt-4 space-y-1">
-                {data.kpi1.notes.map((note, idx) => (
-                  <p key={idx} className="text-xs text-muted-foreground">• {note}</p>
-                ))}
+
+              <div className="grid gap-6 xl:grid-cols-4">
+                <Card className="xl:col-span-2">
+                  <CardHeader>
+                    <CardTitle>Cycle time (median vs average)</CardTitle>
+                    <CardDescription>
+                      Trend view with SLA target line at 60 days.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <AreaChart data={cycleTimeTrend}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="quarter" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Area
+                          type="monotone"
+                          dataKey="median"
+                          stroke="#6366f1"
+                          fill="#6366f1"
+                          fillOpacity={0.15}
+                          name="Median"
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="average"
+                          stroke="#22c55e"
+                          fill="#22c55e"
+                          fillOpacity={0.12}
+                          name="Average"
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="target"
+                          stroke="#ef4444"
+                          strokeDasharray="5 5"
+                          name="Target"
+                          dot={false}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card className="xl:col-span-1">
+                  <CardHeader>
+                    <CardTitle>Performance & maturity radar</CardTitle>
+                    <CardDescription>
+                      Balanced view of outcomes vs capability.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <RadarChart data={radarData}>
+                        <PolarGrid />
+                        <PolarAngleAxis dataKey="category" />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                        <Radar
+                          name="Performance"
+                          dataKey="performance"
+                          stroke="#22c55e"
+                          fill="#22c55e"
+                          fillOpacity={0.2}
+                        />
+                        <Radar
+                          name="Maturity"
+                          dataKey="maturity"
+                          stroke="#6366f1"
+                          fill="#6366f1"
+                          fillOpacity={0.15}
+                        />
+                        <Legend />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card className="xl:col-span-1">
+                  <CardHeader>
+                    <CardTitle>Health gauge</CardTitle>
+                    <CardDescription>
+                      Overall SLA attainment for GMP operations.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <RadialBarChart
+                        data={[{ name: "Compliance", value: overallCompliance }]}
+                        innerRadius="60%"
+                        outerRadius="100%"
+                        startAngle={180}
+                        endAngle={-180}
+                      >
+                        <RadialBar dataKey="value" cornerRadius={12} fill="#22c55e" background />
+                        <PolarAngleAxis
+                          type="number"
+                          domain={[0, 100]}
+                          angleAxisId={0}
+                          tick={false}
+                        />
+                        <Legend />
+                        <Tooltip />
+                      </RadialBarChart>
+                    </ResponsiveContainer>
+                    <div className="mt-4 text-center text-sm text-muted-foreground">
+                      Target: 90%+ compliance across all SLA-bound KPIs
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid gap-6 xl:grid-cols-3">
+                <Card className="xl:col-span-2">
+                  <CardHeader>
+                    <CardTitle>Processing time scatter (sample inspections)</CardTitle>
+                    <CardDescription>
+                      Outliers surface immediately; hover for facility context.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <ScatterChart>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          type="number"
+                          dataKey="processingDays"
+                          name="Processing Days"
+                          unit="d"
+                        />
+                        <YAxis
+                          type="number"
+                          dataKey="targetDays"
+                          name="Target"
+                          unit="d"
+                        />
+                        <Tooltip
+                          cursor={{ strokeDasharray: "3 3" }}
+                          formatter={(value: number, name: string) =>
+                            [`${value} days`, name]
+                          }
+                          labelFormatter={(_, payload) =>
+                            payload?.[0]?.payload?.name
+                          }
+                        />
+                        <Legend />
+                        <Scatter
+                          name="Inspections"
+                          data={gmpDrillDownData["GMP-KPI-6"].level4?.data?.slice(0, 24).map((insp) => ({
+                            name: insp.facilityName,
+                            processingDays: insp.processingDays ?? 0,
+                            targetDays: insp.targetDays ?? 90,
+                            onTime: insp.onTime,
+                            status: insp.status,
+                          })) ?? []}
+                          fill="#6366f1"
+                        />
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Root-cause quick read</CardTitle>
+                    <CardDescription>
+                      Top drivers from Level-1 drill-down (GMP-KPI-1).
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {gmpDrillDownData["GMP-KPI-1"].rootCauseAnalysis?.flatMap(
+                      (dimension) =>
+                        dimension.items.slice(0, 3).map((item) => (
+                          <div key={`${dimension.dimension}-${item.category}`}>
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">
+                                  {item.category}
+                                </span>
+                                <Badge variant="outline">{dimension.dimension}</Badge>
+                              </div>
+                              <span className="text-sm text-muted-foreground">
+                                {item.percentage?.toFixed(1) ?? item.value}%
+                              </span>
+                            </div>
+                            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-indigo-500"
+                                style={{ width: `${item.percentage ?? item.value}%` }}
+                              />
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {item.count} / {item.total} on time
+                            </div>
+                          </div>
+                        ))
+                    )}
+                  </CardContent>
+                </Card>
               </div>
             </CardContent>
           </Card>
 
-          {/* Quarterly Trends for KPI 1 */}
-          <KPIBarChart
-            data={filterQuarterlyData(data.kpi1.quarterlyData.map(q => {
-              const parsed = parseQuarter(q.quarter);
-              return {
-                quarter: q.quarter,
-                year: parsed?.year,
-                quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
-                ...q.value
-              };
-            }), filter).map(item => ({
-              name: item.quarter,
-              value: item.percentage || 0
-            }))}
-            title="Quarterly Performance Trend"
-            description="Percentage of facilities inspected as per plan"
-          />
+          {selectedKpiId && gmpDrillDownData[selectedKpiId] && (
+            <GMPDrillDownModal
+              open={isModalOpen}
+              onOpenChange={handleModalClose}
+              data={gmpDrillDownData[selectedKpiId]}
+            />
+          )}
         </div>
-
-        <Separator />
-
-        {/* KPI 2: Percentage of complaint-triggered GMP inspections conducted */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-green-600">KPI 2: Complaint-Triggered Inspections</h2>
-              <p className="text-sm text-muted-foreground mt-1">{data.kpi2.definition}</p>
-            </div>
-            <div className="flex gap-2">
-              <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                {data.kpi2.reportingFrequency}
-              </Badge>
-              <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                {data.kpi2.type}
-              </Badge>
-              <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                Level {data.kpi2.maturityLevel}
-              </Badge>
-            </div>
-          </div>
-
-          {(() => {
-            const filteredValue = getFilteredGMPQuarterly(data.kpi2);
-            return (
-              <MetricGrid columns={3}>
-                <KPICardWithRequirement
-                  title="Response Rate"
-                  value={filteredValue.percentage?.toFixed(1) || "0"}
-                  suffix="%"
-                  description="Complaints addressed"
-                  icon={<AlertTriangleIcon className="h-4 w-4" />}
-                  status={getStatus(filteredValue.percentage || 0)}
-                  requirement={getGMPRequirementByKpiId('gmp-complaint-inspections')}
-                  showRequirement={showRequirements}
-                />
-                <KPICardWithRequirement
-                  title="Inspections Conducted"
-                  value={filteredValue.numerator}
-                  description={data.kpi2.numeratorDescription}
-                  icon={<CheckCircle2Icon className="h-4 w-4" />}
-                  status="good"
-                  requirement={getGMPRequirementByKpiId('gmp-complaint-inspections')}
-                  showRequirement={showRequirements}
-                />
-                <KPICardWithRequirement
-                  title="Complaints Requiring Inspection"
-                  value={filteredValue.denominator}
-                  description={data.kpi2.denominatorDescription}
-                  icon={<ActivityIcon className="h-4 w-4" />}
-                  status="good"
-                  requirement={getGMPRequirementByKpiId('gmp-complaint-inspections')}
-                  showRequirement={showRequirements}
-                />
-              </MetricGrid>
-            );
-          })()}
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Inspection Breakdown</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">{data.kpi2.disaggregations.domestic.label}</span>
-                    <span className="font-bold">{data.kpi2.disaggregations.domestic.value}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">{data.kpi2.disaggregations.foreign.label}</span>
-                    <span className="font-bold">{data.kpi2.disaggregations.foreign.value}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <KPILineChart
-              data={filterQuarterlyData(data.kpi2.quarterlyData.map(q => {
-                const parsed = parseQuarter(q.quarter);
-                return {
-                  quarter: q.quarter,
-                  year: parsed?.year,
-                  quarterNumber: parsed ? parseInt(parsed.quarter.slice(1)) : undefined,
-                  ...q.value
-                };
-              }), filter).map(item => ({
-                date: item.quarter,
-                value: item.percentage || 0,
-                target: 85
-              }))}
-              title="Quarterly Response Rate"
-              description="Percentage of complaints addressed"
-            />
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* KPI 3: Percentage of GMP on-site inspections waived */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-green-600">KPI 3: On-Site Inspections Waived</h2>
-              <p className="text-sm text-muted-foreground mt-1">{data.kpi3.definition}</p>
-            </div>
-            <div className="flex gap-2">
-              <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                {data.kpi3.reportingFrequency}
-              </Badge>
-              <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                {data.kpi3.type}
-              </Badge>
-              <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                Level {data.kpi3.maturityLevel}
-              </Badge>
-            </div>
-          </div>
-
-          <MetricGrid columns={3}>
-            <KPICardWithRequirement
-              title="Waiver Rate"
-              value={data.kpi3.currentQuarter.percentage?.toFixed(1) || "0"}
-              suffix="%"
-              description="Remote/desk reviews"
-              icon={<FileTextIcon className="h-4 w-4" />}
-              status="good"
-              requirement={getGMPRequirementByKpiId('gmp-inspections-waived')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Inspections Waived"
-              value={data.kpi3.currentQuarter.numerator}
-              description={data.kpi3.numeratorDescription}
-              icon={<CheckCircle2Icon className="h-4 w-4" />}
-              status="good"
-              requirement={getGMPRequirementByKpiId('gmp-inspections-waived')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Total Inspections Completed"
-              value={data.kpi3.currentQuarter.denominator}
-              description={data.kpi3.denominatorDescription}
-              icon={<ActivityIcon className="h-4 w-4" />}
-              status="good"
-              requirement={getGMPRequirementByKpiId('gmp-inspections-waived')}
-              showRequirement={showRequirements}
-            />
-          </MetricGrid>
-
-          <KPILineChart
-            data={data.kpi3.quarterlyData.map(item => ({
-              date: item.quarter,
-              value: item.value.percentage || 0,
-              target: 25
-            }))}
-            title="Quarterly Waiver Trend"
-            description="Use of risk-based and reliance mechanisms"
-          />
-        </div>
-
-        <Separator />
-
-        {/* KPI 4: Percentage of facilities compliant with GMP requirements */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-green-600">KPI 4: Facilities Compliant with GMP</h2>
-              <p className="text-sm text-muted-foreground mt-1">{data.kpi4.definition}</p>
-            </div>
-            <div className="flex gap-2">
-              <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                {data.kpi4.reportingFrequency}
-              </Badge>
-              <Badge variant="outline" className="bg-green-50 text-green-700">
-                {data.kpi4.type}
-              </Badge>
-              <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                Level {data.kpi4.maturityLevel}
-              </Badge>
-            </div>
-          </div>
-
-          {(() => {
-            const filteredValue = getFilteredGMPAnnual(data.kpi4);
-            return (
-              <MetricGrid columns={3}>
-                <KPICardWithRequirement
-                  title="Compliance Rate"
-                  value={filteredValue.percentage?.toFixed(1) || "0"}
-                  suffix="%"
-                  description="GMP compliance"
-                  icon={<CheckCircle2Icon className="h-4 w-4" />}
-                  status={getStatus(filteredValue.percentage || 0)}
-                  requirement={getGMPRequirementByKpiId('gmp-facilities-compliant')}
-                  showRequirement={showRequirements}
-                />
-                <KPICardWithRequirement
-                  title="Compliant Facilities"
-                  value={filteredValue.numerator}
-                  description={data.kpi4.numeratorDescription}
-                  icon={<CheckCircle2Icon className="h-4 w-4" />}
-                  status="excellent"
-                  requirement={getGMPRequirementByKpiId('gmp-facilities-compliant')}
-                  showRequirement={showRequirements}
-                />
-                <KPICardWithRequirement
-                  title="Total Facilities Inspected"
-                  value={filteredValue.denominator}
-                  description={data.kpi4.denominatorDescription}
-                  icon={<ActivityIcon className="h-4 w-4" />}
-                  status="good"
-                  requirement={getGMPRequirementByKpiId('gmp-facilities-compliant')}
-                  showRequirement={showRequirements}
-                />
-              </MetricGrid>
-            );
-          })()}
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Compliance Breakdown by Inspection Type</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {Object.entries(data.kpi4.disaggregations).map(([key, item]) => (
-                    <div key={key} className="flex justify-between items-center p-2 bg-muted rounded">
-                      <span className="text-sm">{item.label}</span>
-                      <span className="font-bold">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <KPILineChart
-              data={filterAnnualData(data.kpi4.annualData.map(a => ({
-                year: a.year,
-                ...a.value
-              })), filter).map(item => ({
-                date: item.year.toString(),
-                value: item.percentage || 0,
-                target: 90
-              }))}
-              title="Annual Compliance Trend"
-              description="Year-over-year compliance improvement"
-            />
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* KPI 5: Percentage of final CAPA decisions issued within a specified timeline */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-green-600">KPI 5: CAPA Decisions Within Timeline</h2>
-              <p className="text-sm text-muted-foreground mt-1">{data.kpi5.definition}</p>
-            </div>
-            <div className="flex gap-2">
-              <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                {data.kpi5.reportingFrequency}
-              </Badge>
-              <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                {data.kpi5.type}
-              </Badge>
-              <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                Level {data.kpi5.maturityLevel}
-              </Badge>
-            </div>
-          </div>
-
-          <MetricGrid columns={3}>
-            <KPICardWithRequirement
-              title="On-Time Rate"
-              value={data.kpi5.currentQuarter.percentage?.toFixed(1) || "0"}
-              suffix="%"
-              description="CAPA decisions on time"
-              icon={<ClockIcon className="h-4 w-4" />}
-              status={getStatus(data.kpi5.currentQuarter.percentage || 0)}
-              requirement={getGMPRequirementByKpiId('gmp-capa-decisions')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Decisions Issued on Time"
-              value={data.kpi5.currentQuarter.numerator}
-              description={data.kpi5.numeratorDescription}
-              icon={<CheckCircle2Icon className="h-4 w-4" />}
-              status="good"
-              requirement={getGMPRequirementByKpiId('gmp-capa-decisions')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Total CAPA Responses"
-              value={data.kpi5.currentQuarter.denominator}
-              description={data.kpi5.denominatorDescription}
-              icon={<ActivityIcon className="h-4 w-4" />}
-              status="good"
-              requirement={getGMPRequirementByKpiId('gmp-capa-decisions')}
-              showRequirement={showRequirements}
-            />
-          </MetricGrid>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">CAPA Breakdown</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">{data.kpi5.disaggregations.directInspections.label}</span>
-                    <span className="font-bold">{data.kpi5.disaggregations.directInspections.value}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">{data.kpi5.disaggregations.jointInspections.label}</span>
-                    <span className="font-bold">{data.kpi5.disaggregations.jointInspections.value}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <KPIBarChart
-              data={data.kpi5.quarterlyData.map(item => ({
-                name: item.quarter,
-                value: item.value.percentage || 0
-              }))}
-              title="Quarterly CAPA Performance"
-              description="Efficiency in evaluating CAPA responses"
-            />
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* KPI 6: Percentage of GMP inspection applications completed within the set timeline */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-green-600">KPI 6: Applications Completed Within Timeline</h2>
-              <p className="text-sm text-muted-foreground mt-1">{data.kpi6.definition}</p>
-            </div>
-            <div className="flex gap-2">
-              <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                {data.kpi6.reportingFrequency}
-              </Badge>
-              <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                {data.kpi6.type}
-              </Badge>
-              <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                Level {data.kpi6.maturityLevel}
-              </Badge>
-            </div>
-          </div>
-
-          <MetricGrid columns={3}>
-            <KPICardWithRequirement
-              title="On-Time Completion Rate"
-              value={data.kpi6.currentQuarter.percentage?.toFixed(1) || "0"}
-              suffix="%"
-              description="Within SLA timeline"
-              icon={<ClockIcon className="h-4 w-4" />}
-              status={getStatus(data.kpi6.currentQuarter.percentage || 0)}
-              requirement={getGMPRequirementByKpiId('gmp-applications-timeline')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Applications Completed on Time"
-              value={data.kpi6.currentQuarter.numerator}
-              description={data.kpi6.numeratorDescription}
-              icon={<CheckCircle2Icon className="h-4 w-4" />}
-              status="good"
-              requirement={getGMPRequirementByKpiId('gmp-applications-timeline')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Total Applications Received"
-              value={data.kpi6.currentQuarter.denominator}
-              description={data.kpi6.denominatorDescription}
-              icon={<ActivityIcon className="h-4 w-4" />}
-              status="good"
-              requirement={getGMPRequirementByKpiId('gmp-applications-timeline')}
-              showRequirement={showRequirements}
-            />
-          </MetricGrid>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Application Breakdown</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {Object.entries(data.kpi6.disaggregations).map(([key, item]) => (
-                    <div key={key} className="flex justify-between items-center p-2 bg-muted rounded">
-                      <span className="text-sm">{item.label}</span>
-                      <span className="font-bold">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-xs font-semibold mb-2">Stop-Clock Rules:</p>
-                  {data.kpi6.stopClockRules.map((rule, idx) => (
-                    <p key={idx} className="text-xs text-muted-foreground">• {rule}</p>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <KPILineChart
-              data={data.kpi6.quarterlyData.map(item => ({
-                date: item.quarter,
-                value: item.value.percentage || 0,
-                target: 90
-              }))}
-              title="Quarterly Completion Rate"
-              description="Applications completed within SLA"
-            />
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* KPI 7: Average turnaround time to complete GMP applications */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-green-600">KPI 7: Average Turnaround Time</h2>
-              <p className="text-sm text-muted-foreground mt-1">{data.kpi7.definition}</p>
-            </div>
-            <div className="flex gap-2">
-              <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                {data.kpi7.reportingFrequency}
-              </Badge>
-              <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                {data.kpi7.type}
-              </Badge>
-              <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                Level {data.kpi7.maturityLevel}
-              </Badge>
-            </div>
-          </div>
-
-          <MetricGrid columns={3}>
-            <KPICardWithRequirement
-              title="Average Processing Time"
-              value={data.kpi7.currentQuarter.average?.toFixed(1) || "0"}
-              suffix=" days"
-              description="Average completion time"
-              icon={<ClockIcon className="h-4 w-4" />}
-              status="excellent"
-              requirement={getGMPRequirementByKpiId('gmp-average-turnaround')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Total Processing Days"
-              value={data.kpi7.currentQuarter.numerator.toLocaleString()}
-              description={data.kpi7.numeratorDescription}
-              icon={<BarChart3Icon className="h-4 w-4" />}
-              status="good"
-              requirement={getGMPRequirementByKpiId('gmp-average-turnaround')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Applications Completed"
-              value={data.kpi7.currentQuarter.denominator}
-              description={data.kpi7.denominatorDescription}
-              icon={<CheckCircle2Icon className="h-4 w-4" />}
-              status="good"
-              requirement={getGMPRequirementByKpiId('gmp-average-turnaround')}
-              showRequirement={showRequirements}
-            />
-          </MetricGrid>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Average Time by Inspection Type</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {Object.entries(data.kpi7.disaggregations).map(([key, item]) => (
-                    <div key={key} className="flex justify-between items-center p-2 bg-muted rounded">
-                      <span className="text-sm">{item.label}</span>
-                      <span className="font-bold">{item.value} days</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <KPILineChart
-              data={data.kpi7.quarterlyData.map(item => ({
-                date: item.quarter,
-                value: item.value.average || 0,
-                target: 60
-              }))}
-              title="Quarterly Turnaround Trend"
-              description="Improving processing efficiency"
-            />
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* KPI 8: Median turnaround time to complete GMP inspection applications */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-green-600">KPI 8: Median Turnaround Time</h2>
-              <p className="text-sm text-muted-foreground mt-1">{data.kpi8.definition}</p>
-            </div>
-            <div className="flex gap-2">
-              <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                {data.kpi8.reportingFrequency}
-              </Badge>
-              <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                {data.kpi8.type}
-              </Badge>
-              <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                Level {data.kpi8.maturityLevel}
-              </Badge>
-            </div>
-          </div>
-
-          <MetricGrid columns={2}>
-            <KPICardWithRequirement
-              title="Median Processing Time"
-              value={data.kpi8.currentYear.median?.toFixed(1) || "0"}
-              suffix=" days"
-              description="Median completion time"
-              icon={<ClockIcon className="h-4 w-4" />}
-              status="excellent"
-              requirement={getGMPRequirementByKpiId('gmp-median-turnaround')}
-              showRequirement={showRequirements}
-            />
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Formula</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">{data.kpi8.formula}</p>
-                <p className="text-xs text-muted-foreground mt-2">Unit: {data.kpi8.unit}</p>
-              </CardContent>
-            </Card>
-          </MetricGrid>
-
-          <KPIBarChart
-            data={data.kpi8.annualData.map(item => ({
-              name: item.year,
-              value: item.value.median || 0
-            }))}
-            title="Annual Median Turnaround Trend"
-            description="Year-over-year median processing time"
-          />
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Notes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-1">
-                {data.kpi8.notes.map((note, idx) => (
-                  <p key={idx} className="text-sm text-muted-foreground">• {note}</p>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Separator />
-
-        {/* KPI 9: Percentage of GMP inspection reports published within a specified timeline */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-green-600">KPI 9: Inspection Reports Published on Time</h2>
-              <p className="text-sm text-muted-foreground mt-1">{data.kpi9.definition}</p>
-            </div>
-            <div className="flex gap-2">
-              <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                {data.kpi9.reportingFrequency}
-              </Badge>
-              <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                {data.kpi9.type}
-              </Badge>
-              <Badge variant="outline" className="bg-amber-50 text-amber-700">
-                Level {data.kpi9.maturityLevel}
-              </Badge>
-            </div>
-          </div>
-
-          <MetricGrid columns={3}>
-            <KPICardWithRequirement
-              title="Publication Rate"
-              value={data.kpi9.currentYear.percentage?.toFixed(1) || "0"}
-              suffix="%"
-              description="Reports published on time"
-              icon={<FileTextIcon className="h-4 w-4" />}
-              status={getStatus(data.kpi9.currentYear.percentage || 0)}
-              requirement={getGMPRequirementByKpiId('gmp-reports-published')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Reports Published"
-              value={data.kpi9.currentYear.numerator}
-              description={data.kpi9.numeratorDescription}
-              icon={<CheckCircle2Icon className="h-4 w-4" />}
-              status="good"
-              requirement={getGMPRequirementByKpiId('gmp-reports-published')}
-              showRequirement={showRequirements}
-            />
-            <KPICardWithRequirement
-              title="Total Inspections Completed"
-              value={data.kpi9.currentYear.denominator}
-              description={data.kpi9.denominatorDescription}
-              icon={<ActivityIcon className="h-4 w-4" />}
-              status="good"
-              requirement={getGMPRequirementByKpiId('gmp-reports-published')}
-              showRequirement={showRequirements}
-            />
-          </MetricGrid>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Publication Breakdown by Inspection Type</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {Object.entries(data.kpi9.disaggregations).map(([key, item]) => (
-                    <div key={key} className="flex justify-between items-center p-2 bg-muted rounded">
-                      <span className="text-sm">{item.label}</span>
-                      <span className="font-bold">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 pt-4 border-t space-y-1">
-                  {data.kpi9.notes.map((note, idx) => (
-                    <p key={idx} className="text-xs text-muted-foreground">• {note}</p>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <KPILineChart
-              data={data.kpi9.annualData.map(item => ({
-                date: item.year,
-                value: item.value.percentage || 0,
-                target: 85
-              }))}
-              title="Annual Publication Rate"
-              description="Transparency and timely publication trends"
-            />
-          </div>
-        </div>
-
-        {/* Harmonization Summary */}
-        <Card className="bg-gradient-to-r from-blue-50 to-purple-50">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <CheckCircle2Icon className="h-5 w-5 text-blue-600" />
-              Harmonization Status
-            </CardTitle>
-            <CardDescription>
-              East African Community Regional Alignment
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="bg-white p-3 rounded-lg">
-                <p className="text-xs font-semibold text-muted-foreground mb-2">Fully Harmonized (All 4 NRAs)</p>
-                <p className="text-xs">KPI 3, KPI 4, KPI 5, KPI 7</p>
-              </div>
-              <div className="bg-white p-3 rounded-lg">
-                <p className="text-xs font-semibold text-muted-foreground mb-2">Harmonized (3 NRAs)</p>
-                <p className="text-xs">KPI 1, KPI 2, KPI 6, KPI 9</p>
-              </div>
-              <div className="bg-white p-3 rounded-lg">
-                <p className="text-xs font-semibold text-muted-foreground mb-2">Partial Harmonization</p>
-                <p className="text-xs">KPI 8 (TMDA, Rwanda FDA)</p>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-3">
-              * TMDA (Tanzania), EFDA (Ethiopia), Rwanda FDA, UNDA (Uganda)
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    </DashboardLayout>
+      </DashboardLayout>
     </AuthGuard>
   );
 }

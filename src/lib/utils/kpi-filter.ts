@@ -4,6 +4,13 @@ import { KPIFilterState } from "@/components/kpi/kpi-filter";
  * Utility functions for filtering KPI data based on filter state
  */
 
+export interface MonthlyDataPoint {
+  month?: number; // 0-11 (JavaScript month index)
+  year?: number;
+  date?: string | Date;
+  [key: string]: any;
+}
+
 export interface QuarterlyDataPoint {
   quarter: string;
   year?: number;
@@ -49,6 +56,38 @@ export function isDateInRange(date: string | Date, startDate?: string, endDate?:
   if (end && checkDate > end) return false;
   
   return true;
+}
+
+/**
+ * Filter monthly data based on filter state
+ */
+export function filterMonthlyData<T extends MonthlyDataPoint>(
+  data: T[],
+  filter: KPIFilterState
+): T[] {
+  if (filter.mode === "date-range") {
+    return data.filter((item) => {
+      if (filter.startDate || filter.endDate) {
+        const itemDate = item.date || (item as any).periodStart;
+        if (itemDate) {
+          return isDateInRange(itemDate, filter.startDate, filter.endDate);
+        }
+        // If we have month and year, construct a date
+        if (item.month !== undefined && item.year !== undefined) {
+          const monthDate = new Date(item.year, item.month, 1);
+          return isDateInRange(monthDate, filter.startDate, filter.endDate);
+        }
+      }
+      return true;
+    });
+  }
+
+  // Filter by month and year
+  return data.filter((item) => {
+    const matchesMonth = filter.month === undefined || item.month === filter.month;
+    const matchesYear = filter.year === undefined || item.year === filter.year;
+    return matchesMonth && matchesYear;
+  });
 }
 
 /**

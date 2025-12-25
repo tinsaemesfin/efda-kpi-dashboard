@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { CalendarIcon, FilterIcon, XIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-export type FilterMode = "quarterly" | "annual" | "date-range";
+export type FilterMode = "monthly" | "quarterly" | "annual" | "date-range";
 
 export interface KPIFilterState {
   mode: FilterMode;
+  month?: number; // 0-11 (JavaScript month index)
   quarter?: "Q1" | "Q2" | "Q3" | "Q4";
   year?: number;
   startDate?: string;
@@ -19,23 +20,52 @@ export interface KPIFilterState {
 }
 
 interface KPIFilterProps {
-  reportingFrequency: "Quarterly" | "Annual" | "Semi-Annual";
+  reportingFrequency?: "Quarterly" | "Annual" | "Semi-Annual";
   onFilterChange: (filter: KPIFilterState) => void;
   defaultYear?: number;
   defaultQuarter?: "Q1" | "Q2" | "Q3" | "Q4";
+  defaultMonth?: number;
+  showAllModes?: boolean; // If true, show all filter modes regardless of reportingFrequency
 }
 
 export function KPIFilter({
   reportingFrequency,
   onFilterChange,
   defaultYear = new Date().getFullYear(),
-  defaultQuarter = "Q4"
+  defaultQuarter = "Q4",
+  defaultMonth,
+  showAllModes = false
 }: KPIFilterProps) {
+  const getCurrentMonth = (): number => new Date().getMonth();
+  const getCurrentQuarter = (): "Q1" | "Q2" | "Q3" | "Q4" => {
+    const month = new Date().getMonth();
+    if (month < 3) return "Q1";
+    if (month < 6) return "Q2";
+    if (month < 9) return "Q3";
+    return "Q4";
+  };
+
+  // Format quarter with month range
+  const formatQuarterWithMonths = (quarter: "Q1" | "Q2" | "Q3" | "Q4"): string => {
+    const quarterLabels: Record<"Q1" | "Q2" | "Q3" | "Q4", string> = {
+      Q1: "Q1 JAN-MAR",
+      Q2: "Q2 APR-JUN",
+      Q3: "Q3 JUL-SEP",
+      Q4: "Q4 OCT-DEC",
+    };
+    return quarterLabels[quarter];
+  };
+
   const [filter, setFilter] = useState<KPIFilterState>(() => {
-    const mode: FilterMode = reportingFrequency === "Annual" ? "annual" : "quarterly";
+    const mode: FilterMode = showAllModes 
+      ? "quarterly" 
+      : reportingFrequency === "Annual" 
+        ? "annual" 
+        : "quarterly";
     return {
       mode,
       year: defaultYear,
+      month: undefined,
       quarter: mode === "quarterly" ? defaultQuarter : undefined,
     };
   });
@@ -44,14 +74,21 @@ export function KPIFilter({
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 4 }, (_, i) => currentYear - i);
 
-  // Get current quarter based on current date
-  const getCurrentQuarter = (): "Q1" | "Q2" | "Q3" | "Q4" => {
-    const month = new Date().getMonth();
-    if (month < 3) return "Q1";
-    if (month < 6) return "Q2";
-    if (month < 9) return "Q3";
-    return "Q4";
-  };
+  // Month options
+  const months = [
+    { value: 0, label: "January" },
+    { value: 1, label: "February" },
+    { value: 2, label: "March" },
+    { value: 3, label: "April" },
+    { value: 4, label: "May" },
+    { value: 5, label: "June" },
+    { value: 6, label: "July" },
+    { value: 7, label: "August" },
+    { value: 8, label: "September" },
+    { value: 9, label: "October" },
+    { value: 10, label: "November" },
+    { value: 11, label: "December" },
+  ];
 
   useEffect(() => {
     // Initialize filter on mount
@@ -62,10 +99,17 @@ export function KPIFilter({
     const newFilter: KPIFilterState = {
       mode,
       year: filter.year || defaultYear,
+      month: mode === "monthly" ? (filter.month ?? getCurrentMonth()) : undefined,
       quarter: mode === "quarterly" ? (filter.quarter || getCurrentQuarter()) : undefined,
       startDate: mode === "date-range" ? filter.startDate : undefined,
       endDate: mode === "date-range" ? filter.endDate : undefined,
     };
+    setFilter(newFilter);
+    onFilterChange(newFilter);
+  };
+
+  const handleMonthChange = (month: number) => {
+    const newFilter = { ...filter, month };
     setFilter(newFilter);
     onFilterChange(newFilter);
   };
@@ -90,8 +134,13 @@ export function KPIFilter({
 
   const clearFilter = () => {
     const resetFilter: KPIFilterState = {
-      mode: reportingFrequency === "Annual" ? "annual" : "quarterly",
+      mode: showAllModes 
+        ? "quarterly" 
+        : reportingFrequency === "Annual" 
+          ? "annual" 
+          : "quarterly",
       year: defaultYear,
+      month: undefined,
       quarter: reportingFrequency !== "Annual" ? getCurrentQuarter() : undefined,
     };
     setFilter(resetFilter);
@@ -100,7 +149,8 @@ export function KPIFilter({
 
   const hasActiveFilter = 
     filter.mode === "date-range" && (filter.startDate || filter.endDate) ||
-    filter.mode === "quarterly" && filter.quarter !== getCurrentQuarter() ||
+    filter.mode === "monthly" && (filter.month !== getCurrentMonth() || filter.year !== defaultYear) ||
+    filter.mode === "quarterly" && (filter.quarter !== getCurrentQuarter() || filter.year !== defaultYear) ||
     filter.mode === "annual" && filter.year !== defaultYear;
 
   return (
@@ -124,14 +174,16 @@ export function KPIFilter({
           )}
         </div>
         <CardDescription className="text-xs">
-          Filter data by {reportingFrequency.toLowerCase()} period
+          {reportingFrequency 
+            ? `Filter data by ${reportingFrequency.toLowerCase()} period`
+            : "Filter data by date period"}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap items-end gap-4">
-          {/* Filter Mode Selection - only show if Quarterly */}
-          {reportingFrequency === "Quarterly" && (
-            <div className="flex flex-col gap-2 min-w-[140px]">
+          {/* Filter Mode Selection */}
+          {(showAllModes || reportingFrequency === "Quarterly") && (
+            <div className="flex flex-col gap-2 min-w-[160px]">
               <label className="text-xs font-medium text-muted-foreground">Filter Mode</label>
               <Select
                 value={filter.mode}
@@ -141,16 +193,40 @@ export function KPIFilter({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="quarterly">By Quarter</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="quarterly">Quarterly</SelectItem>
+                  <SelectItem value="annual">Annually</SelectItem>
                   <SelectItem value="date-range">Date Range</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           )}
 
+          {/* Month Selection - only for monthly mode */}
+          {filter.mode === "monthly" && (
+            <div className="flex flex-col gap-2 min-w-[160px]">
+              <label className="text-xs font-medium text-muted-foreground">Month</label>
+              <Select
+                value={filter.month?.toString()}
+                onValueChange={(value) => handleMonthChange(parseInt(value))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map((month) => (
+                    <SelectItem key={month.value} value={month.value.toString()}>
+                      {month.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Quarter Selection - only for quarterly mode */}
-          {filter.mode === "quarterly" && reportingFrequency === "Quarterly" && (
-            <div className="flex flex-col gap-2 min-w-[120px]">
+          {filter.mode === "quarterly" && (showAllModes || reportingFrequency === "Quarterly") && (
+            <div className="flex flex-col gap-2 min-w-[180px]">
               <label className="text-xs font-medium text-muted-foreground">Quarter</label>
               <Select
                 value={filter.quarter}
@@ -160,17 +236,17 @@ export function KPIFilter({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Q1">Q1</SelectItem>
-                  <SelectItem value="Q2">Q2</SelectItem>
-                  <SelectItem value="Q3">Q3</SelectItem>
-                  <SelectItem value="Q4">Q4</SelectItem>
+                  <SelectItem value="Q1">Q1 JAN-MAR</SelectItem>
+                  <SelectItem value="Q2">Q2 APR-JUN</SelectItem>
+                  <SelectItem value="Q3">Q3 JUL-SEP</SelectItem>
+                  <SelectItem value="Q4">Q4 OCT-DEC</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           )}
 
-          {/* Year Selection - only show when NOT in date-range mode */}
-          {filter.mode !== "date-range" && (
+          {/* Year Selection - show for monthly, quarterly, and annual modes */}
+          {(filter.mode === "monthly" || filter.mode === "quarterly" || filter.mode === "annual") && (
             <div className="flex flex-col gap-2 min-w-[120px]">
               <label className="text-xs font-medium text-muted-foreground">Year</label>
               <Select
@@ -226,7 +302,8 @@ export function KPIFilter({
           {hasActiveFilter && (
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="text-xs">
-                {filter.mode === "quarterly" && `${filter.quarter} ${filter.year}`}
+                {filter.mode === "monthly" && `${months[filter.month ?? 0].label} ${filter.year}`}
+                {filter.mode === "quarterly" && filter.quarter && `${formatQuarterWithMonths(filter.quarter)} ${filter.year}`}
                 {filter.mode === "annual" && `Year ${filter.year}`}
                 {filter.mode === "date-range" && 
                   `${filter.startDate ? new Date(filter.startDate).toLocaleDateString() : "Start"} - ${filter.endDate ? new Date(filter.endDate).toLocaleDateString() : "End"}`

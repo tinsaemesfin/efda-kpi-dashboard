@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +52,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { KPIDrillDownData, IndividualApplication, ProcessingStageDrillDown } from "@/types/ma-drilldown";
+import { KPIFilter, type KPIFilterState } from "./kpi-filter";
+import { filterMonthlyData } from "@/lib/utils/kpi-filter";
 
 interface MADrillDownModalProps {
   open: boolean;
@@ -130,8 +132,12 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
   const [kpi1DimensionId, setKpi1DimensionId] = useState<string>(
     dimensionViews[0]?.id ?? ""
   );
+  const [kpi1DateFilter, setKpi1DateFilter] = useState<KPIFilterState>({
+    mode: "quarterly",
+    quarter: "Q4",
+    year: 2024,
+  });
   const [kpi1Filters, setKpi1Filters] = useState({
-    period: "Quarterly",
     applicationType: "All",
     internalPathway: "All",
     reliancePathway: "All",
@@ -270,8 +276,62 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
   const kpi1DimensionViews = dimensionViews;
   const kpi1Applications = (data.level4?.data ?? []) as IndividualApplication[];
 
+  // Filter applications by date range if date-range mode is selected
+  const dateFilteredApplications = useMemo(() => {
+    if (kpi1DateFilter.mode === "date-range" && (kpi1DateFilter.startDate || kpi1DateFilter.endDate)) {
+      return kpi1Applications.filter((app) => {
+        const date = new Date(app.decisionDate ?? app.submissionDate ?? "");
+        if (Number.isNaN(date.getTime())) return false;
+        
+        const start = kpi1DateFilter.startDate ? new Date(kpi1DateFilter.startDate) : null;
+        const end = kpi1DateFilter.endDate ? new Date(kpi1DateFilter.endDate) : null;
+        
+        if (start && date < start) return false;
+        if (end && date > end) return false;
+        return true;
+      });
+    }
+    
+    // For monthly, quarterly, and annual modes, filter by month/quarter/year
+    if (kpi1DateFilter.mode === "monthly" && kpi1DateFilter.month !== undefined && kpi1DateFilter.year !== undefined) {
+      return kpi1Applications.filter((app) => {
+        const date = new Date(app.decisionDate ?? app.submissionDate ?? "");
+        if (Number.isNaN(date.getTime())) return false;
+        return date.getMonth() === kpi1DateFilter.month && date.getFullYear() === kpi1DateFilter.year;
+      });
+    }
+    
+    if (kpi1DateFilter.mode === "quarterly" && kpi1DateFilter.quarter && kpi1DateFilter.year !== undefined) {
+      const quarterMonths: Record<"Q1" | "Q2" | "Q3" | "Q4", number[]> = {
+        Q1: [0, 1, 2],
+        Q2: [3, 4, 5],
+        Q3: [6, 7, 8],
+        Q4: [9, 10, 11],
+      };
+      return kpi1Applications.filter((app) => {
+        const date = new Date(app.decisionDate ?? app.submissionDate ?? "");
+        if (Number.isNaN(date.getTime())) return false;
+        return (
+          quarterMonths[kpi1DateFilter.quarter!].includes(date.getMonth()) &&
+          date.getFullYear() === kpi1DateFilter.year
+        );
+      });
+    }
+    
+    if (kpi1DateFilter.mode === "annual" && kpi1DateFilter.year !== undefined) {
+      return kpi1Applications.filter((app) => {
+        const date = new Date(app.decisionDate ?? app.submissionDate ?? "");
+        if (Number.isNaN(date.getTime())) return false;
+        return date.getFullYear() === kpi1DateFilter.year;
+      });
+    }
+    
+    return kpi1Applications;
+  }, [kpi1Applications, kpi1DateFilter]);
+
+  // Apply other filters (application type, pathway, etc.) to date-filtered applications
   const filteredKpi1Applications = useMemo(() => {
-    return kpi1Applications.filter((app) => {
+    return dateFilteredApplications.filter((app) => {
       if (kpi1Filters.applicationType !== "All" && app.applicationType !== kpi1Filters.applicationType)
         return false;
       if (
@@ -291,20 +351,20 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
         return false;
       return true;
     });
-  }, [kpi1Applications, kpi1Filters]);
+  }, [dateFilteredApplications, kpi1Filters]);
 
   const kpi1WorkingSet =
-    filteredKpi1Applications.length > 0 ? filteredKpi1Applications : kpi1Applications;
+    filteredKpi1Applications.length > 0 ? filteredKpi1Applications : dateFilteredApplications;
 
-  const getBucketKey = (date: Date) => {
-    if (kpi1Filters.period === "Monthly") {
+  const getBucketKey = useCallback((date: Date) => {
+    if (kpi1DateFilter.mode === "monthly") {
       return `${date.getFullYear()}-${date.toLocaleString("default", { month: "short" })}`;
     }
-    if (kpi1Filters.period === "Annually") {
+    if (kpi1DateFilter.mode === "annual") {
       return `${date.getFullYear()}`;
     }
     return `Q${Math.floor(date.getMonth() / 3) + 1} ${date.getFullYear()}`;
-  };
+  }, [kpi1DateFilter.mode]);
 
   const kpi1TimeSeries = useMemo(() => {
     if (!kpi1WorkingSet.length) return [];
@@ -319,9 +379,9 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
       if (Number.isNaN(date.getTime())) return;
       const key = getBucketKey(date);
       const startMonth =
-        kpi1Filters.period === "Monthly"
+        kpi1DateFilter.mode === "monthly"
           ? date.getMonth()
-          : kpi1Filters.period === "Annually"
+          : kpi1DateFilter.mode === "annual"
           ? 0
           : Math.floor(date.getMonth() / 3) * 3;
       const order = new Date(date.getFullYear(), startMonth, 1).getTime();
@@ -346,7 +406,7 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
         averageDays: bucket.volume ? bucket.totalDays / bucket.volume : 0,
         target: 90,
       }));
-  }, [kpi1WorkingSet, kpi1Filters.period]);
+  }, [kpi1WorkingSet, kpi1DateFilter.mode, getBucketKey]);
 
   const kpi1ActiveDimension =
     kpi1DimensionViews.find((view) => view.id === kpi1DimensionId) ??
@@ -1133,26 +1193,15 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
               </div>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-              <div className="space-y-2">
-                <div className="text-xs uppercase text-muted-foreground">Date</div>
-                <Select
-                  value={kpi1Filters.period}
-                  onValueChange={(value) =>
-                    setKpi1Filters((prev) => ({ ...prev, period: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select period" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Monthly">Monthly</SelectItem>
-                    <SelectItem value="Quarterly">Quarterly</SelectItem>
-                    <SelectItem value="Annually">Annually</SelectItem>
-                    <SelectItem value="Date Filter">Date filter</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Date Filter */}
+            <KPIFilter
+              onFilterChange={setKpi1DateFilter}
+              defaultYear={2024}
+              defaultQuarter="Q4"
+              showAllModes={true}
+            />
+
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <div className="space-y-2">
                 <div className="text-xs uppercase text-muted-foreground">Application type</div>
                 <Select
