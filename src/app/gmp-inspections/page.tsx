@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -34,9 +34,10 @@ import { DashboardLayout } from "@/components/layout";
 import { RequirementToggle, KPIFilter, type KPIFilterState } from "@/components/kpi";
 import { GMPKPICard } from "@/components/kpi/gmp-kpi-card";
 import { GMPDrillDownModal } from "@/components/kpi/gmp-drilldown-modal";
-import { gmpKPIData } from "@/data/gmp-dummy-data";
+import { gmpKPIData as dummyGmpKPIData } from "@/data/gmp-dummy-data";
 import { gmpDrillDownData } from "@/data/gmp-drilldown-data";
 import { filterQuarterlyData, filterAnnualData, parseQuarter } from "@/lib/utils/kpi-filter";
+import { useGMPKPI1Data } from "@/hooks/useGMPApi";
 import {
   AlertCircleIcon,
   BarChart3Icon,
@@ -44,10 +45,12 @@ import {
   ClipboardCheckIcon,
   ChevronRightIcon,
   ClockIcon,
+  CloudIcon,
   FileEditIcon,
   FileSearchIcon,
   FileTextIcon,
   GaugeIcon,
+  Loader2Icon,
   RefreshCwIcon,
   ShieldCheckIcon,
   Wand2Icon,
@@ -72,7 +75,47 @@ import {
 } from "@/components/ui/select";
 
 export default function GMPInspectionsPage() {
-  const data = gmpKPIData;
+  // Fetch real API data for KPI-1
+  const { data: apiKPI1Data, rawData: apiRawData, loading: apiLoading, error: apiError } = useGMPKPI1Data();
+  
+  // Merge API data with dummy data (API data takes precedence for KPI-1)
+  const data = useMemo(() => {
+    if (apiKPI1Data && apiRawData?.data) {
+      // Update KPI-1 with real API data
+      return {
+        ...dummyGmpKPIData,
+        kpi1: {
+          ...dummyGmpKPIData.kpi1,
+          currentQuarter: {
+            numerator: apiKPI1Data.numerator,
+            denominator: apiKPI1Data.denominator,
+            percentage: apiKPI1Data.percentage,
+          },
+          // Update disaggregations from API data
+          disaggregations: {
+            // Map API categories to expected structure
+            ...(apiKPI1Data.disaggregations.abroad ? {
+              onsiteForeign: {
+                label: 'Abroad (Foreign)',
+                value: apiKPI1Data.disaggregations.abroad.value,
+                percentage: apiKPI1Data.disaggregations.abroad.percentage,
+              },
+            } : { onsiteForeign: dummyGmpKPIData.kpi1.disaggregations.onsiteForeign }),
+            ...(apiKPI1Data.disaggregations.local ? {
+              onsiteDomestic: {
+                label: 'Local (Domestic)',
+                value: apiKPI1Data.disaggregations.local.value,
+                percentage: apiKPI1Data.disaggregations.local.percentage,
+              },
+            } : { onsiteDomestic: dummyGmpKPIData.kpi1.disaggregations.onsiteDomestic }),
+            jointOnsiteForeign: dummyGmpKPIData.kpi1.disaggregations.jointOnsiteForeign,
+          },
+        },
+      };
+    }
+    return dummyGmpKPIData;
+  }, [apiKPI1Data, apiRawData]);
+
   const [showRequirements, setShowRequirements] = useState(false);
   const [selectedKpiId, setSelectedKpiId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -406,13 +449,23 @@ export default function GMPInspectionsPage() {
     [data, dashboardFilter]
   );
 
-  const submoduleSplit =
-    gmpDrillDownData["GMP-KPI-1"].level1?.data?.map((item) => ({
+  // Use API data for submodule split if available, otherwise use drilldown data
+  const submoduleSplit = useMemo(() => {
+    if (apiRawData?.data && apiRawData.data.length > 0) {
+      return apiRawData.data.map((item) => ({
+        name: item.category,
+        value: item.percentage,
+        count: item.amount,
+        total: item.total,
+      }));
+    }
+    return gmpDrillDownData["GMP-KPI-1"].level1?.data?.map((item) => ({
       name: item.category,
       value: item.percentage ?? item.value ?? 0,
       count: item.count,
       total: item.total,
     })) ?? [];
+  }, [apiRawData]);
 
   const radarData = useMemo(
     () => [
@@ -519,7 +572,24 @@ export default function GMPInspectionsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* API Status Indicator */}
+                  {apiLoading ? (
+                    <Badge className="border-white/20 bg-blue-500/20 text-white">
+                      <Loader2Icon className="mr-1 h-3 w-3 animate-spin" />
+                      Fetching live data...
+                    </Badge>
+                  ) : apiError ? (
+                    <Badge className="border-white/20 bg-amber-500/20 text-amber-200">
+                      <AlertCircleIcon className="mr-1 h-3 w-3" />
+                      Using cached data
+                    </Badge>
+                  ) : apiKPI1Data ? (
+                    <Badge className="border-white/20 bg-emerald-500/20 text-emerald-200">
+                      <CloudIcon className="mr-1 h-3 w-3" />
+                      Live API data
+                    </Badge>
+                  ) : null}
                   <Button variant="outline" className="border-white/20 text-white">
                     <GaugeIcon className="mr-2 h-4 w-4" />
                     Live governance view
