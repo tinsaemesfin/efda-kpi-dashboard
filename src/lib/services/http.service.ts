@@ -4,13 +4,30 @@ import { authService } from './auth.service';
 class HttpService {
   private baseUrl = apiConfig.baseUrl;
 
+  private async getToken(): Promise<string | null> {
+    if (!authService) return null;
+    
+    // First try the cached token
+    let token = authService.getToken();
+    
+    // If no cached token, try to load user from storage
+    if (!token) {
+      const user = await authService.getUser();
+      token = user?.access_token || null;
+    }
+    
+    return token;
+  }
+
   async get<T>(endpoint: string): Promise<T> {
-    const token = authService?.getToken();
+    const token = await this.getToken();
     
     if (!token) {
       throw new Error('No access token available');
     }
 
+    console.log(`[HTTP] GET ${this.baseUrl}${endpoint}`);
+    
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'GET',
       headers: {
@@ -18,6 +35,8 @@ class HttpService {
         'Content-Type': 'application/json',
       },
     });
+
+    console.log(`[HTTP] Response status: ${response.status}`);
 
     if (response.status === 401) {
       const renewed = await authService?.renewToken();
@@ -28,14 +47,18 @@ class HttpService {
     }
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[HTTP] Error response:`, errorText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log(`[HTTP] Response data:`, data);
+    return data;
   }
 
   async post<T>(endpoint: string, data: any): Promise<T> {
-    const token = authService?.getToken();
+    const token = await this.getToken();
     
     if (!token) {
       throw new Error('No access token available');
@@ -66,8 +89,12 @@ class HttpService {
   }
 
   async put<T>(endpoint: string, data: any): Promise<T> {
-    const token = authService?.getToken();
+    const token = await this.getToken();
     
+    if (!token) {
+      throw new Error('No access token available');
+    }
+
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'PUT',
       headers: {
@@ -93,8 +120,12 @@ class HttpService {
   }
 
   async delete<T>(endpoint: string): Promise<T> {
-    const token = authService?.getToken();
+    const token = await this.getToken();
     
+    if (!token) {
+      throw new Error('No access token available');
+    }
+
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'DELETE',
       headers: {
