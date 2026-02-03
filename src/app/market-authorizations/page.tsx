@@ -38,6 +38,7 @@ import { maKPIData } from "@/data/ma-dummy-data";
 import { maDrillDownData } from "@/data/ma-drilldown-data";
 import type { IndividualApplication } from "@/types/ma-drilldown";
 import { filterQuarterlyData, filterAnnualData, parseQuarter } from "@/lib/utils/kpi-filter";
+import { useMAKPITransformedData } from "@/hooks/useMAApi";
 import {
   AlertCircleIcon,
   BarChart3Icon,
@@ -125,6 +126,12 @@ const kpi1OutcomeOptions = [
 ];
 
 export default function MarketAuthorizationsPage() {
+  // Fetch API data
+  const { data: apiData, loading: apiLoading } = useMAKPITransformedData();
+  
+  // KPIs that use API data (NMR→KPI-1, REN→KPI-2, VAR→KPI-3)
+  const apiAffectedKPIs = ['MA-KPI-1', 'MA-KPI-2', 'MA-KPI-3'];
+  
   const data = maKPIData;
   const [showRequirements, setShowRequirements] = useState(false);
   const [selectedKpiId, setSelectedKpiId] = useState<string | null>(null);
@@ -196,7 +203,7 @@ export default function MarketAuthorizationsPage() {
   };
 
   // Helper function to get filtered quarterly value
-  const getFilteredQuarterlyValue = useCallback(<T extends { quarterlyData?: Array<{ quarter: string; value: any }>; currentQuarter: any }>(kpiData: T): T['currentQuarter'] => {
+  const getFilteredQuarterlyValue = useCallback(<T extends { quarterlyData?: Array<{ quarter: string; value: { numerator?: number; denominator?: number; percentage?: number } }>; currentQuarter: { numerator?: number; denominator?: number; percentage?: number } }>(kpiData: T): T['currentQuarter'] => {
     if (!kpiData.quarterlyData) return kpiData.currentQuarter;
     const filtered = filterQuarterlyData(
       kpiData.quarterlyData.map((q) => {
@@ -215,7 +222,7 @@ export default function MarketAuthorizationsPage() {
   }, [dashboardFilter]);
 
   // Helper function to get filtered annual value
-  const getFilteredAnnualValue = useCallback(<T extends { annualData?: Array<{ year: string | number; value: any }>; currentYear: any }>(kpiData: T): T['currentYear'] => {
+  const getFilteredAnnualValue = useCallback(<T extends { annualData?: Array<{ year: string | number; value: { numerator?: number; denominator?: number; percentage?: number; median?: number; average?: number } }>; currentYear: { numerator?: number; denominator?: number; percentage?: number; median?: number; average?: number } }>(kpiData: T): T['currentYear'] => {
     if (!kpiData.annualData) return kpiData.currentYear;
     const filtered = filterAnnualData(
       kpiData.annualData.map((a) => ({
@@ -227,64 +234,118 @@ export default function MarketAuthorizationsPage() {
     return filtered.length > 0 ? filtered[filtered.length - 1] : kpiData.currentYear;
   }, [dashboardFilter]);
 
-  const kpiCards = [
-    {
-      id: "MA-KPI-1",
-      title: "New MA Applications Completed on Time",
-      data: getFilteredQuarterlyValue(data.kpi1),
-      description: "Applications completed within timeline",
-      suffix: "%",
-    },
-    {
-      id: "MA-KPI-2",
-      title: "Renewal MA Applications Completed on Time",
-      data: getFilteredQuarterlyValue(data.kpi2),
-      description: "Renewals completed within timeline",
-      suffix: "%",
-    },
-    {
-      id: "MA-KPI-3",
-      title: "Minor Variation Applications Completed on Time",
-      data: getFilteredQuarterlyValue(data.kpi3),
-      description: "Minor variations completed within timeline",
-      suffix: "%",
-    },
-    {
-      id: "MA-KPI-4",
-      title: "Major Variation Applications Completed on Time",
-      data: getFilteredQuarterlyValue(data.kpi4),
-      description: "Major variations completed within timeline",
-      suffix: "%",
-    },
-    {
-      id: "MA-KPI-5",
-      title: "Queries/FIRs Completed on Time",
-      data: getFilteredQuarterlyValue(data.kpi5),
-      description: "Queries/FIRs completed within timeline",
-      suffix: "%",
-    },
-    {
-      id: "MA-KPI-6",
-      title: "Median Time for New MA Applications",
-      data: getFilteredAnnualValue(data.kpi6),
-      description: "Median processing time in days",
-      suffix: " days",
-    },
-    {
-      id: "MA-KPI-7",
-      title: "Average Time for New MA Applications",
-      data: getFilteredAnnualValue(data.kpi7),
-      description: "Average processing time in days",
-      suffix: " days",
-    },
-    {
-      id: "MA-KPI-8",
-      title: "PARs Published on Time",
-      data: getFilteredQuarterlyValue(data.kpi8),
-      description: "Public Assessment Reports published within timeline",
-      suffix: "%",
-    },
-  ];
+  // Helper function to get KPI data from API or fallback to dummy data
+  const getKPIData = useCallback((kpiId: string) => {
+    // Try to get from API first (only for KPIs 1-4 which have percentage data)
+    if (apiData && apiData[kpiId] && (kpiId === "MA-KPI-1" || kpiId === "MA-KPI-2" || kpiId === "MA-KPI-3" || kpiId === "MA-KPI-4")) {
+      return {
+        ...apiData[kpiId],
+        dataSource: "api" as const,
+        median: undefined,
+        average: undefined,
+      };
+    }
+    
+    // Fallback to dummy data
+    let dummyValue;
+    if (kpiId === "MA-KPI-1") {
+      dummyValue = getFilteredQuarterlyValue(data.kpi1);
+    } else if (kpiId === "MA-KPI-2") {
+      dummyValue = getFilteredQuarterlyValue(data.kpi2);
+    } else if (kpiId === "MA-KPI-3") {
+      dummyValue = getFilteredQuarterlyValue(data.kpi3);
+    } else if (kpiId === "MA-KPI-4") {
+      dummyValue = getFilteredQuarterlyValue(data.kpi4);
+    } else if (kpiId === "MA-KPI-5") {
+      dummyValue = getFilteredQuarterlyValue(data.kpi5);
+    } else if (kpiId === "MA-KPI-6") {
+      dummyValue = getFilteredAnnualValue(data.kpi6);
+    } else if (kpiId === "MA-KPI-7") {
+      dummyValue = getFilteredAnnualValue(data.kpi7);
+    } else if (kpiId === "MA-KPI-8") {
+      dummyValue = getFilteredQuarterlyValue(data.kpi8);
+    }
+    
+    return {
+      numerator: dummyValue?.numerator,
+      denominator: dummyValue?.denominator,
+      percentage: dummyValue?.percentage,
+      median: dummyValue?.median,
+      average: dummyValue?.average,
+      disaggregations: {},
+      dataSource: "dummy" as const,
+    };
+  }, [apiData, getFilteredQuarterlyValue, getFilteredAnnualValue, data]);
+
+  const kpiCards = useMemo(() => {
+    const kpi1Data = getKPIData("MA-KPI-1");
+    const kpi2Data = getKPIData("MA-KPI-2");
+    const kpi3Data = getKPIData("MA-KPI-3");
+    const kpi4Data = getKPIData("MA-KPI-4");
+    const kpi5Data = getKPIData("MA-KPI-5");
+    const kpi6Data = getKPIData("MA-KPI-6");
+    const kpi7Data = getKPIData("MA-KPI-7");
+    const kpi8Data = getKPIData("MA-KPI-8");
+
+    return [
+      {
+        id: "MA-KPI-1",
+        title: "New MA Applications Completed on Time",
+        data: kpi1Data,
+        description: "Applications completed within timeline",
+        suffix: "%",
+      },
+      {
+        id: "MA-KPI-2",
+        title: "Renewal MA Applications Completed on Time",
+        data: kpi2Data,
+        description: "Renewals completed within timeline",
+        suffix: "%",
+      },
+      {
+        id: "MA-KPI-3",
+        title: "Minor Variation Applications Completed on Time",
+        data: kpi3Data,
+        description: "Minor variations completed within timeline",
+        suffix: "%",
+      },
+      {
+        id: "MA-KPI-4",
+        title: "Major Variation Applications Completed on Time",
+        data: kpi4Data,
+        description: "Major variations completed within timeline",
+        suffix: "%",
+      },
+      {
+        id: "MA-KPI-5",
+        title: "Queries/FIRs Completed on Time",
+        data: kpi5Data,
+        description: "Queries/FIRs completed within timeline",
+        suffix: "%",
+      },
+      {
+        id: "MA-KPI-6",
+        title: "Median Time for New MA Applications",
+        data: kpi6Data,
+        description: "Median processing time in days",
+        suffix: " days",
+      },
+      {
+        id: "MA-KPI-7",
+        title: "Average Time for New MA Applications",
+        data: kpi7Data,
+        description: "Average processing time in days",
+        suffix: " days",
+      },
+      {
+        id: "MA-KPI-8",
+        title: "PARs Published on Time",
+        data: kpi8Data,
+        description: "Public Assessment Reports published within timeline",
+        suffix: "%",
+      },
+    ];
+  }, [getKPIData]);
 
   const kpi1DimensionViews = maDrillDownData["MA-KPI-1"].dimensionViews ?? [];
   const kpi1Applications = useMemo(
@@ -1215,6 +1276,9 @@ export default function MarketAuthorizationsPage() {
                 kpi.data.median,
                 kpi.data.average
               );
+              
+              // Show loading only for API-affected KPIs when API is loading
+              const isLoading = apiAffectedKPIs.includes(kpi.id) && apiLoading && kpi.data.dataSource === 'dummy';
 
               return (
                 <MAKPICard
@@ -1237,6 +1301,9 @@ export default function MarketAuthorizationsPage() {
                   numerator={kpi.data.numerator}
                   denominator={kpi.data.denominator}
                   onClick={() => handleCardClick(kpi.id)}
+                  dataSource={kpi.data.dataSource}
+                  disaggregations={kpi.data.disaggregations}
+                  loading={isLoading}
                 />
               );
             })}

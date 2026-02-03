@@ -64,6 +64,8 @@ class HttpService {
       throw new Error('No access token available');
     }
 
+    console.log(`[HTTP] POST ${this.baseUrl}${endpoint}`, data);
+    
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
       headers: {
@@ -72,6 +74,8 @@ class HttpService {
       },
       body: JSON.stringify(data),
     });
+
+    console.log(`[HTTP] Response status: ${response.status}`);
 
     if (response.status === 401) {
       const renewed = await authService?.renewToken();
@@ -82,10 +86,14 @@ class HttpService {
     }
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[HTTP] Error response:`, errorText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return response.json();
+    const responseData = await response.json();
+    console.log(`[HTTP] Response data:`, responseData);
+    return responseData;
   }
 
   async put<T>(endpoint: string, data: any): Promise<T> {
