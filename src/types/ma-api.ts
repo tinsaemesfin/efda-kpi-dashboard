@@ -4,7 +4,7 @@
  */
 
 export type MAModuleCode = 'NMR' | 'VAR' | 'REN';
-export type MASubmoduleTypeCode = 'MDCN' | 'FD' | 'MD';
+export type MASubmoduleTypeCode = 'MDCN' | 'FD' | 'MD' | 'CO';
 
 /**
  * Individual data row from the MA KPI API
@@ -104,4 +104,5 @@ export const SUBMODULE_TYPE_LABELS: Record<MASubmoduleTypeCode, string> = {
   MDCN: 'Medicine',
   FD: 'Food',
   MD: 'Medical Device',
+  CO: 'Cosmetics',
 };

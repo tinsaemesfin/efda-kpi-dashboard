@@ -6,11 +6,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2Icon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DataSourceBadge } from "@/components/kpi/data-source-badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 export interface KPICardBaseProps {
   kpiId: string;
@@ -50,6 +45,15 @@ export function KPICardBase({
   loading = false,
   onClick,
 }: KPICardBaseProps) {
+  const disaggregationList = disaggregations
+    ? Object.values(disaggregations)
+        .filter((item) => {
+          const label = item.label?.trim();
+          return Boolean(label) && item.value >= 0;
+        })
+        .sort((a, b) => b.value - a.value)
+    : [];
+
   if (loading) {
     return (
       <Card className="cursor-default">
@@ -80,11 +84,12 @@ export function KPICardBase({
   return (
     <Card
       className={cn(
-        "cursor-pointer transition-all hover:shadow-lg hover:border-primary",
+        "group relative cursor-pointer overflow-hidden border-border/70 bg-linear-to-br from-background via-background to-muted/20 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-xl",
         onClick && "hover:scale-[1.02]"
       )}
       onClick={onClick}
     >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-r from-violet-500 via-indigo-500 to-cyan-500 opacity-80" />
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           <CardTitle className="text-sm font-medium">{title}</CardTitle>
@@ -92,9 +97,9 @@ export function KPICardBase({
         </div>
         {icon && <div className="text-muted-foreground">{icon}</div>}
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         <div className="flex flex-col gap-2">
-          <div className="text-2xl font-bold">
+          <div className="text-3xl font-bold tracking-tight">
             {value}
             {suffix}
           </div>
@@ -109,40 +114,50 @@ export function KPICardBase({
             </CardDescription>
           )}
 
-          {disaggregations && Object.keys(disaggregations).length > 0 && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <CardDescription className="text-xs cursor-help underline decoration-dotted">
-                  View breakdown by product type
-                </CardDescription>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <div className="space-y-1.5">
-                  {Object.values(disaggregations).map((disagg, idx) => {
-                    const total = disagg.percentage > 0 
-                      ? Math.round(disagg.value / (disagg.percentage / 100)) 
-                      : 0;
-                    return (
-                      <div key={idx} className="text-xs">
-                        <span className="font-medium">{disagg.label}:</span>{" "}
-                        {disagg.value} / {total} ({disagg.percentage.toFixed(1)}%)
-                      </div>
-                    );
-                  })}
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          )}
-
           <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className={cn("text-xs", statusColors[status])}
-            >
+            <Badge variant="outline" className={cn("text-xs", statusColors[status])}>
               {status.charAt(0).toUpperCase() + status.slice(1)}
             </Badge>
           </div>
         </div>
+
+        {disaggregationList.length > 0 && (
+          <div className="rounded-xl border border-border/60 bg-muted/40 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Product Type Breakdown
+              </p>
+              <span className="text-[11px] text-muted-foreground">
+                Visible by default
+              </span>
+            </div>
+            <div className="space-y-2.5">
+              {disaggregationList.map((disagg, idx) => {
+                const total =
+                  disagg.percentage > 0
+                    ? Math.round(disagg.value / (disagg.percentage / 100))
+                    : 0;
+
+                return (
+                  <div key={idx} className="space-y-1">
+                    <div className="flex items-center justify-between gap-3 text-xs">
+                      <span className="truncate font-medium">{disagg.label}</span>
+                      <span className="whitespace-nowrap text-muted-foreground">
+                        {disagg.value} / {total} ({disagg.percentage.toFixed(1)}%)
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-linear-to-r from-violet-500 to-indigo-500 transition-all duration-500"
+                        style={{ width: `${Math.max(0, Math.min(100, disagg.percentage))}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
