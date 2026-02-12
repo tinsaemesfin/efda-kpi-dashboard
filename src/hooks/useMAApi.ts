@@ -60,12 +60,20 @@ function transformToKPIFormat(data: MAApiDataRow[]): Record<string, MAKPITransfo
 
     const disaggregations: Record<string, { label: string; value: number; percentage: number }> = {};
     submoduleMap.forEach((subRows, submoduleCode) => {
+      const normalizedCode = String(submoduleCode || "").trim().toUpperCase();
+      if (!normalizedCode) {
+        return;
+      }
+
       const onTimeCount = subRows.reduce((sum, row) => sum + row.on_time_count, 0);
       const subTotalCount = subRows.reduce((sum, row) => sum + row.total_count, 0);
       const subPercentage = subTotalCount > 0 ? (onTimeCount / subTotalCount) * 100 : 0;
+      const label =
+        SUBMODULE_TYPE_LABELS[normalizedCode as keyof typeof SUBMODULE_TYPE_LABELS] ??
+        normalizedCode;
 
-      disaggregations[submoduleCode.toLowerCase()] = {
-        label: SUBMODULE_TYPE_LABELS[submoduleCode as keyof typeof SUBMODULE_TYPE_LABELS],
+      disaggregations[normalizedCode.toLowerCase()] = {
+        label,
         value: onTimeCount,
         percentage: subPercentage,
       };
