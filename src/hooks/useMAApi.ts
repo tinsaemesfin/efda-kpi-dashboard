@@ -11,12 +11,12 @@ import { useAuth } from './useAuth';
 import type {
   MAApiResponse,
   MAApiDataRow,
+  MAKPI1DrilldownResponse,
   MAApiFilterParams,
   MAKPITransformedData,
 } from '@/types/ma-api';
 import {
   MODULE_CODE_TO_KPI,
-  MODULE_CODE_LABELS,
   SUBMODULE_TYPE_LABELS,
 } from '@/types/ma-api';
 
@@ -25,6 +25,22 @@ interface UseMAApiState<T> {
   loading: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
+}
+
+const MA_KPI_SUMMARY_REPORT_ID = 2;
+
+function buildFormData(filters?: MAApiFilterParams, length = 25): string {
+  const formData = new URLSearchParams();
+  formData.append('draw', '1');
+  formData.append('start', '0');
+  formData.append('length', String(length));
+
+  if (filters?.startDate) formData.append('startDate', filters.startDate);
+  if (filters?.endDate) formData.append('endDate', filters.endDate);
+  if (filters?.quarter) formData.append('quarter', filters.quarter);
+  if (filters?.year) formData.append('year', filters.year.toString());
+
+  return formData.toString();
 }
 
 /**
@@ -58,7 +74,10 @@ function transformToKPIFormat(data: MAApiDataRow[]): Record<string, MAKPITransfo
       submoduleMap.set(row.submoduletype_code, existing);
     });
 
-    const disaggregations: Record<string, { label: string; value: number; percentage: number }> = {};
+    const disaggregations: Record<
+      string,
+      { code: string; label: string; value: number; total: number; percentage: number }
+    > = {};
     submoduleMap.forEach((subRows, submoduleCode) => {
       const normalizedCode = String(submoduleCode || "").trim().toUpperCase();
       if (!normalizedCode) {
@@ -73,8 +92,10 @@ function transformToKPIFormat(data: MAApiDataRow[]): Record<string, MAKPITransfo
         normalizedCode;
 
       disaggregations[normalizedCode.toLowerCase()] = {
+        code: normalizedCode,
         label,
         value: onTimeCount,
+        total: subTotalCount,
         percentage: subPercentage,
       };
     });
@@ -125,21 +146,8 @@ export function useMAKPIData(filters?: MAApiFilterParams): UseMAApiState<MAApiRe
     setError(null);
 
     try {
-      const url = `${apiBaseUrl}/tabular/1`;
-      
-      // Prepare form-data body (matching Postman request)
-      const formData = new URLSearchParams();
-      formData.append('draw', '1');
-      formData.append('start', '0');
-      formData.append('length', '25');
-      
-      // Add filters when backend supports date filtering
-      if (filters) {
-        if (filters.startDate) formData.append('startDate', filters.startDate);
-        if (filters.endDate) formData.append('endDate', filters.endDate);
-        if (filters.quarter) formData.append('quarter', filters.quarter);
-        if (filters.year) formData.append('year', filters.year.toString());
-      }
+      const url = `${apiBaseUrl}/tabular/${MA_KPI_SUMMARY_REPORT_ID}`;
+      const requestBody = buildFormData(filters);
 
       const headers: Record<string, string> = {
         'Authorization': `Bearer ${accessToken}`,
@@ -148,12 +156,12 @@ export function useMAKPIData(filters?: MAApiFilterParams): UseMAApiState<MAApiRe
       };
 
       console.log('[MA API] Request URL:', url);
-      console.log('[MA API] Request body (form-data):', formData.toString());
+      console.log('[MA API] Request body (form-data):', requestBody);
       console.log('[MA API] Request headers:', headers);
       console.log('[MA API] Auth token present:', !!accessToken);
       console.log('[MA API] Auth token (first 20 chars):', accessToken?.substring(0, 20) + '...');
 
-      const response = await axios.post<MAApiResponse>(url, formData.toString(), {
+      const response = await axios.post<MAApiResponse>(url, requestBody, {
         headers,
         validateStatus: () => true, // Don't throw on any status, handle manually
       });
@@ -170,12 +178,16 @@ export function useMAKPIData(filters?: MAApiFilterParams): UseMAApiState<MAApiRe
         // Try to extract error message from response
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
         if (response.data) {
+          const responseData = response.data as unknown as { error?: unknown; message?: unknown };
           if (typeof response.data === 'string') {
             errorMessage = response.data;
-          } else if (response.data.error) {
-            errorMessage = response.data.error;
-          } else if (response.data.message) {
-            errorMessage = response.data.message;
+          } else if (responseData.error) {
+            errorMessage = String(responseData.error);
+          } else if (responseData.message !== undefined) {
+            const message = responseData.message;
+            if (typeof message === 'string') {
+              errorMessage = message;
+            }
           }
         }
         throw new Error(errorMessage);
@@ -247,5 +259,103 @@ export function useMAKPITransformedData(filters?: MAApiFilterParams) {
     loading,
     error,
     refetch,
+  };
+}
+
+/**
+ * Hook for fetching MA KPI 1 drilldown data by report id.
+ */
+export function useMAKPI1DrilldownData(
+  reportId: number,
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAKPI1DrilldownResponse> {
+  const { isAuthenticated, loading: authLoading, accessToken } = useAuth();
+  const [data, setData] = useState<MAKPI1DrilldownResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const hasFetched = useRef(false);
+
+  const fetchData = useCallback(async () => {
+    if (!enabled || authLoading) return;
+
+    if (!isAuthenticated || !accessToken) {
+      setLoading(false);
+      return;
+    }
+
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_KPI;
+    if (!apiBaseUrl) {
+      setError(new Error('API configuration missing'));
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const url = `${apiBaseUrl}/tabular/${reportId}`;
+      const requestBody = buildFormData(filters, 5000);
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+      };
+
+      const response = await axios.post<MAKPI1DrilldownResponse>(url, requestBody, {
+        headers,
+        validateStatus: () => true,
+      });
+
+      if (response.status >= 400) {
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        if (typeof response.data === 'string') {
+          errorMessage = response.data;
+        } else if (response.data?.error) {
+          errorMessage = String(response.data.error);
+        }
+        throw new Error(errorMessage);
+      }
+
+      setData(response.data);
+      hasFetched.current = true;
+    } catch (err) {
+      let errorMessage = 'Failed to fetch MA KPI 1 drilldown data';
+      if (axios.isAxiosError(err)) {
+        if (err.response) {
+          errorMessage = `Server error ${err.response.status}: ${err.response.statusText}`;
+        } else if (err.request) {
+          errorMessage = 'No response from server';
+        } else {
+          errorMessage = `Request setup error: ${err.message}`;
+        }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      setError(new Error(errorMessage));
+    } finally {
+      setLoading(false);
+    }
+  }, [authLoading, isAuthenticated, accessToken, filters, enabled, reportId]);
+
+  useEffect(() => {
+    if (!enabled || !reportId) {
+      setLoading(false);
+      return;
+    }
+
+    if (!authLoading && isAuthenticated && accessToken && !hasFetched.current) {
+      fetchData();
+    } else if (!authLoading && !isAuthenticated) {
+      setLoading(false);
+    }
+  }, [authLoading, isAuthenticated, accessToken, fetchData, enabled, reportId]);
+
+  return {
+    data,
+    loading: loading || authLoading,
+    error,
+    refetch: fetchData,
   };
 }

@@ -7,7 +7,8 @@ import { useKPI1Data } from "./hooks/useKPI1Data";
 import { MAKPI1Modal } from "./MAKPI1Modal";
 
 export function MAKPI1Card() {
-  const { value, status, loading, numerator, denominator, dataSource, disaggregations } = useKPI1Data();
+  const { value, status, loading, numerator, denominator, dataSource, disaggregations, errorMessage } =
+    useKPI1Data();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
@@ -25,6 +26,7 @@ export function MAKPI1Card() {
         dataSource={dataSource}
         disaggregations={disaggregations}
         loading={loading}
+        errorMessage={errorMessage}
         onClick={() => setIsModalOpen(true)}
       />
       <MAKPI1Modal open={isModalOpen} onOpenChange={setIsModalOpen} />

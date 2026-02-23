@@ -1,5 +1,6 @@
 "use client";
 
+import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -8,33 +9,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useKPI1Filters } from "../hooks/useKPI1Filters";
 
-export function KPI1FilterPanel() {
-  const { filtersState, setFiltersState, resetFilters, options } = useKPI1Filters();
+export interface KPI1DrilldownFiltersState {
+  applicationType: string;
+  internalPathway: string;
+  reliancePathway: string;
+  outcome: string;
+}
 
+interface KPI1FilterPanelProps {
+  filtersState: KPI1DrilldownFiltersState;
+  setFiltersState: Dispatch<SetStateAction<KPI1DrilldownFiltersState>>;
+  resetFilters: () => void;
+  options: {
+    applicationTypes: string[];
+    internalPathways: string[];
+    reliancePathways: string[];
+    outcomes: string[];
+  };
+}
+
+export function KPI1FilterPanel({
+  filtersState,
+  setFiltersState,
+  resetFilters,
+  options,
+}: KPI1FilterPanelProps) {
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-        <div className="space-y-2">
-          <div className="text-xs uppercase text-muted-foreground">Date</div>
-          <Select
-            value={filtersState.period}
-            onValueChange={(value) =>
-              setFiltersState((prev) => ({ ...prev, period: value as any }))
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Monthly">Monthly</SelectItem>
-              <SelectItem value="Quarterly">Quarterly</SelectItem>
-              <SelectItem value="Annually">Annually</SelectItem>
-              <SelectItem value="Date Filter">Date filter</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="space-y-2">
           <div className="text-xs uppercase text-muted-foreground">Application type</div>
           <Select

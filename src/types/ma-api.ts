@@ -4,7 +4,7 @@
  */
 
 export type MAModuleCode = 'NMR' | 'VAR' | 'REN';
-export type MASubmoduleTypeCode = 'MDCN' | 'FD' | 'MD' | 'CO';
+export type MASubmoduleTypeCode = 'MDCN' | 'FD' | 'FNT' | 'MD' | 'CO';
 
 /**
  * Individual data row from the MA KPI API
@@ -30,6 +30,33 @@ export interface MAApiResponse {
   totalRecords: number;
   totalRecordsFiltered: number;
   data: MAApiDataRow[];
+}
+
+/**
+ * KPI 1 drilldown row from the MD-specific endpoint.
+ */
+export interface MAKPI1DrilldownRow {
+  rowNumber?: number;
+  category_name: string;
+  category_value: string;
+  module_code: MAModuleCode;
+  target_days: number;
+  on_time_count: number;
+  total_count: number;
+  percentage: number;
+}
+
+/**
+ * KPI 1 drilldown API response envelope.
+ */
+export interface MAKPI1DrilldownResponse {
+  recordsTotal: number;
+  recordsFiltered: number;
+  draw: number;
+  error: string | null;
+  totalRecords: number;
+  totalRecordsFiltered: number;
+  data: MAKPI1DrilldownRow[];
 }
 
 /**
@@ -73,8 +100,10 @@ export interface MAKPITransformedData {
   denominator: number;
   percentage: number;
   disaggregations: Record<string, {
+    code: string;
     label: string;
     value: number;
+    total: number;
     percentage: number;
   }>;
 }
@@ -103,6 +132,7 @@ export const MODULE_CODE_LABELS: Record<MAModuleCode, string> = {
 export const SUBMODULE_TYPE_LABELS: Record<MASubmoduleTypeCode, string> = {
   MDCN: 'Medicine',
   FD: 'Food',
+  FNT: 'Food Notification',
   MD: 'Medical Device',
   CO: 'Cosmetics',
 };
