@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2Icon } from "lucide-react";
+import { AlertTriangleIcon, Loader2Icon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DataSourceBadge } from "@/components/kpi/data-source-badge";
 
@@ -18,8 +18,12 @@ export interface KPICardBaseProps {
   numerator?: number;
   denominator?: number;
   dataSource?: "api" | "dummy";
-  disaggregations?: Record<string, { label: string; value: number; percentage: number }>;
+  disaggregations?: Record<
+    string,
+    { code?: string; label: string; value: number; total?: number; percentage: number }
+  >;
   loading?: boolean;
+  errorMessage?: string | null;
   onClick?: () => void;
 }
 
@@ -43,6 +47,7 @@ export function KPICardBase({
   dataSource = "dummy",
   disaggregations,
   loading = false,
+  errorMessage,
   onClick,
 }: KPICardBaseProps) {
   const disaggregationList = disaggregations
@@ -76,6 +81,36 @@ export function KPICardBase({
               <Skeleton className="h-5 w-16 rounded-full" />
             </div>
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <Card
+        className={cn(
+          "cursor-pointer border-red-300/70 bg-red-50/70 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-red-800/60 dark:bg-red-950/20",
+          onClick && "hover:scale-[1.01]"
+        )}
+        onClick={onClick}
+      >
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            <DataSourceBadge source={dataSource} />
+          </div>
+          {icon && <div className="text-red-600 dark:text-red-400">{icon}</div>}
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex items-center gap-2 text-sm font-medium text-red-700 dark:text-red-300">
+            <AlertTriangleIcon className="h-4 w-4 shrink-0" />
+            Unable to load KPI data
+          </div>
+          <p className="text-xs text-red-700/90 dark:text-red-300/90">{errorMessage}</p>
+          <p className="text-xs text-red-700/80 dark:text-red-300/80">
+            Open the card to view details and retry guidance.
+          </p>
         </CardContent>
       </Card>
     );
@@ -134,7 +169,9 @@ export function KPICardBase({
             <div className="space-y-2.5">
               {disaggregationList.map((disagg, idx) => {
                 const total =
-                  disagg.percentage > 0
+                  disagg.total !== undefined
+                    ? disagg.total
+                    : disagg.percentage > 0
                     ? Math.round(disagg.value / (disagg.percentage / 100))
                     : 0;
 

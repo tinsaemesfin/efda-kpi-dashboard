@@ -5,45 +5,45 @@
 
 import { useMemo } from "react";
 import { useMADashboard } from "../../shared/context/MADashboardContext";
-import { useFilteredKPIValue } from "../../shared/hooks/useFilteredKPIValue";
 import { useKPIStatus } from "../../shared/hooks/useKPIStatus";
-import { maKPIData } from "@/data/ma-dummy-data";
 
 export function useKPI1Data() {
-  const { dashboardFilter, apiData, apiLoading } = useMADashboard();
-  const { getFilteredQuarterlyValue } = useFilteredKPIValue();
+  const { apiData, apiLoading, apiError } = useMADashboard();
   const getStatus = useKPIStatus();
 
-  // Try API first, fallback to dummy data
-  const kpiData = useMemo(() => {
-    if (apiData && apiData["MA-KPI-1"]) {
-      return {
-        ...apiData["MA-KPI-1"],
-        dataSource: "api" as const,
-      };
-    }
+  const kpiData = apiData?.["MA-KPI-1"] ?? null;
+  const loading = apiLoading && !kpiData && !apiError;
+  const hasData = Boolean(kpiData);
+  const errorMessage = !loading && !hasData ? apiError?.message || "No MA KPI 1 data returned from API" : null;
 
-    // Fallback to dummy data
-    const filtered = getFilteredQuarterlyValue(maKPIData.kpi1);
-    return {
-      percentage: filtered.percentage,
-      numerator: filtered.numerator,
-      denominator: filtered.denominator,
-      dataSource: "dummy" as const,
-      disaggregations: {},
-    };
-  }, [apiData, dashboardFilter, getFilteredQuarterlyValue]);
+  const percentage = kpiData?.percentage ?? 0;
+  const numerator = kpiData?.numerator ?? 0;
+  const denominator = kpiData?.denominator ?? 0;
+  const disaggregations = useMemo(() => kpiData?.disaggregations ?? {}, [kpiData]);
 
-  const status = getStatus({ percentage: kpiData.percentage });
-  const loading = apiLoading && kpiData.dataSource === "dummy";
+  const status = getStatus({ percentage });
+  const submoduleRows = useMemo(() => {
+    return Object.values(disaggregations)
+      .map((item) => ({
+        code: item.code ?? item.label,
+        label: item.label,
+        onTime: item.value,
+        total: item.total ?? (item.percentage > 0 ? Math.round(item.value / (item.percentage / 100)) : 0),
+        percentage: item.percentage,
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [disaggregations]);
 
   return {
-    value: kpiData.percentage?.toFixed(1) ?? "0",
+    value: percentage.toFixed(1),
     status,
     loading,
-    numerator: kpiData.numerator,
-    denominator: kpiData.denominator,
-    dataSource: kpiData.dataSource,
-    disaggregations: kpiData.disaggregations || {},
+    numerator,
+    denominator,
+    dataSource: "api" as const,
+    disaggregations,
+    submoduleRows,
+    hasData,
+    errorMessage,
   };
 }
