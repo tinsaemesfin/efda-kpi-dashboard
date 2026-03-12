@@ -3,7 +3,7 @@
  * Based on plan.md structure
  */
 
-import type { KPIDrillDownData, IndividualApplication, ProcessingStageDrillDown, VariationComplexityDrillDown } from '@/types/ma-drilldown';
+import type { KPIDrillDownData, IndividualApplication, VariationComplexityDrillDown } from '@/types/ma-drilldown';
 
 // Helper function to generate dummy applications
 function generateDummyApplications(
@@ -49,7 +49,7 @@ function generateDummyApplications(
       (i % 3 === 0 ? "Approved" : i % 3 === 1 ? "Rejected" : "Pending");
     const applicationCategory =
       options?.applicationCategories?.[i % options.applicationCategories.length] ??
-      ["Medicine", "Food", "Medical Device"][i % 3];
+      ["Medicine", "Food", "Medical Device", "Cosmetics"][i % 4];
     const applicationSubType = options?.applicationSubTypes
       ? options.applicationSubTypes[i % options.applicationSubTypes.length]
       : undefined;
@@ -110,7 +110,7 @@ const kpi1Outcomes = [
   "Withdrawn",
 ];
 
-const kpi1Categories = ["Medicine", "Food", "Medical Device"];
+const kpi1Categories = ["Medicine", "Food", "Medical Device", "Cosmetics"];
 
 export const maDrillDownData: Record<string, KPIDrillDownData> = {
   'MA-KPI-1': {
@@ -128,6 +128,7 @@ export const maDrillDownData: Record<string, KPIDrillDownData> = {
         { category: 'Medicine', value: 82.1, count: 120, total: 146, percentage: 82.1 },
         { category: 'Food', value: 75.0, count: 30, total: 40, percentage: 75.0 },
         { category: 'Medical Device', value: 50.0, count: 7, total: 14, percentage: 50.0 },
+        { category: 'Cosmetics', value: 71.4, count: 25, total: 35, percentage: 71.4 },
       ],
       drillable: true,
       nextLevel: 'approval_pathway',
@@ -142,6 +143,7 @@ export const maDrillDownData: Record<string, KPIDrillDownData> = {
           { category: 'Medicine', value: 82.1, count: 120, total: 146, percentage: 82.1 },
           { category: 'Food', value: 75.0, count: 30, total: 40, percentage: 75.0 },
           { category: 'Medical Device', value: 50.0, count: 7, total: 14, percentage: 50.0 },
+          { category: 'Cosmetics', value: 71.4, count: 25, total: 35, percentage: 71.4 },
         ],
       },
       {
@@ -273,6 +275,7 @@ export const maDrillDownData: Record<string, KPIDrillDownData> = {
         { category: 'Medicine', value: 88.5, count: 108, total: 122, percentage: 88.5 },
         { category: 'Food', value: 85.0, count: 34, total: 40, percentage: 85.0 },
         { category: 'Medical Device', value: 87.5, count: 14, total: 16, percentage: 87.5 },
+        { category: 'Cosmetics', value: 78.9, count: 30, total: 38, percentage: 78.9 },
       ],
       drillable: true,
       nextLevel: 'renewal_status',
@@ -334,6 +337,7 @@ export const maDrillDownData: Record<string, KPIDrillDownData> = {
         { category: 'Medicine', value: 93.3, count: 42, total: 45, percentage: 93.3 },
         { category: 'Food', value: 91.7, count: 22, total: 24, percentage: 91.7 },
         { category: 'Medical Device', value: 90.9, count: 10, total: 11, percentage: 90.9 },
+        { category: 'Cosmetics', value: 84.2, count: 16, total: 19, percentage: 84.2 },
       ],
       drillable: true,
       nextLevel: 'processing_stage',
@@ -481,6 +485,7 @@ export const maDrillDownData: Record<string, KPIDrillDownData> = {
         { category: 'Medicine', value: 150, count: 0, total: 0, percentage: 0 },
         { category: 'Food', value: 165, count: 0, total: 0, percentage: 0 },
         { category: 'Medical Device', value: 180, count: 0, total: 0, percentage: 0 },
+        { category: 'Cosmetics', value: 172, count: 0, total: 0, percentage: 0 },
       ],
       drillable: true,
       nextLevel: 'stage_breakdown',
@@ -592,6 +597,7 @@ export const maDrillDownData: Record<string, KPIDrillDownData> = {
         { stage: 'Medicine', days: 55, target: 60, onTime: true },
         { stage: 'Food', days: 58, target: 60, onTime: true },
         { stage: 'Medical Device', days: 52, target: 60, onTime: true },
+        { stage: 'Cosmetics', days: 59, target: 60, onTime: true },
       ],
       drillable: true,
       nextLevel: 'individual_pars',
