@@ -7,7 +7,8 @@ import { MAKPICard } from "@/components/kpi/ma-kpi-card";
 import { MADrillDownModal } from "@/components/kpi/ma-drilldown-modal";
 import { maProductKpiSeed, type MAProductKey } from "@/data/ma-dummy-data";
 import { maDrillDownData } from "@/data/ma-drilldown-data";
-import { useMAKPIDataMedicine } from "@/hooks/useMAApi";
+import { useMAKPIDataMedicineFacade } from "@/hooks/useMAApi";
+import { mergeMedicineCardsWithFaceData } from "@/lib/ma-api/merge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ import {
 } from "lucide-react";
 import type { KPIDrillDownData } from "@/types/ma-drilldown";
 import { cn } from "@/lib/utils";
+import type { MAKPIId } from "@/types/ma-api";
 
 const productTabs: Array<{ key: MAProductKey; label: string }> = [
   { key: "medicine", label: "Medicine" },
@@ -55,7 +57,11 @@ const getStatus = (
   return "critical";
 };
 
-const API_KPI_IDS = ["MA-KPI-1", "MA-KPI-2", "MA-KPI-3"] as const;
+const API_KPI_IDS = ["MA-KPI-1", "MA-KPI-2", "MA-KPI-3", "MA-KPI-4"] as const;
+
+function isApiKpiId(kpiId: string): kpiId is MAKPIId {
+  return API_KPI_IDS.includes(kpiId as (typeof API_KPI_IDS)[number]);
+}
 
 export default function MarketAuthorizationsPage() {
   const [activeProduct, setActiveProduct] = useState<MAProductKey>("medicine");
@@ -68,31 +74,22 @@ export default function MarketAuthorizationsPage() {
   const [dateTo, setDateTo] = useState("2026-03-31");
   const [cardDensity, setCardDensity] = useState<"grid" | "condensed">("grid");
 
-  const { data: apiMedicineData, loading: apiLoading, error: apiError } = useMAKPIDataMedicine();
+  const {
+    kpiFaceDataById: apiMedicineData,
+    loading: apiLoading,
+    error: apiError,
+    metadata: apiMetadata,
+  } = useMAKPIDataMedicineFacade();
 
   const activeSeed = maProductKpiSeed[activeProduct];
 
-  /** For Medicine tab: merge API data (New/Renewal/Variation) with seed; others use seed only */
+  /** For Medicine tab: merge API data (New/Renewal/Minor/Major Variation) with seed; others use seed only */
   const mergedCards = useMemo(() => {
     const seedCards = activeSeed.cards;
     if (activeProduct !== "medicine" || !apiMedicineData) {
       return seedCards;
     }
-    return seedCards.map((card) => {
-      if (!API_KPI_IDS.includes(card.drilldownId as (typeof API_KPI_IDS)[number])) {
-        return card;
-      }
-      const apiRow = apiMedicineData[card.drilldownId];
-      if (!apiRow || apiRow.denominator === 0) return card;
-      const value = apiRow.percentage;
-      return {
-        ...card,
-        value,
-        numerator: apiRow.numerator,
-        denominator: apiRow.denominator,
-        decimals: 1,
-      };
-    });
+    return mergeMedicineCardsWithFaceData(seedCards, apiMedicineData);
   }, [activeProduct, activeSeed.cards, apiMedicineData]);
 
   const summaryCards = useMemo(
@@ -269,7 +266,10 @@ export default function MarketAuthorizationsPage() {
               <div className="flex items-center justify-between gap-2 xl:justify-end">
                 <p className="text-xs text-muted-foreground">
                   {activeProduct === "medicine"
-                    ? "Medicine: New, Renewal & Variation use live API (/8); others use sample data."
+                    ? "Medicine: New, Renewal, Minor Variation and Major Variation use live API (/8); others use sample data. "
+                        .concat(
+                          `Rows accepted: ${apiMetadata.acceptedRows}/${apiMetadata.filteredRows} filtered (${apiMetadata.totalRows} total).`
+                        )
                     : "Filters apply when API is wired for this product."}
                 </p>
                 <Button
@@ -348,7 +348,7 @@ export default function MarketAuthorizationsPage() {
                 numerator={card.numerator}
                 denominator={card.denominator}
                 helperText={
-                  activeProduct === "medicine" && API_KPI_IDS.includes(card.drilldownId as (typeof API_KPI_IDS)[number]) && apiMedicineData?.[card.drilldownId]
+                  activeProduct === "medicine" && isApiKpiId(card.drilldownId) && apiMedicineData?.[card.drilldownId]
                     ? "Medicine view (live)"
                     : `${productTabs.find((tab) => tab.key === activeProduct)?.label} view`
                 }

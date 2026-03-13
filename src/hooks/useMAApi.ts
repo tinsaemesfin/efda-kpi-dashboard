@@ -2,14 +2,17 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { fetchMAFaceTabularData } from '@/lib/ma-api/client';
+import { getConfiguredMAModuleToKpiMapping } from '@/lib/ma-api/mapping';
+import { normalizeMAFaceData } from '@/lib/ma-api/normalizer';
 import type {
   MAApiResponse,
-  MAApiDataRow,
   MAApiFilterParams,
-  MAKPITransformedRow,
+  MAKPITransformedData,
+  MANormalizationWarning,
   MASubmoduleTypeCode,
 } from '@/types/ma-api';
-import { MODULE_CODE_TO_KPI } from '@/types/ma-api';
+import { MA_MODULE_CODE_ALIASES } from '@/lib/ma-api/constants';
 
 interface UseMAApiState<T> {
   data: T | null;
@@ -17,52 +20,6 @@ interface UseMAApiState<T> {
   error: Error | null;
   refetch: () => Promise<void>;
 }
-
-/**
- * Transform API data to KPI format for a single product (submodule).
- * API has module_code: NMR (New→KPI-1), REN (Renewal→KPI-2), VAR (Variation→KPI-3).
- * Filter by submoduletype_code for product: MDCN=Medicine, FD=Food, MD=Medical Device.
- */
-function transformToKPIFormat(
-  rows: MAApiDataRow[],
-  submoduleFilter: MASubmoduleTypeCode
-): Record<string, MAKPITransformedRow> {
-  const result: Record<string, MAKPITransformedRow> = {};
-  const filtered = rows.filter(
-    (row) => row.submoduletype_code?.toUpperCase() === submoduleFilter
-  );
-
-  const byModule = new Map<string, MAApiDataRow[]>();
-  filtered.forEach((row) => {
-    const code = row.module_code;
-    const list = byModule.get(code) ?? [];
-    list.push(row);
-    byModule.set(code, list);
-  });
-
-  byModule.forEach((moduleRows, moduleCode) => {
-    const kpiId = MODULE_CODE_TO_KPI[moduleCode as keyof typeof MODULE_CODE_TO_KPI];
-    if (!kpiId) return;
-
-    const totalOnTime = moduleRows.reduce((s, r) => s + (r.on_time_count ?? 0), 0);
-    const totalCount = moduleRows.reduce((s, r) => s + (r.total_count ?? 0), 0);
-    const percentage = totalCount > 0 ? (totalOnTime / totalCount) * 100 : 0;
-
-    result[kpiId] = {
-      numerator: totalOnTime,
-      denominator: totalCount,
-      percentage,
-    };
-  });
-
-  return result;
-}
-
-const getApiBase = (): string => {
-  const kpi = process.env.NEXT_PUBLIC_API_KPI;
-  const root = process.env.NEXT_PUBLIC_API_ROOT;
-  return kpi || root || '';
-};
 
 /**
  * Fetches MA KPI data from the API (endpoint /8).
@@ -81,53 +38,18 @@ export function useMAKPIData(filters?: MAApiFilterParams): UseMAApiState<MAApiRe
       return;
     }
 
-    const baseUrl = getApiBase();
-    if (!baseUrl) {
-      setError(new Error('NEXT_PUBLIC_API_KPI or NEXT_PUBLIC_API_ROOT is not set'));
-      setLoading(false);
-      return;
-    }
-
-    const url = `${baseUrl.replace(/\/$/, '')}/api/kpi/tabular/8`;
     setLoading(true);
     setError(null);
 
     try {
-      const formData = new URLSearchParams();
-      formData.append('draw', '1');
-      formData.append('start', '0');
-      formData.append('length', '25');
-      if (filters?.startDate) formData.append('startDate', filters.startDate);
-      if (filters?.endDate) formData.append('endDate', filters.endDate);
-      if (filters?.quarter) formData.append('quarter', filters.quarter);
-      if (filters?.year != null) formData.append('year', String(filters.year));
-
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Accept: 'application/json',
-        },
-        body: formData.toString(),
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
-      }
-
-      const json: MAApiResponse = await res.json();
-      if (json.error) {
-        throw new Error(json.error);
-      }
+      const json = await fetchMAFaceTabularData(accessToken, filters);
       setData(json);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch MA KPI data'));
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, authLoading, accessToken, filters?.startDate, filters?.endDate, filters?.quarter, filters?.year]);
+  }, [isAuthenticated, authLoading, accessToken, filters]);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && accessToken) {
@@ -145,23 +67,85 @@ export function useMAKPIData(filters?: MAApiFilterParams): UseMAApiState<MAApiRe
   };
 }
 
+interface MAKPIDataFacade {
+  kpiFaceDataById: Partial<MAKPITransformedData> | null;
+  rawData: MAApiResponse | null;
+  loading: boolean;
+  error: Error | null;
+  warnings: MANormalizationWarning[];
+  metadata: {
+    totalRows: number;
+    filteredRows: number;
+    acceptedRows: number;
+    fetchedAt: string | null;
+  };
+  refetch: () => Promise<void>;
+}
+
+function useMAKPIDataBySubmodule(
+  submoduleFilter: MASubmoduleTypeCode,
+  filters?: MAApiFilterParams
+): MAKPIDataFacade {
+  const { data: rawData, loading, error, refetch } = useMAKPIData(filters);
+
+  const transformed = useMemo(() => {
+    if (!rawData?.data?.length) {
+      return {
+        kpiFaceDataById: null,
+        warnings: [] as MANormalizationWarning[],
+        totals: { totalRows: rawData?.data?.length ?? 0, filteredRows: 0, acceptedRows: 0 },
+      };
+    }
+
+    const moduleToKpiMapping = getConfiguredMAModuleToKpiMapping();
+    return normalizeMAFaceData(rawData.data, {
+      submoduleFilter,
+      moduleToKpiMapping,
+      moduleCodeAliases: MA_MODULE_CODE_ALIASES,
+    });
+  }, [rawData, submoduleFilter]);
+
+  useEffect(() => {
+    if (!transformed.warnings.length) return;
+    transformed.warnings.forEach((warning) => {
+      if (warning.code === 'EMPTY_RESULT') return;
+      console.warn(`[MA API] ${warning.code}: ${warning.message}`, warning.row ?? {});
+    });
+  }, [transformed.warnings]);
+
+  return {
+    kpiFaceDataById: transformed.kpiFaceDataById,
+    rawData,
+    loading,
+    error,
+    warnings: transformed.warnings,
+    metadata: {
+      totalRows: transformed.totals.totalRows,
+      filteredRows: transformed.totals.filteredRows,
+      acceptedRows: transformed.totals.acceptedRows,
+      fetchedAt: rawData ? new Date().toISOString() : null,
+    },
+    refetch,
+  };
+}
+
 /**
  * MA KPI data transformed for Medicine (MDCN) only.
  * Use on the Market Authorizations page when product tab is Medicine for MA-KPI-1, MA-KPI-2, MA-KPI-3.
  */
 export function useMAKPIDataMedicine(filters?: MAApiFilterParams) {
-  const { data: rawData, loading, error, refetch } = useMAKPIData(filters);
-
-  const medicineData = useMemo(() => {
-    if (!rawData?.data?.length) return null;
-    return transformToKPIFormat(rawData.data, 'MDCN');
-  }, [rawData]);
-
+  const facade = useMAKPIDataBySubmodule('MDCN', filters);
   return {
-    data: medicineData,
-    rawData,
-    loading,
-    error,
-    refetch,
+    data: facade.kpiFaceDataById,
+    rawData: facade.rawData,
+    loading: facade.loading,
+    error: facade.error,
+    warnings: facade.warnings,
+    metadata: facade.metadata,
+    refetch: facade.refetch,
   };
+}
+
+export function useMAKPIDataMedicineFacade(filters?: MAApiFilterParams): MAKPIDataFacade {
+  return useMAKPIDataBySubmodule('MDCN', filters);
 }
