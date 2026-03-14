@@ -1,0 +1,40 @@
+category_name,category_value,module_code,target_days,on_time_count,total_count,percentage,avg_processing_days
+Application type,New Application - Biosimilar,NMR,270,2,3,66.67,114.33
+Application type,New Application - Generic Drug,NMR,270,9,10,90,57.8
+Application type,New Application - Generic with Bio-equivalency,NMR,270,636,4724,13.46,-1805.12
+Application type,New Application - Generic without Bio-equivalency,NMR,270,237,1285,18.44,627.33
+Application type,New Application - New Molecule,NMR,270,46,152,30.26,505.71
+Application type,New Application - New Small Molecule,NMR,270,3,4,75,116.5
+Application type,New Application - Radiopharmaceutical,NMR,270,1,2,50,437
+Application type,New Application - rDNA Derived Biotherapeutics,NMR,270,6,7,85.71,203
+Application type,New Application - Vaccine,NMR,270,1,1,100,12
+Internal regulatory pathway,Before IRP,NMR,270,704,5639,12.48,-937.73
+Internal regulatory pathway,Conditional,NMR,270,3,3,100,75
+Internal regulatory pathway,Emergency Use Authorization,NMR,270,1,1,100,147
+Internal regulatory pathway,Fast Track,NMR,270,3,5,60,228.8
+Internal regulatory pathway,Low Risk,NMR,270,1,1,100,0
+Internal regulatory pathway,Mutual Recognition,NMR,270,2,3,66.67,147.67
+Internal regulatory pathway,New Application - Emergency Use Authorization,NMR,270,0,6,0,
+Internal regulatory pathway,Regular,NMR,270,7,9,77.78,157.56
+MA type,BIOS,NMR,270,2,3,66.67,114.33
+MA type,GNRUG,NMR,270,9,10,90,57.8
+MA type,NGWB,NMR,270,636,4724,13.46,-1805.12
+MA type,NGWOB,NMR,270,237,1285,18.44,627.33
+MA type,NNM,NMR,270,46,152,30.26,505.71
+MA type,NSMOL,NMR,270,3,4,75,116.5
+MA type,RADP,NMR,270,1,2,50,437
+MA type,RDNBIO,NMR,270,6,7,85.71,203
+MA type,VACC,NMR,270,1,1,100,12
+Processing time band,0-30 days,NMR,270,398,398,100,-8014.95
+Processing time band,181-270 days,NMR,270,243,243,100,222.76
+Processing time band,270+ days,NMR,270,0,1742,0,714.91
+Processing time band,31-90 days,NMR,270,77,77,100,68.81
+Processing time band,91-180 days,NMR,270,223,223,100,135.26
+Processing time band,No processing time,NMR,270,0,3511,0,
+Regulatory outcome,Cancled,NMR,270,4,4,100,41.25
+Regulatory outcome,Registered,NMR,270,681,3649,18.66,-1123.6
+Regulatory outcome,Rejected,NMR,270,132,412,32.04,474.54
+Regulatory outcome,Suspended,NMR,270,0,1,0,302
+Reliance pathway,Before IRP,NMR,270,215,522,41.19,389.88
+Reliance pathway,SRA,NMR,270,3,3,100,56
+Reliance pathway,WHO Pre Qualified,NMR,270,2,2,100,74.5
