@@ -1,24 +1,24 @@
-/**
- * useMAApi Hook
- * Simple React hook for fetching Market Authorization KPI data
- */
-
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import axios from 'axios';
-import { useAuth } from './useAuth';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  fetchMAFaceTabularData,
+  fetchMAKpi1DrilldownTabularData,
+  fetchMAKpi2DrilldownTabularData,
+} from '@/lib/ma-api/client';
+import { getConfiguredMAModuleToKpiMapping } from '@/lib/ma-api/mapping';
+import { normalizeMAFaceData } from '@/lib/ma-api/normalizer';
 import type {
-  MAApiResponse,
   MAApiDataRow,
-  MAKPI1DrilldownResponse,
+  MAApiDrilldownRow,
+  MAApiResponse,
   MAApiFilterParams,
   MAKPITransformedData,
+  MANormalizationWarning,
+  MASubmoduleTypeCode,
 } from '@/types/ma-api';
-import {
-  MODULE_CODE_TO_KPI,
-  SUBMODULE_TYPE_LABELS,
-} from '@/types/ma-api';
+import { MA_MODULE_CODE_ALIASES } from '@/lib/ma-api/constants';
 
 interface UseMAApiState<T> {
   data: T | null;
@@ -27,213 +27,51 @@ interface UseMAApiState<T> {
   refetch: () => Promise<void>;
 }
 
-const MA_KPI_SUMMARY_REPORT_ID = 2;
-
-function buildFormData(filters?: MAApiFilterParams, length = 25): string {
-  const formData = new URLSearchParams();
-  formData.append('draw', '1');
-  formData.append('start', '0');
-  formData.append('length', String(length));
-
-  if (filters?.startDate) formData.append('startDate', filters.startDate);
-  if (filters?.endDate) formData.append('endDate', filters.endDate);
-  if (filters?.quarter) formData.append('quarter', filters.quarter);
-  if (filters?.year) formData.append('year', filters.year.toString());
-
-  return formData.toString();
-}
-
-/**
- * Transform API data to KPI format
- */
-function transformToKPIFormat(data: MAApiDataRow[]): Record<string, MAKPITransformedData> {
-  const transformed: Record<string, MAKPITransformedData> = {};
-  
-  // Group by module code
-  const moduleMap = new Map<string, MAApiDataRow[]>();
-  data.forEach((row) => {
-    const existing = moduleMap.get(row.module_code) || [];
-    existing.push(row);
-    moduleMap.set(row.module_code, existing);
-  });
-
-  // Transform each module group
-  moduleMap.forEach((rows, moduleCode) => {
-    const kpiId = MODULE_CODE_TO_KPI[moduleCode as keyof typeof MODULE_CODE_TO_KPI];
-    if (!kpiId) return;
-
-    const totalOnTime = rows.reduce((sum, row) => sum + row.on_time_count, 0);
-    const totalCount = rows.reduce((sum, row) => sum + row.total_count, 0);
-    const overallPercentage = totalCount > 0 ? (totalOnTime / totalCount) * 100 : 0;
-
-    // Build disaggregations by submodule type
-    const submoduleMap = new Map<string, MAApiDataRow[]>();
-    rows.forEach((row) => {
-      const existing = submoduleMap.get(row.submoduletype_code) || [];
-      existing.push(row);
-      submoduleMap.set(row.submoduletype_code, existing);
-    });
-
-    const disaggregations: Record<
-      string,
-      { code: string; label: string; value: number; total: number; percentage: number }
-    > = {};
-    submoduleMap.forEach((subRows, submoduleCode) => {
-      const normalizedCode = String(submoduleCode || "").trim().toUpperCase();
-      if (!normalizedCode) {
-        return;
-      }
-
-      const onTimeCount = subRows.reduce((sum, row) => sum + row.on_time_count, 0);
-      const subTotalCount = subRows.reduce((sum, row) => sum + row.total_count, 0);
-      const subPercentage = subTotalCount > 0 ? (onTimeCount / subTotalCount) * 100 : 0;
-      const label =
-        SUBMODULE_TYPE_LABELS[normalizedCode as keyof typeof SUBMODULE_TYPE_LABELS] ??
-        normalizedCode;
-
-      disaggregations[normalizedCode.toLowerCase()] = {
-        code: normalizedCode,
-        label,
-        value: onTimeCount,
-        total: subTotalCount,
-        percentage: subPercentage,
-      };
-    });
-
-    transformed[kpiId] = {
-      numerator: totalOnTime,
-      denominator: totalCount,
-      percentage: overallPercentage,
-      disaggregations,
-    };
-  });
-
-  return transformed;
-}
-
-/**
- * Hook for fetching MA KPI data
- */
-export function useMAKPIData(filters?: MAApiFilterParams): UseMAApiState<MAApiResponse> {
+function useMATabularReportData<T>(
+  fetcher: (accessToken: string, filters?: MAApiFilterParams) => Promise<MAApiResponse<T>>,
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<T>> {
   const { isAuthenticated, loading: authLoading, accessToken } = useAuth();
-  const [data, setData] = useState<MAApiResponse | null>(null);
+  const [data, setData] = useState<MAApiResponse<T> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const hasFetched = useRef(false);
 
   const fetchData = useCallback(async () => {
-    if (authLoading) {
-      console.log('[MA API] Auth still loading, waiting...');
+    if (!enabled) {
+      setLoading(false);
       return;
     }
-
+    if (authLoading) return;
     if (!isAuthenticated || !accessToken) {
-      console.log('[MA API] Not authenticated or no token, skipping fetch');
       setLoading(false);
       return;
     }
 
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_KPI;
-    if (!apiBaseUrl) {
-      console.error('[MA API] NEXT_PUBLIC_API_KPI environment variable is not set');
-      setError(new Error('API configuration missing'));
-      setLoading(false);
-      return;
-    }
-
-    console.log('[MA API] Starting fetch for MA KPI data...');
     setLoading(true);
     setError(null);
 
     try {
-      const url = `${apiBaseUrl}/tabular/${MA_KPI_SUMMARY_REPORT_ID}`;
-      const requestBody = buildFormData(filters);
-
-      const headers: Record<string, string> = {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
-      };
-
-      console.log('[MA API] Request URL:', url);
-      console.log('[MA API] Request body (form-data):', requestBody);
-      console.log('[MA API] Request headers:', headers);
-      console.log('[MA API] Auth token present:', !!accessToken);
-      console.log('[MA API] Auth token (first 20 chars):', accessToken?.substring(0, 20) + '...');
-
-      const response = await axios.post<MAApiResponse>(url, requestBody, {
-        headers,
-        validateStatus: () => true, // Don't throw on any status, handle manually
-      });
-
-      console.log('[MA API] Response status:', response.status);
-      console.log('[MA API] Response headers:', response.headers);
-      
-      if (response.status >= 400) {
-        // Log the full error response for debugging
-        console.error('[MA API] Error response status:', response.status);
-        console.error('[MA API] Error response data:', response.data);
-        console.error('[MA API] Error response headers:', response.headers);
-        
-        // Try to extract error message from response
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        if (response.data) {
-          const responseData = response.data as unknown as { error?: unknown; message?: unknown };
-          if (typeof response.data === 'string') {
-            errorMessage = response.data;
-          } else if (responseData.error) {
-            errorMessage = String(responseData.error);
-          } else if (responseData.message !== undefined) {
-            const message = responseData.message;
-            if (typeof message === 'string') {
-              errorMessage = message;
-            }
-          }
-        }
-        throw new Error(errorMessage);
-      }
-
-      console.log('[MA API] Received response:', response.data);
-      setData(response.data);
-      hasFetched.current = true;
+      const json = await fetcher(accessToken, filters);
+      setData(json);
     } catch (err) {
-      let errorMessage = 'Failed to fetch MA KPI data';
-      
-      if (axios.isAxiosError(err)) {
-        // Axios error - get detailed error info
-        if (err.response) {
-          // Server responded with error status
-          errorMessage = `Server error ${err.response.status}: ${err.response.statusText}`;
-          console.error('[MA API] Response error data:', err.response.data);
-          console.error('[MA API] Response error headers:', err.response.headers);
-        } else if (err.request) {
-          // Request made but no response
-          errorMessage = 'No response from server';
-          console.error('[MA API] Request error:', err.request);
-        } else {
-          // Error setting up request
-          errorMessage = `Request setup error: ${err.message}`;
-        }
-        console.error('[MA API] Axios error config:', err.config);
-      } else if (err instanceof Error) {
-        errorMessage = err.message;
-      }
-      
-      const error = new Error(errorMessage);
-      setError(error);
-      console.error('[MA API] Error fetching MA KPI data:', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch MA KPI data'));
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, authLoading, accessToken, filters]);
+  }, [enabled, isAuthenticated, authLoading, accessToken, filters, fetcher]);
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated && accessToken && !hasFetched.current) {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
+    if (!authLoading && isAuthenticated && accessToken) {
       fetchData();
     } else if (!authLoading && !isAuthenticated) {
       setLoading(false);
     }
-  }, [authLoading, isAuthenticated, accessToken, fetchData]);
+  }, [enabled, authLoading, isAuthenticated, accessToken, fetchData]);
 
   return {
     data,
@@ -244,118 +82,112 @@ export function useMAKPIData(filters?: MAApiFilterParams): UseMAApiState<MAApiRe
 }
 
 /**
- * Transform API data to the format expected by the MA KPI cards
+ * Fetches MA KPI data from the API (endpoint /8).
+ * Returns raw response; use useMAKPIDataMedicine for Medicine-only transformed data.
  */
-export function useMAKPITransformedData(filters?: MAApiFilterParams) {
-  const { data, loading, error, refetch } = useMAKPIData(filters);
+export function useMAKPIData(filters?: MAApiFilterParams): UseMAApiState<MAApiResponse> {
+  return useMATabularReportData<MAApiDataRow>(fetchMAFaceTabularData, filters);
+}
 
-  const transformedData = useMemo(() => {
-    return data ? transformToKPIFormat(data.data) : null;
-  }, [data]);
+/**
+ * Fetches MA KPI 1 drilldown data from the API (endpoint /9).
+ */
+export function useMAKPI1DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(fetchMAKpi1DrilldownTabularData, filters, enabled);
+}
+
+/**
+ * Fetches MA KPI 2 drilldown data from the API (endpoint /10).
+ */
+export function useMAKPI2DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(fetchMAKpi2DrilldownTabularData, filters, enabled);
+}
+
+interface MAKPIDataFacade {
+  kpiFaceDataById: Partial<MAKPITransformedData> | null;
+  rawData: MAApiResponse | null;
+  loading: boolean;
+  error: Error | null;
+  warnings: MANormalizationWarning[];
+  metadata: {
+    totalRows: number;
+    filteredRows: number;
+    acceptedRows: number;
+    fetchedAt: string | null;
+  };
+  refetch: () => Promise<void>;
+}
+
+function useMAKPIDataBySubmodule(
+  submoduleFilter: MASubmoduleTypeCode,
+  filters?: MAApiFilterParams
+): MAKPIDataFacade {
+  const { data: rawData, loading, error, refetch } = useMAKPIData(filters);
+
+  const transformed = useMemo(() => {
+    if (!rawData?.data?.length) {
+      return {
+        kpiFaceDataById: null,
+        warnings: [] as MANormalizationWarning[],
+        totals: { totalRows: rawData?.data?.length ?? 0, filteredRows: 0, acceptedRows: 0 },
+      };
+    }
+
+    const moduleToKpiMapping = getConfiguredMAModuleToKpiMapping();
+    return normalizeMAFaceData(rawData.data, {
+      submoduleFilter,
+      moduleToKpiMapping,
+      moduleCodeAliases: MA_MODULE_CODE_ALIASES,
+    });
+  }, [rawData, submoduleFilter]);
+
+  useEffect(() => {
+    if (!transformed.warnings.length) return;
+    transformed.warnings.forEach((warning) => {
+      if (warning.code === 'EMPTY_RESULT') return;
+      console.warn(`[MA API] ${warning.code}: ${warning.message}`, warning.row ?? {});
+    });
+  }, [transformed.warnings]);
 
   return {
-    data: transformedData,
-    rawData: data,
+    kpiFaceDataById: transformed.kpiFaceDataById,
+    rawData,
     loading,
     error,
+    warnings: transformed.warnings,
+    metadata: {
+      totalRows: transformed.totals.totalRows,
+      filteredRows: transformed.totals.filteredRows,
+      acceptedRows: transformed.totals.acceptedRows,
+      fetchedAt: rawData ? new Date().toISOString() : null,
+    },
     refetch,
   };
 }
 
 /**
- * Hook for fetching MA KPI 1 drilldown data by report id.
+ * MA KPI data transformed for Medicine (MDCN) only.
+ * Use on the Market Authorizations page when product tab is Medicine for MA-KPI-1, MA-KPI-2, MA-KPI-3.
  */
-export function useMAKPI1DrilldownData(
-  reportId: number,
-  filters?: MAApiFilterParams,
-  enabled = true
-): UseMAApiState<MAKPI1DrilldownResponse> {
-  const { isAuthenticated, loading: authLoading, accessToken } = useAuth();
-  const [data, setData] = useState<MAKPI1DrilldownResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const hasFetched = useRef(false);
-
-  const fetchData = useCallback(async () => {
-    if (!enabled || authLoading) return;
-
-    if (!isAuthenticated || !accessToken) {
-      setLoading(false);
-      return;
-    }
-
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_KPI;
-    if (!apiBaseUrl) {
-      setError(new Error('API configuration missing'));
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const url = `${apiBaseUrl}/tabular/${reportId}`;
-      const requestBody = buildFormData(filters, 5000);
-      const headers: Record<string, string> = {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Accept: 'application/json',
-      };
-
-      const response = await axios.post<MAKPI1DrilldownResponse>(url, requestBody, {
-        headers,
-        validateStatus: () => true,
-      });
-
-      if (response.status >= 400) {
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        if (typeof response.data === 'string') {
-          errorMessage = response.data;
-        } else if (response.data?.error) {
-          errorMessage = String(response.data.error);
-        }
-        throw new Error(errorMessage);
-      }
-
-      setData(response.data);
-      hasFetched.current = true;
-    } catch (err) {
-      let errorMessage = 'Failed to fetch MA KPI 1 drilldown data';
-      if (axios.isAxiosError(err)) {
-        if (err.response) {
-          errorMessage = `Server error ${err.response.status}: ${err.response.statusText}`;
-        } else if (err.request) {
-          errorMessage = 'No response from server';
-        } else {
-          errorMessage = `Request setup error: ${err.message}`;
-        }
-      } else if (err instanceof Error) {
-        errorMessage = err.message;
-      }
-      setError(new Error(errorMessage));
-    } finally {
-      setLoading(false);
-    }
-  }, [authLoading, isAuthenticated, accessToken, filters, enabled, reportId]);
-
-  useEffect(() => {
-    if (!enabled || !reportId) {
-      setLoading(false);
-      return;
-    }
-
-    if (!authLoading && isAuthenticated && accessToken && !hasFetched.current) {
-      fetchData();
-    } else if (!authLoading && !isAuthenticated) {
-      setLoading(false);
-    }
-  }, [authLoading, isAuthenticated, accessToken, fetchData, enabled, reportId]);
-
+export function useMAKPIDataMedicine(filters?: MAApiFilterParams) {
+  const facade = useMAKPIDataBySubmodule('MDCN', filters);
   return {
-    data,
-    loading: loading || authLoading,
-    error,
-    refetch: fetchData,
+    data: facade.kpiFaceDataById,
+    rawData: facade.rawData,
+    loading: facade.loading,
+    error: facade.error,
+    warnings: facade.warnings,
+    metadata: facade.metadata,
+    refetch: facade.refetch,
   };
+}
+
+export function useMAKPIDataMedicineFacade(filters?: MAApiFilterParams): MAKPIDataFacade {
+  return useMAKPIDataBySubmodule('MDCN', filters);
 }
