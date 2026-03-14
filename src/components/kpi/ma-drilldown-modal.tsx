@@ -143,9 +143,11 @@ function CategoryChartCard({ view, defaultChartType }: CategoryChartCardProps) {
               innerRadius={chartType === "doughnut" ? 55 : 0}
               outerRadius={95}
               paddingAngle={2}
-              label={({ name, percent }) =>
-                `${name.length > 14 ? name.slice(0, 12) + "..." : name} ${(percent * 100).toFixed(0)}%`
-              }
+              label={({ name, percent }) => {
+                const safeName = String(name ?? "");
+                const labelName = safeName.length > 14 ? `${safeName.slice(0, 12)}...` : safeName;
+                return `${labelName} ${((percent ?? 0) * 100).toFixed(0)}%`;
+              }}
               labelLine={{ strokeWidth: 1 }}
             >
               {sorted.map((_, i) => (
@@ -153,10 +155,16 @@ function CategoryChartCard({ view, defaultChartType }: CategoryChartCardProps) {
               ))}
             </Pie>
             <Tooltip
-              formatter={(_value: number, _name: string, entry: { payload: { name: string; percentage: number; onTime: number; total: number } }) => [
-                `${entry.payload.onTime}/${entry.payload.total} (${entry.payload.percentage.toFixed(1)}%)`,
-                entry.payload.name,
-              ]}
+              formatter={(_value, _name, entry) => {
+                const payload = entry?.payload as
+                  | { name?: string; percentage?: number; onTime?: number; total?: number }
+                  | undefined;
+                if (!payload) return ["No data", "Value"];
+                return [
+                  `${payload.onTime ?? 0}/${payload.total ?? 0} (${(payload.percentage ?? 0).toFixed(1)}%)`,
+                  payload.name ?? "Category",
+                ];
+              }}
             />
           </PieChart>
         </ResponsiveContainer>
@@ -177,10 +185,13 @@ function CategoryChartCard({ view, defaultChartType }: CategoryChartCardProps) {
               interval={0}
             />
             <Tooltip
-              formatter={(value: number, _name: string, entry: { payload: { onTime: number; total: number } }) => [
-                `${value.toFixed(1)}% (${entry.payload.onTime}/${entry.payload.total})`,
-                "On-time",
-              ]}
+              formatter={(value, _name, entry) => {
+                const payload = entry?.payload as { onTime?: number; total?: number } | undefined;
+                return [
+                  `${Number(value).toFixed(1)}% (${payload?.onTime ?? 0}/${payload?.total ?? 0})`,
+                  "On-time",
+                ];
+              }}
             />
             <Bar dataKey="percentage" radius={[0, 4, 4, 0]} fill="#6366f1">
               {sorted.map((entry, i) => (
@@ -201,10 +212,13 @@ function CategoryChartCard({ view, defaultChartType }: CategoryChartCardProps) {
             <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-30} textAnchor="end" height={60} />
             <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
             <Tooltip
-              formatter={(value: number, _name: string, entry: { payload: { onTime: number; total: number } }) => [
-                `${value.toFixed(1)}% (${entry.payload.onTime}/${entry.payload.total})`,
-                "On-time",
-              ]}
+              formatter={(value, _name, entry) => {
+                const payload = entry?.payload as { onTime?: number; total?: number } | undefined;
+                return [
+                  `${Number(value).toFixed(1)}% (${payload?.onTime ?? 0}/${payload?.total ?? 0})`,
+                  "On-time",
+                ];
+              }}
             />
             <Line
               type="monotone"
@@ -234,10 +248,13 @@ function CategoryChartCard({ view, defaultChartType }: CategoryChartCardProps) {
             <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-30} textAnchor="end" height={60} />
             <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
             <Tooltip
-              formatter={(value: number, _name: string, entry: { payload: { onTime: number; total: number } }) => [
-                `${value.toFixed(1)}% (${entry.payload.onTime}/${entry.payload.total})`,
-                "On-time",
-              ]}
+              formatter={(value, _name, entry) => {
+                const payload = entry?.payload as { onTime?: number; total?: number } | undefined;
+                return [
+                  `${Number(value).toFixed(1)}% (${payload?.onTime ?? 0}/${payload?.total ?? 0})`,
+                  "On-time",
+                ];
+              }}
             />
             <Area
               type="monotone"
@@ -259,10 +276,13 @@ function CategoryChartCard({ view, defaultChartType }: CategoryChartCardProps) {
           <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-30} textAnchor="end" height={60} />
           <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
           <Tooltip
-            formatter={(value: number, _name: string, entry: { payload: { onTime: number; total: number } }) => [
-              `${value.toFixed(1)}% (${entry.payload.onTime}/${entry.payload.total})`,
-              "On-time",
-            ]}
+            formatter={(value, _name, entry) => {
+              const payload = entry?.payload as { onTime?: number; total?: number } | undefined;
+              return [
+                `${Number(value).toFixed(1)}% (${payload?.onTime ?? 0}/${payload?.total ?? 0})`,
+                "On-time",
+              ];
+            }}
           />
           <Bar dataKey="percentage" radius={[4, 4, 0, 0]}>
             {sorted.map((entry, i) => (

@@ -1,14 +1,26 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
+import React, { createContext, useContext, useState, useMemo } from "react";
 import type { KPIFilterState } from "@/components/kpi/kpi-filter";
-import type { MAKPITransformedData } from "@/types/ma-api";
-import { useMAKPITransformedData } from "@/hooks/useMAApi";
+import type { MAKPITransformedRow } from "@/types/ma-api";
+import { useMAKPIDataMedicine } from "@/hooks/useMAApi";
 
 interface DateRange {
   start: Date;
   end: Date;
 }
+
+type MADashboardDisaggregation = {
+  code?: string;
+  label: string;
+  value: number;
+  total?: number;
+  percentage: number;
+};
+
+type MADashboardKPIData = MAKPITransformedRow & {
+  disaggregations?: Record<string, MADashboardDisaggregation>;
+};
 
 interface MADashboardContextValue {
   // Dashboard filter state
@@ -24,7 +36,7 @@ interface MADashboardContextValue {
   setDateRange: (range: DateRange | null) => void;
   
   // API data
-  apiData: Record<string, MAKPITransformedData> | null;
+  apiData: Record<string, MADashboardKPIData> | null;
   apiLoading: boolean;
   apiError: Error | null;
   refetchApiData: () => Promise<void>;
@@ -43,8 +55,21 @@ export function MADashboardProvider({ children }: { children: React.ReactNode })
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
   
   // Fetch API data
-  const { data: apiData, loading: apiLoading, error: apiError, refetch: refetchApiData } = 
-    useMAKPITransformedData();
+  const { data: transformedApiData, loading: apiLoading, error: apiError, refetch: refetchApiData } =
+    useMAKPIDataMedicine();
+
+  const apiData = useMemo<Record<string, MADashboardKPIData> | null>(() => {
+    if (!transformedApiData) return null;
+    return Object.fromEntries(
+      Object.entries(transformedApiData).map(([kpiId, row]) => [
+        kpiId,
+        {
+          ...row,
+          disaggregations: {},
+        },
+      ])
+    );
+  }, [transformedApiData]);
   
   const value = useMemo(
     () => ({

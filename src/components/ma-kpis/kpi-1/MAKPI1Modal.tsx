@@ -67,31 +67,31 @@ export function MAKPI1Modal({ open, onOpenChange }: MAKPI1ModalProps) {
     loading: mdLoading,
     error: mdError,
     refetch: refetchMdDrilldown,
-  } = useMAKPI1DrilldownData(3, undefined, open && isMDSelected);
+  } = useMAKPI1DrilldownData(undefined, open && isMDSelected);
   const {
     data: foodDrilldownData,
     loading: foodLoading,
     error: foodError,
     refetch: refetchFoodDrilldown,
-  } = useMAKPI1DrilldownData(4, undefined, open && isFoodSelected);
+  } = useMAKPI1DrilldownData(undefined, open && isFoodSelected);
   const {
     data: foodNotificationDrilldownData,
     loading: foodNotificationLoading,
     error: foodNotificationError,
     refetch: refetchFoodNotificationDrilldown,
-  } = useMAKPI1DrilldownData(5, undefined, open && isFoodNotificationSelected);
+  } = useMAKPI1DrilldownData(undefined, open && isFoodNotificationSelected);
   const {
     data: medicineDrilldownData,
     loading: medicineLoading,
     error: medicineError,
     refetch: refetchMedicineDrilldown,
-  } = useMAKPI1DrilldownData(6, undefined, open && isMedicineSelected);
+  } = useMAKPI1DrilldownData(undefined, open && isMedicineSelected);
   const {
     data: cosmeticsDrilldownData,
     loading: cosmeticsLoading,
     error: cosmeticsError,
     refetch: refetchCosmeticsDrilldown,
-  } = useMAKPI1DrilldownData(7, undefined, open && isCosmeticsSelected);
+  } = useMAKPI1DrilldownData(undefined, open && isCosmeticsSelected);
 
   useEffect(() => {
     if (!open) return;
