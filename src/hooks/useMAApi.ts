@@ -2,7 +2,11 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { fetchMAFaceTabularData, fetchMAKpi1DrilldownTabularData } from '@/lib/ma-api/client';
+import {
+  fetchMAFaceTabularData,
+  fetchMAKpi1DrilldownTabularData,
+  fetchMAKpi2DrilldownTabularData,
+} from '@/lib/ma-api/client';
 import { getConfiguredMAModuleToKpiMapping } from '@/lib/ma-api/mapping';
 import { normalizeMAFaceData } from '@/lib/ma-api/normalizer';
 import type {
@@ -25,7 +29,8 @@ interface UseMAApiState<T> {
 
 function useMATabularReportData<T>(
   fetcher: (accessToken: string, filters?: MAApiFilterParams) => Promise<MAApiResponse<T>>,
-  filters?: MAApiFilterParams
+  filters?: MAApiFilterParams,
+  enabled = true
 ): UseMAApiState<MAApiResponse<T>> {
   const { isAuthenticated, loading: authLoading, accessToken } = useAuth();
   const [data, setData] = useState<MAApiResponse<T> | null>(null);
@@ -33,6 +38,10 @@ function useMATabularReportData<T>(
   const [error, setError] = useState<Error | null>(null);
 
   const fetchData = useCallback(async () => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     if (authLoading) return;
     if (!isAuthenticated || !accessToken) {
       setLoading(false);
@@ -50,15 +59,19 @@ function useMATabularReportData<T>(
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, authLoading, accessToken, filters, fetcher]);
+  }, [enabled, isAuthenticated, authLoading, accessToken, filters, fetcher]);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     if (!authLoading && isAuthenticated && accessToken) {
       fetchData();
     } else if (!authLoading && !isAuthenticated) {
       setLoading(false);
     }
-  }, [authLoading, isAuthenticated, accessToken, fetchData]);
+  }, [enabled, authLoading, isAuthenticated, accessToken, fetchData]);
 
   return {
     data,
@@ -80,9 +93,20 @@ export function useMAKPIData(filters?: MAApiFilterParams): UseMAApiState<MAApiRe
  * Fetches MA KPI 1 drilldown data from the API (endpoint /9).
  */
 export function useMAKPI1DrilldownData(
-  filters?: MAApiFilterParams
+  filters?: MAApiFilterParams,
+  enabled = true
 ): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
-  return useMATabularReportData<MAApiDrilldownRow>(fetchMAKpi1DrilldownTabularData, filters);
+  return useMATabularReportData<MAApiDrilldownRow>(fetchMAKpi1DrilldownTabularData, filters, enabled);
+}
+
+/**
+ * Fetches MA KPI 2 drilldown data from the API (endpoint /10).
+ */
+export function useMAKPI2DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(fetchMAKpi2DrilldownTabularData, filters, enabled);
 }
 
 interface MAKPIDataFacade {

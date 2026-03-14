@@ -1,6 +1,7 @@
 import {
   MA_TABULAR_FACE_REPORT_ID,
   MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID,
+  MA_TABULAR_KPI2_DRILLDOWN_REPORT_ID,
   buildMAFaceRequestBody,
   buildMATabularUrl,
   getApiBaseUrl,
@@ -58,6 +59,18 @@ export async function fetchMAKpi1DrilldownTabularData(
   return fetchMATabularData<MAApiDrilldownRow>(
     accessToken,
     MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID,
+    filters,
+    "500"
+  );
+}
+
+export async function fetchMAKpi2DrilldownTabularData(
+  accessToken: string,
+  filters?: MAApiFilterParams
+): Promise<MAApiResponse<MAApiDrilldownRow>> {
+  return fetchMATabularData<MAApiDrilldownRow>(
+    accessToken,
+    MA_TABULAR_KPI2_DRILLDOWN_REPORT_ID,
     filters,
     "500"
   );

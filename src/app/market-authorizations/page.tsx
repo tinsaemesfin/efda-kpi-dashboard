@@ -267,7 +267,7 @@ export default function MarketAuthorizationsPage() {
               <div className="flex items-center justify-between gap-2 xl:justify-end">
                 <p className="text-xs text-muted-foreground">
                   {activeProduct === "medicine"
-                    ? "Medicine: KPI card values use live API (/8) and KPI 1 drilldown uses live API (/9); others use sample data. "
+                    ? "Medicine: KPI card values use live API (/8), KPI 1 drilldown uses /9, and KPI 2 drilldown uses /10; others use sample data. "
                         .concat(
                           `Rows accepted: ${apiMetadata.acceptedRows}/${apiMetadata.filteredRows} filtered (${apiMetadata.totalRows} total).`
                         )
