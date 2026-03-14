@@ -20,14 +20,26 @@ export interface MAApiDataRow {
   percentage: number;
 }
 
-export interface MAApiResponse {
+export interface MAApiDrilldownRow {
+  rowNumber?: number;
+  category_name: string;
+  category_value: string;
+  module_code: MAApiModuleCode;
+  target_days?: number;
+  on_time_count: number;
+  total_count: number;
+  percentage: number;
+  avg_processing_days?: number | null;
+}
+
+export interface MAApiResponse<T = MAApiDataRow> {
   recordsTotal?: number;
   recordsFiltered?: number;
   draw?: number;
   error?: string | null;
   totalRecords?: number;
   totalRecordsFiltered?: number;
-  data: MAApiDataRow[];
+  data: T[];
 }
 
 export interface MAApiFilterParams {
@@ -68,7 +80,9 @@ export const MODULE_CODE_LABELS: Record<MAModuleCode, string> = {
 export const SUBMODULE_TYPE_LABELS: Record<MASubmoduleTypeCode, string> = {
   MDCN: 'Medicine',
   FD: 'Food',
+  FNT: 'Food Notification',
   MD: 'Medical Device',
+  CO: 'Cosmetics',
 };
 
 /** Product key used in UI → API submodule code (Medicine only for this integration) */

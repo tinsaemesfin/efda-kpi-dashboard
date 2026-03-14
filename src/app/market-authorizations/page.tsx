@@ -123,9 +123,10 @@ export default function MarketAuthorizationsPage() {
     setSelectedKpiId(null);
   };
 
-  const selectedDrilldown: KPIDrillDownData | null = selectedKpiId
-    ? maDrillDownData[selectedKpiId] ?? null
-    : null;
+  const selectedDrilldown: KPIDrillDownData | null = useMemo(() => {
+    if (!selectedKpiId) return null;
+    return maDrillDownData[selectedKpiId] ?? null;
+  }, [selectedKpiId]);
 
   const visibleCards = useMemo(() => {
     if (!searchTerm.trim()) return mergedCards;
@@ -266,7 +267,7 @@ export default function MarketAuthorizationsPage() {
               <div className="flex items-center justify-between gap-2 xl:justify-end">
                 <p className="text-xs text-muted-foreground">
                   {activeProduct === "medicine"
-                    ? "Medicine: New, Renewal, Minor Variation and Major Variation use live API (/8); others use sample data. "
+                    ? "Medicine: KPI card values use live API (/8) and KPI 1 drilldown uses live API (/9); others use sample data. "
                         .concat(
                           `Rows accepted: ${apiMetadata.acceptedRows}/${apiMetadata.filteredRows} filtered (${apiMetadata.totalRows} total).`
                         )

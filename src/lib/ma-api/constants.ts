@@ -1,6 +1,7 @@
 import type { MAApiFilterParams, MAKPIId, MAModuleToKpiMapping } from "@/types/ma-api";
 
 export const MA_TABULAR_FACE_REPORT_ID = 8;
+export const MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID = 9;
 export const MA_TABULAR_ENDPOINT_PREFIX = "/api/kpi/tabular";
 
 export const MA_DEFAULT_TABULAR_PARAMS = {
@@ -38,6 +39,10 @@ export function getApiBaseUrl(): string {
 }
 
 export function buildMATabularFaceUrl(baseUrl: string): string {
+  return buildMATabularUrl(baseUrl, MA_TABULAR_FACE_REPORT_ID);
+}
+
+export function buildMATabularUrl(baseUrl: string, reportId: number): string {
   const cleanedBase = baseUrl.replace(/\/$/, "");
 
   // Supports both styles:
@@ -45,22 +50,22 @@ export function buildMATabularFaceUrl(baseUrl: string): string {
   // 2) NEXT_PUBLIC_API_KPI=https://host
   // Also tolerates accidental /tabular suffix.
   if (/\/api\/kpi\/tabular$/i.test(cleanedBase)) {
-    return `${cleanedBase}/${MA_TABULAR_FACE_REPORT_ID}`;
+    return `${cleanedBase}/${reportId}`;
   }
   if (/\/api\/kpi$/i.test(cleanedBase)) {
-    return `${cleanedBase}/tabular/${MA_TABULAR_FACE_REPORT_ID}`;
+    return `${cleanedBase}/tabular/${reportId}`;
   }
   if (/\/tabular$/i.test(cleanedBase)) {
-    return `${cleanedBase}/${MA_TABULAR_FACE_REPORT_ID}`;
+    return `${cleanedBase}/${reportId}`;
   }
-  return `${cleanedBase}${MA_TABULAR_ENDPOINT_PREFIX}/${MA_TABULAR_FACE_REPORT_ID}`;
+  return `${cleanedBase}${MA_TABULAR_ENDPOINT_PREFIX}/${reportId}`;
 }
 
-export function buildMAFaceRequestBody(filters?: MAApiFilterParams): URLSearchParams {
+export function buildMAFaceRequestBody(filters?: MAApiFilterParams, lengthOverride?: string): URLSearchParams {
   const formData = new URLSearchParams();
   formData.append("draw", MA_DEFAULT_TABULAR_PARAMS.draw);
   formData.append("start", MA_DEFAULT_TABULAR_PARAMS.start);
-  formData.append("length", MA_DEFAULT_TABULAR_PARAMS.length);
+  formData.append("length", lengthOverride ?? MA_DEFAULT_TABULAR_PARAMS.length);
   if (filters?.startDate) formData.append("startDate", filters.startDate);
   if (filters?.endDate) formData.append("endDate", filters.endDate);
   if (filters?.quarter) formData.append("quarter", filters.quarter);

@@ -1,21 +1,25 @@
 import {
+  MA_TABULAR_FACE_REPORT_ID,
+  MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID,
   buildMAFaceRequestBody,
-  buildMATabularFaceUrl,
+  buildMATabularUrl,
   getApiBaseUrl,
 } from "@/lib/ma-api/constants";
-import type { MAApiFilterParams, MAApiResponse } from "@/types/ma-api";
+import type { MAApiDataRow, MAApiDrilldownRow, MAApiFilterParams, MAApiResponse } from "@/types/ma-api";
 
-export async function fetchMAFaceTabularData(
+async function fetchMATabularData<T>(
   accessToken: string,
-  filters?: MAApiFilterParams
-): Promise<MAApiResponse> {
+  reportId: number,
+  filters?: MAApiFilterParams,
+  lengthOverride?: string
+): Promise<MAApiResponse<T>> {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) {
     throw new Error("NEXT_PUBLIC_API_KPI or NEXT_PUBLIC_API_ROOT is not set");
   }
 
-  const url = buildMATabularFaceUrl(baseUrl);
-  const body = buildMAFaceRequestBody(filters);
+  const url = buildMATabularUrl(baseUrl, reportId);
+  const body = buildMAFaceRequestBody(filters, lengthOverride);
 
   const response = await fetch(url, {
     method: "POST",
@@ -32,10 +36,29 @@ export async function fetchMAFaceTabularData(
     throw new Error(`HTTP ${response.status}: ${text || response.statusText}`);
   }
 
-  const json: MAApiResponse = await response.json();
+  const json: MAApiResponse<T> = await response.json();
   if (json.error) {
     throw new Error(json.error);
   }
 
   return json;
+}
+
+export async function fetchMAFaceTabularData(
+  accessToken: string,
+  filters?: MAApiFilterParams
+): Promise<MAApiResponse<MAApiDataRow>> {
+  return fetchMATabularData<MAApiDataRow>(accessToken, MA_TABULAR_FACE_REPORT_ID, filters);
+}
+
+export async function fetchMAKpi1DrilldownTabularData(
+  accessToken: string,
+  filters?: MAApiFilterParams
+): Promise<MAApiResponse<MAApiDrilldownRow>> {
+  return fetchMATabularData<MAApiDrilldownRow>(
+    accessToken,
+    MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID,
+    filters,
+    "500"
+  );
 }

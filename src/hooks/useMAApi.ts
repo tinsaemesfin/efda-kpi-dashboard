@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { fetchMAFaceTabularData } from '@/lib/ma-api/client';
+import { fetchMAFaceTabularData, fetchMAKpi1DrilldownTabularData } from '@/lib/ma-api/client';
 import { getConfiguredMAModuleToKpiMapping } from '@/lib/ma-api/mapping';
 import { normalizeMAFaceData } from '@/lib/ma-api/normalizer';
 import type {
+  MAApiDataRow,
+  MAApiDrilldownRow,
   MAApiResponse,
   MAApiFilterParams,
   MAKPITransformedData,
@@ -21,13 +23,12 @@ interface UseMAApiState<T> {
   refetch: () => Promise<void>;
 }
 
-/**
- * Fetches MA KPI data from the API (endpoint /8).
- * Returns raw response; use useMAKPIDataMedicine for Medicine-only transformed data.
- */
-export function useMAKPIData(filters?: MAApiFilterParams): UseMAApiState<MAApiResponse> {
+function useMATabularReportData<T>(
+  fetcher: (accessToken: string, filters?: MAApiFilterParams) => Promise<MAApiResponse<T>>,
+  filters?: MAApiFilterParams
+): UseMAApiState<MAApiResponse<T>> {
   const { isAuthenticated, loading: authLoading, accessToken } = useAuth();
-  const [data, setData] = useState<MAApiResponse | null>(null);
+  const [data, setData] = useState<MAApiResponse<T> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -42,14 +43,14 @@ export function useMAKPIData(filters?: MAApiFilterParams): UseMAApiState<MAApiRe
     setError(null);
 
     try {
-      const json = await fetchMAFaceTabularData(accessToken, filters);
+      const json = await fetcher(accessToken, filters);
       setData(json);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch MA KPI data'));
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, authLoading, accessToken, filters]);
+  }, [isAuthenticated, authLoading, accessToken, filters, fetcher]);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated && accessToken) {
@@ -65,6 +66,23 @@ export function useMAKPIData(filters?: MAApiFilterParams): UseMAApiState<MAApiRe
     error,
     refetch: fetchData,
   };
+}
+
+/**
+ * Fetches MA KPI data from the API (endpoint /8).
+ * Returns raw response; use useMAKPIDataMedicine for Medicine-only transformed data.
+ */
+export function useMAKPIData(filters?: MAApiFilterParams): UseMAApiState<MAApiResponse> {
+  return useMATabularReportData<MAApiDataRow>(fetchMAFaceTabularData, filters);
+}
+
+/**
+ * Fetches MA KPI 1 drilldown data from the API (endpoint /9).
+ */
+export function useMAKPI1DrilldownData(
+  filters?: MAApiFilterParams
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(fetchMAKpi1DrilldownTabularData, filters);
 }
 
 interface MAKPIDataFacade {
