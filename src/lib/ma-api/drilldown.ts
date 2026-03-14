@@ -3,6 +3,8 @@ import type { MAApiDrilldownRow } from "@/types/ma-api";
 
 const KPI1_ID = "MA-KPI-1";
 const KPI1_NAME = "Percentage of New MA Applications Completed Within Timeline";
+const KPI2_ID = "MA-KPI-2";
+const KPI2_NAME = "Percentage of Renewal MA Applications Completed Within Timeline";
 const NEW_APPLICATION_PREFIX = /^new application\s*-\s*/i;
 
 const CATEGORY_LABEL_ORDER = [
@@ -58,10 +60,27 @@ export function buildMAKpi1DrilldownData(
   rows: MAApiDrilldownRow[],
   fallback?: KPIDrillDownData
 ): KPIDrillDownData {
+  return buildMAKpiDrilldownData(rows, "NMR", KPI1_ID, KPI1_NAME, fallback);
+}
+
+export function buildMAKpi2DrilldownData(
+  rows: MAApiDrilldownRow[],
+  fallback?: KPIDrillDownData
+): KPIDrillDownData {
+  return buildMAKpiDrilldownData(rows, "REN", KPI2_ID, KPI2_NAME, fallback);
+}
+
+function buildMAKpiDrilldownData(
+  rows: MAApiDrilldownRow[],
+  moduleFilter: string,
+  kpiId: string,
+  defaultKpiName: string,
+  fallback?: KPIDrillDownData
+): KPIDrillDownData {
   if (!rows.length) {
     return fallback ?? {
-      kpiId: KPI1_ID,
-      kpiName: KPI1_NAME,
+      kpiId,
+      kpiName: defaultKpiName,
       currentValue: { value: 0, numerator: 0, denominator: 0, percentage: 0 },
       level1: { dimension: "Category", data: [], drillable: false },
       dimensionViews: [],
@@ -78,7 +97,7 @@ export function buildMAKpi1DrilldownData(
 
   rows.forEach((row) => {
     const moduleCode = String(row.module_code ?? "").toUpperCase();
-    if (moduleCode !== "NMR") return;
+    if (moduleCode !== moduleFilter) return;
 
     const categoryName = normalizeCategoryName(String(row.category_name ?? ""));
     const categoryValue = normalizeCategoryValue(categoryName, String(row.category_value ?? ""));
@@ -156,8 +175,8 @@ export function buildMAKpi1DrilldownData(
 
   return {
     ...(fallback ?? {}),
-    kpiId: KPI1_ID,
-    kpiName: fallback?.kpiName ?? KPI1_NAME,
+    kpiId,
+    kpiName: fallback?.kpiName ?? defaultKpiName,
     currentValue: {
       value: percentage,
       numerator,

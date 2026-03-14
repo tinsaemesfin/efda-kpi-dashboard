@@ -2,6 +2,7 @@ import type { MAApiFilterParams, MAKPIId, MAModuleToKpiMapping } from "@/types/m
 
 export const MA_TABULAR_FACE_REPORT_ID = 8;
 export const MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID = 9;
+export const MA_TABULAR_KPI2_DRILLDOWN_REPORT_ID = 10;
 export const MA_TABULAR_ENDPOINT_PREFIX = "/api/kpi/tabular";
 
 export const MA_DEFAULT_TABULAR_PARAMS = {
