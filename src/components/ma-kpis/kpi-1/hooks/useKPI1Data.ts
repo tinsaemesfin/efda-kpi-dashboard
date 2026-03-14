@@ -7,6 +7,14 @@ import { useMemo } from "react";
 import { useMADashboard } from "../../shared/context/MADashboardContext";
 import { useKPIStatus } from "../../shared/hooks/useKPIStatus";
 
+type DisaggregationItem = {
+  code?: string;
+  label: string;
+  value: number;
+  total?: number;
+  percentage: number;
+};
+
 export function useKPI1Data() {
   const { apiData, apiLoading, apiError } = useMADashboard();
   const getStatus = useKPIStatus();
@@ -19,7 +27,10 @@ export function useKPI1Data() {
   const percentage = kpiData?.percentage ?? 0;
   const numerator = kpiData?.numerator ?? 0;
   const denominator = kpiData?.denominator ?? 0;
-  const disaggregations = useMemo(() => kpiData?.disaggregations ?? {}, [kpiData]);
+  const disaggregations = useMemo<Record<string, DisaggregationItem>>(
+    () => ({}),
+    []
+  );
 
   const status = getStatus({ percentage });
   const submoduleRows = useMemo(() => {
