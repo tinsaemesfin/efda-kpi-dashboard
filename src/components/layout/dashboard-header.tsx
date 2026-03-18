@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Search, LogOut } from "lucide-react";
+import { Search, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,12 +12,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 
 export function DashboardHeader() {
   const { profile, logout, isAuthenticated } = useAuth();
+  const profileUrl = "https://dev.id.eris.efda.gov.et/manage/profile";
 
   const handleLogout = async () => {
     await logout();
@@ -40,16 +40,6 @@ export function DashboardHeader() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-4 w-4" />
-            <Badge
-              variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-            >
-              3
-            </Badge>
-          </Button>
-
           {isAuthenticated && profile ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -78,11 +68,8 @@ export function DashboardHeader() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.location.href = profileUrl}>
                   Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>

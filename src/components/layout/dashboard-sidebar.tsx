@@ -3,9 +3,6 @@
 import {
   BarChart3,
   Home,
-  Settings,
-  Users,
-  FileText,
   Shield,
   FlaskConical,
   ShieldCheck,
@@ -54,29 +51,6 @@ const kpiMenuItems = [
   },
 ];
 
-const systemMenuItems = [
-  {
-    title: "Reports",
-    url: "/reports",
-    icon: FileText,
-  },
-  {
-    title: "Analytics",
-    url: "/analytics",
-    icon: BarChart3,
-  },
-  {
-    title: "Users",
-    url: "/users",
-    icon: Users,
-  },
-  {
-    title: "Settings",
-    url: "/settings",
-    icon: Settings,
-  },
-];
-
 export function DashboardSidebar() {
   const { user } = useAuthStore();
 
@@ -118,24 +92,6 @@ export function DashboardSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {kpiMenuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>System</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {systemMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
