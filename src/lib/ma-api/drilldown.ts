@@ -10,11 +10,13 @@ const NEW_APPLICATION_PREFIX = /^new application\s*-\s*/i;
 const CATEGORY_LABEL_ORDER = [
   "Application type",
   "Internal regulatory pathway",
-  "MA type",
+  "Reliance pathway",
   "Processing time band",
   "Regulatory outcome",
-  "Reliance pathway",
 ];
+
+/** Dropped from the modal: duplicates Application type in the source data. */
+const EXCLUDED_CATEGORY_LABELS = new Set(["ma type"]);
 
 function toTitleCase(value: string): string {
   return value
@@ -100,6 +102,8 @@ function buildMAKpiDrilldownData(
     if (moduleCode !== moduleFilter) return;
 
     const categoryName = normalizeCategoryName(String(row.category_name ?? ""));
+    if (EXCLUDED_CATEGORY_LABELS.has(categoryName.toLowerCase())) return;
+
     const categoryValue = normalizeCategoryValue(categoryName, String(row.category_value ?? ""));
 
     if (!groupedByCategory.has(categoryName)) {
@@ -163,7 +167,10 @@ function buildMAKpiDrilldownData(
         data: normalizedItems,
       };
     })
-    .filter((view) => view.data.length > 0);
+    .filter(
+      (view) =>
+        view.data.length > 0 && !EXCLUDED_CATEGORY_LABELS.has(view.label.toLowerCase())
+    );
 
   const anchorView =
     dimensionViews.find((view) => view.label.toLowerCase() === "application type") ??
