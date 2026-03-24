@@ -211,12 +211,12 @@ export default function MarketAuthorizationsPage() {
           </div>
 
           <div className="rounded-xl border bg-card p-3">
-            <div className="grid gap-3 xl:grid-cols-[1fr_auto] xl:items-end">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-1.5">
+            <div className="flex min-w-0 flex-col gap-3">
+              <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="min-w-0 space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Preset</label>
                   <Select value={datePreset} onValueChange={applyDatePreset}>
-                    <SelectTrigger className="h-9">
+                    <SelectTrigger className="h-9 w-full min-w-0">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -227,45 +227,45 @@ export default function MarketAuthorizationsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
+                <div className="min-w-0 space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">From</label>
-                  <div className="relative">
+                  <div className="relative min-w-0">
                     <CalendarDaysIcon className="pointer-events-none absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="date"
-                      className="h-9 pl-8"
+                      className="h-9 min-w-0 pl-8"
                       value={dateFrom}
                       onChange={(e) => setDateFrom(e.target.value)}
                     />
                   </div>
                 </div>
-                <div className="space-y-1.5">
+                <div className="min-w-0 space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">To</label>
-                  <div className="relative">
+                  <div className="relative min-w-0">
                     <CalendarDaysIcon className="pointer-events-none absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="date"
-                      className="h-9 pl-8"
+                      className="h-9 min-w-0 pl-8"
                       value={dateTo}
                       onChange={(e) => setDateTo(e.target.value)}
                     />
                   </div>
                 </div>
-                <div className="space-y-1.5">
+                <div className="min-w-0 space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Find KPI</label>
-                  <div className="relative">
+                  <div className="relative min-w-0">
                     <SearchIcon className="pointer-events-none absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search KPI title"
-                      className="h-9 pl-8"
+                      className="h-9 min-w-0 pl-8"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between gap-2 xl:justify-end">
-                <p className="text-xs text-muted-foreground">
+              <div className="flex min-w-0 flex-col gap-3 border-t border-border/60 pt-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                <p className="min-w-0 flex-1 text-pretty text-xs leading-relaxed text-muted-foreground">
                   {activeProduct === "medicine"
                     ? "Medicine: KPI card values use live API (/8), KPI 1 drilldown uses /9, and KPI 2 drilldown uses /10; others use sample data. "
                         .concat(
@@ -277,6 +277,7 @@ export default function MarketAuthorizationsPage() {
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="w-full shrink-0 sm:w-auto sm:self-center"
                   onClick={() => {
                     setSearchTerm("");
                     applyDatePreset("last-30");
