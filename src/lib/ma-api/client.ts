@@ -6,7 +6,15 @@ import {
   buildMATabularUrl,
   getApiBaseUrl,
 } from "@/lib/ma-api/constants";
+import {
+  getOrFetchMaApiCache,
+  maFaceDataCacheKey,
+  maKpi1DrilldownCacheKey,
+  maKpi2DrilldownCacheKey,
+} from "@/lib/ma-api/cache";
 import type { MAApiDataRow, MAApiDrilldownRow, MAApiFilterParams, MAApiResponse } from "@/types/ma-api";
+
+export type MAApiFetchOptions = { force?: boolean };
 
 async function fetchMATabularData<T>(
   accessToken: string,
@@ -47,31 +55,43 @@ async function fetchMATabularData<T>(
 
 export async function fetchMAFaceTabularData(
   accessToken: string,
-  filters?: MAApiFilterParams
+  filters?: MAApiFilterParams,
+  options?: MAApiFetchOptions
 ): Promise<MAApiResponse<MAApiDataRow>> {
-  return fetchMATabularData<MAApiDataRow>(accessToken, MA_TABULAR_FACE_REPORT_ID, filters);
+  const key = maFaceDataCacheKey(filters);
+  return getOrFetchMaApiCache(key, options?.force ?? false, () =>
+    fetchMATabularData<MAApiDataRow>(accessToken, MA_TABULAR_FACE_REPORT_ID, filters)
+  );
 }
 
 export async function fetchMAKpi1DrilldownTabularData(
   accessToken: string,
-  filters?: MAApiFilterParams
+  filters?: MAApiFilterParams,
+  options?: MAApiFetchOptions
 ): Promise<MAApiResponse<MAApiDrilldownRow>> {
-  return fetchMATabularData<MAApiDrilldownRow>(
-    accessToken,
-    MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID,
-    filters,
-    "500"
+  const key = maKpi1DrilldownCacheKey(filters);
+  return getOrFetchMaApiCache(key, options?.force ?? false, () =>
+    fetchMATabularData<MAApiDrilldownRow>(
+      accessToken,
+      MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID,
+      filters,
+      "500"
+    )
   );
 }
 
 export async function fetchMAKpi2DrilldownTabularData(
   accessToken: string,
-  filters?: MAApiFilterParams
+  filters?: MAApiFilterParams,
+  options?: MAApiFetchOptions
 ): Promise<MAApiResponse<MAApiDrilldownRow>> {
-  return fetchMATabularData<MAApiDrilldownRow>(
-    accessToken,
-    MA_TABULAR_KPI2_DRILLDOWN_REPORT_ID,
-    filters,
-    "500"
+  const key = maKpi2DrilldownCacheKey(filters);
+  return getOrFetchMaApiCache(key, options?.force ?? false, () =>
+    fetchMATabularData<MAApiDrilldownRow>(
+      accessToken,
+      MA_TABULAR_KPI2_DRILLDOWN_REPORT_ID,
+      filters,
+      "500"
+    )
   );
 }
