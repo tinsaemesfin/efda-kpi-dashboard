@@ -76,7 +76,6 @@ function pickBestFitChart(view: KPIDimensionView): ChartType {
   const label = view.label.toLowerCase();
 
   if (label.includes("internal regulatory pathway")) return "bar";
-  if (label.includes("ma type")) return "line";
   if (label.includes("processing time")) return "pie";
   if (label.includes("regulatory outcome")) return "line";
   if (label.includes("reliance pathway")) return "bar";

@@ -7,6 +7,12 @@ import {
   fetchMAKpi1DrilldownTabularData,
   fetchMAKpi2DrilldownTabularData,
 } from '@/lib/ma-api/client';
+import {
+  maFaceDataCacheKey,
+  maKpi1DrilldownCacheKey,
+  maKpi2DrilldownCacheKey,
+  peekMaApiCache,
+} from '@/lib/ma-api/cache';
 import { getConfiguredMAModuleToKpiMapping } from '@/lib/ma-api/mapping';
 import { normalizeMAFaceData } from '@/lib/ma-api/normalizer';
 import type {
@@ -27,39 +33,61 @@ interface UseMAApiState<T> {
   refetch: () => Promise<void>;
 }
 
-function useMATabularReportData<T>(
-  fetcher: (accessToken: string, filters?: MAApiFilterParams) => Promise<MAApiResponse<T>>,
+type MATabularFetcher<T> = (
+  accessToken: string,
   filters?: MAApiFilterParams,
-  enabled = true
+  options?: { force?: boolean }
+) => Promise<MAApiResponse<T>>;
+
+function useMATabularReportData<T>(
+  fetcher: MATabularFetcher<T>,
+  filters: MAApiFilterParams | undefined,
+  enabled: boolean,
+  getCacheKey: (filters?: MAApiFilterParams) => string
 ): UseMAApiState<MAApiResponse<T>> {
   const { isAuthenticated, loading: authLoading, accessToken } = useAuth();
   const [data, setData] = useState<MAApiResponse<T> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchData = useCallback(async () => {
-    if (!enabled) {
-      setLoading(false);
-      return;
-    }
-    if (authLoading) return;
-    if (!isAuthenticated || !accessToken) {
-      setLoading(false);
-      return;
-    }
+  const cacheKey = useMemo(() => getCacheKey(filters), [filters, getCacheKey]);
 
-    setLoading(true);
-    setError(null);
+  const fetchData = useCallback(
+    async (force = false) => {
+      if (!enabled) {
+        setLoading(false);
+        return;
+      }
+      if (authLoading) return;
+      if (!isAuthenticated || !accessToken) {
+        setLoading(false);
+        return;
+      }
 
-    try {
-      const json = await fetcher(accessToken, filters);
-      setData(json);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch MA KPI data'));
-    } finally {
-      setLoading(false);
-    }
-  }, [enabled, isAuthenticated, authLoading, accessToken, filters, fetcher]);
+      if (!force) {
+        const cached = peekMaApiCache<MAApiResponse<T>>(cacheKey);
+        if (cached) {
+          setData(cached);
+          setLoading(false);
+          setError(null);
+          return;
+        }
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const json = await fetcher(accessToken, filters, { force });
+        setData(json);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch MA KPI data'));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [enabled, isAuthenticated, authLoading, accessToken, filters, fetcher, cacheKey]
+  );
 
   useEffect(() => {
     if (!enabled) {
@@ -67,17 +95,19 @@ function useMATabularReportData<T>(
       return;
     }
     if (!authLoading && isAuthenticated && accessToken) {
-      fetchData();
+      void fetchData(false);
     } else if (!authLoading && !isAuthenticated) {
       setLoading(false);
     }
   }, [enabled, authLoading, isAuthenticated, accessToken, fetchData]);
 
+  const refetch = useCallback(() => fetchData(true), [fetchData]);
+
   return {
     data,
     loading: loading || authLoading,
     error,
-    refetch: fetchData,
+    refetch,
   };
 }
 
@@ -86,7 +116,12 @@ function useMATabularReportData<T>(
  * Returns raw response; use useMAKPIDataMedicine for Medicine-only transformed data.
  */
 export function useMAKPIData(filters?: MAApiFilterParams): UseMAApiState<MAApiResponse> {
-  return useMATabularReportData<MAApiDataRow>(fetchMAFaceTabularData, filters);
+  return useMATabularReportData<MAApiDataRow>(
+    fetchMAFaceTabularData,
+    filters,
+    true,
+    maFaceDataCacheKey
+  );
 }
 
 /**
@@ -96,7 +131,12 @@ export function useMAKPI1DrilldownData(
   filters?: MAApiFilterParams,
   enabled = true
 ): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
-  return useMATabularReportData<MAApiDrilldownRow>(fetchMAKpi1DrilldownTabularData, filters, enabled);
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAKpi1DrilldownTabularData,
+    filters,
+    enabled,
+    maKpi1DrilldownCacheKey
+  );
 }
 
 /**
@@ -106,7 +146,12 @@ export function useMAKPI2DrilldownData(
   filters?: MAApiFilterParams,
   enabled = true
 ): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
-  return useMATabularReportData<MAApiDrilldownRow>(fetchMAKpi2DrilldownTabularData, filters, enabled);
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAKpi2DrilldownTabularData,
+    filters,
+    enabled,
+    maKpi2DrilldownCacheKey
+  );
 }
 
 interface MAKPIDataFacade {

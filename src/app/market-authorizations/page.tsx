@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { DashboardLayout } from "@/components/layout";
 import { MAKPICard } from "@/components/kpi/ma-kpi-card";
@@ -92,21 +92,28 @@ export default function MarketAuthorizationsPage() {
     return mergeMedicineCardsWithFaceData(seedCards, apiMedicineData);
   }, [activeProduct, activeSeed.cards, apiMedicineData]);
 
-  const summaryCards = useMemo(
-    () =>
-      productTabs.map((product) => {
-        const seed = maProductKpiSeed[product.key];
-        const isMedicine = product.key === "medicine";
-        const lead = isMedicine && mergedCards.length > 0 ? mergedCards[0] : seed.cards[0];
-        return {
-          key: product.key,
-          label: seed.summaryTitle,
-          text: `${lead.value.toFixed(lead.decimals)}${lead.suffix}`,
-          description: seed.summaryDescription,
-        };
-      }),
-    [mergedCards]
-  );
+  const summaryCards = useMemo(() => {
+    return productTabs.map((product) => {
+      const seed = maProductKpiSeed[product.key];
+      const isMedicine = product.key === "medicine";
+      const lead = isMedicine && mergedCards.length > 0 ? mergedCards[0] : seed.cards[0];
+      const text: ReactNode =
+        isMedicine && apiLoading ? (
+          <span
+            className="inline-block h-7 w-28 animate-pulse rounded-md bg-muted"
+            aria-hidden
+          />
+        ) : (
+          `${lead.value.toFixed(lead.decimals)}${lead.suffix}`
+        );
+      return {
+        key: product.key,
+        label: seed.summaryTitle,
+        text,
+        description: seed.summaryDescription,
+      };
+    });
+  }, [mergedCards, apiLoading]);
 
   const handleCardClick = (kpiId: string) => {
     if (!maDrillDownData[kpiId]) {
@@ -211,12 +218,12 @@ export default function MarketAuthorizationsPage() {
           </div>
 
           <div className="rounded-xl border bg-card p-3">
-            <div className="grid gap-3 xl:grid-cols-[1fr_auto] xl:items-end">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-1.5">
+            <div className="flex min-w-0 flex-col gap-3">
+              <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="min-w-0 space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Preset</label>
                   <Select value={datePreset} onValueChange={applyDatePreset}>
-                    <SelectTrigger className="h-9">
+                    <SelectTrigger className="h-9 w-full min-w-0">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -227,45 +234,45 @@ export default function MarketAuthorizationsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
+                <div className="min-w-0 space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">From</label>
-                  <div className="relative">
+                  <div className="relative min-w-0">
                     <CalendarDaysIcon className="pointer-events-none absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="date"
-                      className="h-9 pl-8"
+                      className="h-9 min-w-0 pl-8"
                       value={dateFrom}
                       onChange={(e) => setDateFrom(e.target.value)}
                     />
                   </div>
                 </div>
-                <div className="space-y-1.5">
+                <div className="min-w-0 space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">To</label>
-                  <div className="relative">
+                  <div className="relative min-w-0">
                     <CalendarDaysIcon className="pointer-events-none absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="date"
-                      className="h-9 pl-8"
+                      className="h-9 min-w-0 pl-8"
                       value={dateTo}
                       onChange={(e) => setDateTo(e.target.value)}
                     />
                   </div>
                 </div>
-                <div className="space-y-1.5">
+                <div className="min-w-0 space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Find KPI</label>
-                  <div className="relative">
+                  <div className="relative min-w-0">
                     <SearchIcon className="pointer-events-none absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search KPI title"
-                      className="h-9 pl-8"
+                      className="h-9 min-w-0 pl-8"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between gap-2 xl:justify-end">
-                <p className="text-xs text-muted-foreground">
+              <div className="flex min-w-0 flex-col gap-3 border-t border-border/60 pt-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                <p className="min-w-0 flex-1 text-pretty text-xs leading-relaxed text-muted-foreground">
                   {activeProduct === "medicine"
                     ? "Medicine: KPI card values use live API (/8), KPI 1 drilldown uses /9, and KPI 2 drilldown uses /10; others use sample data. "
                         .concat(
@@ -277,6 +284,7 @@ export default function MarketAuthorizationsPage() {
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="w-full shrink-0 sm:w-auto sm:self-center"
                   onClick={() => {
                     setSearchTerm("");
                     applyDatePreset("last-30");
@@ -338,28 +346,33 @@ export default function MarketAuthorizationsPage() {
                 : "md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
             )}
           >
-            {visibleCards.map((card, index) => (
-              <MAKPICard
-                key={card.id}
-                kpiCode={card.drilldownId}
-                title={card.title}
-                description={card.description}
-                value={card.value.toFixed(card.decimals)}
-                suffix={card.suffix}
-                numerator={card.numerator}
-                denominator={card.denominator}
-                helperText={
-                  activeProduct === "medicine" && isApiKpiId(card.drilldownId) && apiMedicineData?.[card.drilldownId]
-                    ? "Medicine view (live)"
-                    : `${productTabs.find((tab) => tab.key === activeProduct)?.label} view`
-                }
-                status={getStatus(card.value, card.suffix)}
-                active={false}
-                compact={cardDensity === "condensed"}
-                animationDelayMs={index * 45}
-                onClick={() => handleCardClick(card.drilldownId)}
-              />
-            ))}
+            {visibleCards.map((card, index) => {
+              const medicineFacePending =
+                activeProduct === "medicine" && isApiKpiId(card.drilldownId) && apiLoading;
+              return (
+                <MAKPICard
+                  key={card.id}
+                  kpiCode={card.drilldownId}
+                  title={card.title}
+                  description={card.description}
+                  value={card.value.toFixed(card.decimals)}
+                  suffix={card.suffix}
+                  numerator={card.numerator}
+                  denominator={card.denominator}
+                  helperText={
+                    activeProduct === "medicine" && isApiKpiId(card.drilldownId) && apiMedicineData?.[card.drilldownId]
+                      ? "Medicine view (live)"
+                      : `${productTabs.find((tab) => tab.key === activeProduct)?.label} view`
+                  }
+                  status={getStatus(card.value, card.suffix)}
+                  active={false}
+                  compact={cardDensity === "condensed"}
+                  animationDelayMs={index * 45}
+                  isLoading={medicineFacePending}
+                  onClick={() => handleCardClick(card.drilldownId)}
+                />
+              );
+            })}
           </div>
 
           {visibleCards.length === 0 && (

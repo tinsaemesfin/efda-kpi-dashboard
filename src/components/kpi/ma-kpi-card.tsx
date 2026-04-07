@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface MAKPICardProps {
@@ -19,6 +20,8 @@ interface MAKPICardProps {
   active?: boolean;
   compact?: boolean;
   animationDelayMs?: number;
+  /** When true, shows a pulsing skeleton for the full card (no dummy metrics). */
+  isLoading?: boolean;
   onClick?: () => void;
 }
 
@@ -37,6 +40,7 @@ export function MAKPICard({
   active = false,
   compact = false,
   animationDelayMs = 0,
+  isLoading = false,
   onClick,
 }: MAKPICardProps) {
   const statusColors = {
@@ -46,7 +50,7 @@ export function MAKPICard({
     critical: "bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300",
   };
 
-  const clickable = Boolean(onClick);
+  const clickable = Boolean(onClick) && !isLoading;
   const numericValue = Number(value);
   const safeNumericValue = Number.isFinite(numericValue) ? numericValue : 0;
   const targetValue = suffix === "%" ? 90 : 150;
@@ -63,6 +67,45 @@ export function MAKPICard({
       onClick?.();
     }
   };
+
+  if (isLoading) {
+    return (
+      <Card
+        className={cn(
+          "group relative overflow-hidden border transition-all duration-300",
+          compact ? "min-h-[150px]" : "min-h-[205px]",
+          "animate-in fade-in slide-in-from-bottom-2"
+        )}
+        style={{ animationDelay: `${animationDelayMs}ms` }}
+        aria-busy
+        aria-label={`Loading ${title}`}
+      >
+        <CardHeader className={cn("space-y-2 pb-2", compact && "pb-1")}>
+          <div className="flex items-start justify-between gap-3 relative z-10">
+            <div className="space-y-2 flex-1 min-w-0">
+              {kpiCode && <Skeleton className="h-5 w-20 rounded-md" />}
+              <Skeleton className={cn("h-4 w-full max-w-[220px]", compact && "max-w-[160px]")} />
+            </div>
+            {icon && <Skeleton className="h-6 w-6 shrink-0 rounded-md" />}
+          </div>
+          {!compact && <Skeleton className="h-3 w-full max-w-[280px] mt-1" />}
+        </CardHeader>
+        <CardContent className="space-y-3 relative z-10">
+          <Skeleton className={cn("h-9 w-28", compact && "h-8 w-24")} />
+          <div className={cn("space-y-1", compact && "space-y-0.5")}>
+            <Skeleton className="h-1.5 w-full rounded-full" />
+            {!compact && <Skeleton className="h-3 w-48" />}
+          </div>
+          <Skeleton className="h-4 w-24" />
+          {!compact && <Skeleton className="h-3 w-36" />}
+          <div className="flex items-center justify-between pt-1">
+            <Skeleton className="h-5 w-16 rounded-full" />
+            {!compact && <Skeleton className="h-3 w-24" />}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card
