@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { DashboardLayout } from "@/components/layout";
 import { MAKPICard } from "@/components/kpi/ma-kpi-card";
@@ -92,21 +92,28 @@ export default function MarketAuthorizationsPage() {
     return mergeMedicineCardsWithFaceData(seedCards, apiMedicineData);
   }, [activeProduct, activeSeed.cards, apiMedicineData]);
 
-  const summaryCards = useMemo(
-    () =>
-      productTabs.map((product) => {
-        const seed = maProductKpiSeed[product.key];
-        const isMedicine = product.key === "medicine";
-        const lead = isMedicine && mergedCards.length > 0 ? mergedCards[0] : seed.cards[0];
-        return {
-          key: product.key,
-          label: seed.summaryTitle,
-          text: `${lead.value.toFixed(lead.decimals)}${lead.suffix}`,
-          description: seed.summaryDescription,
-        };
-      }),
-    [mergedCards]
-  );
+  const summaryCards = useMemo(() => {
+    return productTabs.map((product) => {
+      const seed = maProductKpiSeed[product.key];
+      const isMedicine = product.key === "medicine";
+      const lead = isMedicine && mergedCards.length > 0 ? mergedCards[0] : seed.cards[0];
+      const text: ReactNode =
+        isMedicine && apiLoading ? (
+          <span
+            className="inline-block h-7 w-28 animate-pulse rounded-md bg-muted"
+            aria-hidden
+          />
+        ) : (
+          `${lead.value.toFixed(lead.decimals)}${lead.suffix}`
+        );
+      return {
+        key: product.key,
+        label: seed.summaryTitle,
+        text,
+        description: seed.summaryDescription,
+      };
+    });
+  }, [mergedCards, apiLoading]);
 
   const handleCardClick = (kpiId: string) => {
     if (!maDrillDownData[kpiId]) {
@@ -339,28 +346,33 @@ export default function MarketAuthorizationsPage() {
                 : "md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
             )}
           >
-            {visibleCards.map((card, index) => (
-              <MAKPICard
-                key={card.id}
-                kpiCode={card.drilldownId}
-                title={card.title}
-                description={card.description}
-                value={card.value.toFixed(card.decimals)}
-                suffix={card.suffix}
-                numerator={card.numerator}
-                denominator={card.denominator}
-                helperText={
-                  activeProduct === "medicine" && isApiKpiId(card.drilldownId) && apiMedicineData?.[card.drilldownId]
-                    ? "Medicine view (live)"
-                    : `${productTabs.find((tab) => tab.key === activeProduct)?.label} view`
-                }
-                status={getStatus(card.value, card.suffix)}
-                active={false}
-                compact={cardDensity === "condensed"}
-                animationDelayMs={index * 45}
-                onClick={() => handleCardClick(card.drilldownId)}
-              />
-            ))}
+            {visibleCards.map((card, index) => {
+              const medicineFacePending =
+                activeProduct === "medicine" && isApiKpiId(card.drilldownId) && apiLoading;
+              return (
+                <MAKPICard
+                  key={card.id}
+                  kpiCode={card.drilldownId}
+                  title={card.title}
+                  description={card.description}
+                  value={card.value.toFixed(card.decimals)}
+                  suffix={card.suffix}
+                  numerator={card.numerator}
+                  denominator={card.denominator}
+                  helperText={
+                    activeProduct === "medicine" && isApiKpiId(card.drilldownId) && apiMedicineData?.[card.drilldownId]
+                      ? "Medicine view (live)"
+                      : `${productTabs.find((tab) => tab.key === activeProduct)?.label} view`
+                  }
+                  status={getStatus(card.value, card.suffix)}
+                  active={false}
+                  compact={cardDensity === "condensed"}
+                  animationDelayMs={index * 45}
+                  isLoading={medicineFacePending}
+                  onClick={() => handleCardClick(card.drilldownId)}
+                />
+              );
+            })}
           </div>
 
           {visibleCards.length === 0 && (
