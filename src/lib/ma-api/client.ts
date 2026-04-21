@@ -2,6 +2,7 @@ import {
   MA_TABULAR_FACE_REPORT_ID,
   MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID,
   MA_TABULAR_KPI2_DRILLDOWN_REPORT_ID,
+  MA_TABULAR_KPI3_DRILLDOWN_REPORT_ID,
   buildMAFaceRequestBody,
   buildMATabularUrl,
   getApiBaseUrl,
@@ -11,6 +12,7 @@ import {
   maFaceDataCacheKey,
   maKpi1DrilldownCacheKey,
   maKpi2DrilldownCacheKey,
+  maKpi3DrilldownCacheKey,
 } from "@/lib/ma-api/cache";
 import type { MAApiDataRow, MAApiDrilldownRow, MAApiFilterParams, MAApiResponse } from "@/types/ma-api";
 
@@ -90,6 +92,22 @@ export async function fetchMAKpi2DrilldownTabularData(
     fetchMATabularData<MAApiDrilldownRow>(
       accessToken,
       MA_TABULAR_KPI2_DRILLDOWN_REPORT_ID,
+      filters,
+      "500"
+    )
+  );
+}
+
+export async function fetchMAKpi3DrilldownTabularData(
+  accessToken: string,
+  filters?: MAApiFilterParams,
+  options?: MAApiFetchOptions
+): Promise<MAApiResponse<MAApiDrilldownRow>> {
+  const key = maKpi3DrilldownCacheKey(filters);
+  return getOrFetchMaApiCache(key, options?.force ?? false, () =>
+    fetchMATabularData<MAApiDrilldownRow>(
+      accessToken,
+      MA_TABULAR_KPI3_DRILLDOWN_REPORT_ID,
       filters,
       "500"
     )

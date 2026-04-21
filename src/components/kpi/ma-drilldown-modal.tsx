@@ -46,8 +46,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { KPIDrillDownData, KPIDimensionView } from "@/types/ma-drilldown";
 import { KPIFilter, type KPIFilterState } from "./kpi-filter";
-import { useMAKPI1DrilldownData, useMAKPI2DrilldownData } from "@/hooks/useMAApi";
-import { buildMAKpi1DrilldownData, buildMAKpi2DrilldownData } from "@/lib/ma-api/drilldown";
+import { useMAKPI1DrilldownData, useMAKPI2DrilldownData, useMAKPI3DrilldownData } from "@/hooks/useMAApi";
+import {
+  buildMAKpi1DrilldownData,
+  buildMAKpi2DrilldownData,
+  buildMAKpi3DrilldownData,
+} from "@/lib/ma-api/drilldown";
 
 type ChartType = "bar" | "column" | "horizontalBar" | "line" | "area" | "pie" | "doughnut";
 
@@ -385,14 +389,17 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
 
   const isKpi1 = data.kpiId === "MA-KPI-1";
   const isKpi2 = data.kpiId === "MA-KPI-2";
+  const isKpi3 = data.kpiId === "MA-KPI-3";
 
   const { data: kpi1ApiData, loading: kpi1Loading } = useMAKPI1DrilldownData(undefined, open && isKpi1);
   const { data: kpi2ApiData, loading: kpi2Loading } = useMAKPI2DrilldownData(undefined, open && isKpi2);
+  const { data: kpi3ApiData, loading: kpi3Loading } = useMAKPI3DrilldownData(undefined, open && isKpi3);
 
-  const isLiveApiKpi = isKpi1 || isKpi2;
+  const isLiveApiKpi = isKpi1 || isKpi2 || isKpi3;
   const apiReady =
     (isKpi1 && !kpi1Loading && !!kpi1ApiData?.data?.length) ||
-    (isKpi2 && !kpi2Loading && !!kpi2ApiData?.data?.length);
+    (isKpi2 && !kpi2Loading && !!kpi2ApiData?.data?.length) ||
+    (isKpi3 && !kpi3Loading && !!kpi3ApiData?.data?.length);
 
   const liveData = useMemo(() => {
     if (isKpi1 && kpi1ApiData?.data?.length) {
@@ -401,8 +408,11 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
     if (isKpi2 && kpi2ApiData?.data?.length) {
       return buildMAKpi2DrilldownData(kpi2ApiData.data, data);
     }
+    if (isKpi3 && kpi3ApiData?.data?.length) {
+      return buildMAKpi3DrilldownData(kpi3ApiData.data, data);
+    }
     return null;
-  }, [isKpi1, isKpi2, kpi1ApiData, kpi2ApiData, data]);
+  }, [isKpi1, isKpi2, isKpi3, kpi1ApiData, kpi2ApiData, kpi3ApiData, data]);
 
   const showLoading = isLiveApiKpi && !apiReady;
   const resolvedData = liveData ?? (isLiveApiKpi ? null : data);

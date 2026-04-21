@@ -23,6 +23,10 @@ export function maKpi2DrilldownCacheKey(filters?: MAApiFilterParams): string {
   return `ma-kpi2-dd:${stableFiltersKey(filters)}`;
 }
 
+export function maKpi3DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-kpi3-dd:${stableFiltersKey(filters)}`;
+}
+
 export function peekMaApiCache<T>(key: string): T | null {
   const hit = store.get(key) as CacheBucket<T> | undefined;
   if (!hit || hit.expiresAt <= Date.now()) {

@@ -5,6 +5,10 @@ const KPI1_ID = "MA-KPI-1";
 const KPI1_NAME = "Percentage of New MA Applications Completed Within Timeline";
 const KPI2_ID = "MA-KPI-2";
 const KPI2_NAME = "Percentage of Renewal MA Applications Completed Within Timeline";
+const KPI3_ID = "MA-KPI-3";
+const KPI3_NAME = "Percentage of Minor Variation Applications Completed Within Timeline";
+/** Minor variation rows may use VMIN or legacy VAR in `module_code`. */
+const KPI3_MODULE_CODES = ["VMIN", "VAR"] as const;
 const NEW_APPLICATION_PREFIX = /^new application\s*-\s*/i;
 
 const CATEGORY_LABEL_ORDER = [
@@ -72,13 +76,23 @@ export function buildMAKpi2DrilldownData(
   return buildMAKpiDrilldownData(rows, "REN", KPI2_ID, KPI2_NAME, fallback);
 }
 
+export function buildMAKpi3DrilldownData(
+  rows: MAApiDrilldownRow[],
+  fallback?: KPIDrillDownData
+): KPIDrillDownData {
+  return buildMAKpiDrilldownData(rows, KPI3_MODULE_CODES, KPI3_ID, KPI3_NAME, fallback);
+}
+
 function buildMAKpiDrilldownData(
   rows: MAApiDrilldownRow[],
-  moduleFilter: string,
+  moduleFilter: string | readonly string[],
   kpiId: string,
   defaultKpiName: string,
   fallback?: KPIDrillDownData
 ): KPIDrillDownData {
+  const allowedModuleCodes = (Array.isArray(moduleFilter) ? moduleFilter : [moduleFilter]).map((c) =>
+    String(c).toUpperCase()
+  );
   if (!rows.length) {
     return fallback ?? {
       kpiId,
@@ -99,7 +113,7 @@ function buildMAKpiDrilldownData(
 
   rows.forEach((row) => {
     const moduleCode = String(row.module_code ?? "").toUpperCase();
-    if (moduleCode !== moduleFilter) return;
+    if (!allowedModuleCodes.includes(moduleCode)) return;
 
     const categoryName = normalizeCategoryName(String(row.category_name ?? ""));
     if (EXCLUDED_CATEGORY_LABELS.has(categoryName.toLowerCase())) return;
