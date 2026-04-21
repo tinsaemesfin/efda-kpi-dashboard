@@ -6,11 +6,13 @@ import {
   fetchMAFaceTabularData,
   fetchMAKpi1DrilldownTabularData,
   fetchMAKpi2DrilldownTabularData,
+  fetchMAKpi3DrilldownTabularData,
 } from '@/lib/ma-api/client';
 import {
   maFaceDataCacheKey,
   maKpi1DrilldownCacheKey,
   maKpi2DrilldownCacheKey,
+  maKpi3DrilldownCacheKey,
   peekMaApiCache,
 } from '@/lib/ma-api/cache';
 import { getConfiguredMAModuleToKpiMapping } from '@/lib/ma-api/mapping';
@@ -151,6 +153,21 @@ export function useMAKPI2DrilldownData(
     filters,
     enabled,
     maKpi2DrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches MA KPI 3 drilldown data from the API (endpoint /11).
+ */
+export function useMAKPI3DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAKpi3DrilldownTabularData,
+    filters,
+    enabled,
+    maKpi3DrilldownCacheKey
   );
 }
 
