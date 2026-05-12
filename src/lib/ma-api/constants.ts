@@ -1,9 +1,35 @@
 import type { MAApiFilterParams, MAKPIId, MAModuleToKpiMapping } from "@/types/ma-api";
 
+/** Cosmetics — face KPIs MA-KPI-1..3 only; all variation rows map to MA-KPI-3 (no KPI 4). */
+export const MA_COSMETICS_FACE_MODULE_TO_KPI_MAPPING: MAModuleToKpiMapping = {
+  NMR: "MA-KPI-1",
+  REN: "MA-KPI-2",
+  VMIN: "MA-KPI-3",
+  VMAJ: "MA-KPI-3",
+  VAR: "MA-KPI-3",
+};
+
 export const MA_TABULAR_FACE_REPORT_ID = 8;
+/** MA Food product — front KPI cards MA-KPI-1..4 (same row shape as face /8). */
+export const MA_TABULAR_FOOD_FACE_REPORT_ID = 14;
+/** MA Food Notification — front KPI cards MA-KPI-1..4 (same row shape as face /8). */
+export const MA_TABULAR_FOOD_NOTIFICATION_FACE_REPORT_ID = 15;
+/** Medical Device — face cards MA-KPI-1..4 (`VMIN` / `VMAJ` module rows). */
+export const MA_TABULAR_MEDICAL_DEVICE_FACE_REPORT_ID = 16;
+/** Cosmetics — face cards MA-KPI-1..3 only (variation is a single KPI; no KPI 4). */
+export const MA_TABULAR_COSMETICS_FACE_REPORT_ID = 17;
 export const MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID = 9;
+/** Food / New MA drilldown only. Face KPI cards still use /14. */
+export const MA_TABULAR_FOOD_KPI1_DRILLDOWN_REPORT_ID = 18;
 export const MA_TABULAR_KPI2_DRILLDOWN_REPORT_ID = 10;
+/** Food / Renewal drilldown only. Face KPI cards still use /14. */
+export const MA_TABULAR_FOOD_KPI2_DRILLDOWN_REPORT_ID = 19;
 export const MA_TABULAR_KPI3_DRILLDOWN_REPORT_ID = 11;
+/** Food / Minor Variation (VMIN) drilldown only. Face KPI cards still use /14. */
+export const MA_TABULAR_FOOD_KPI3_DRILLDOWN_REPORT_ID = 20;
+export const MA_TABULAR_KPI4_DRILLDOWN_REPORT_ID = 13;
+/** Food / Major Variation (VMAJ) drilldown only. Face KPI cards still use /14. */
+export const MA_TABULAR_FOOD_KPI4_DRILLDOWN_REPORT_ID = 21;
 export const MA_TABULAR_ENDPOINT_PREFIX = "/api/kpi/tabular";
 
 export const MA_DEFAULT_TABULAR_PARAMS = {

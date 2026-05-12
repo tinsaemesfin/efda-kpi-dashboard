@@ -1,3 +1,4 @@
+import { resolveMAModuleCode } from "@/lib/ma-api/normalizer";
 import type { KPIDimensionView, KPIDrillDownData } from "@/types/ma-drilldown";
 import type { MAApiDrilldownRow } from "@/types/ma-api";
 
@@ -9,6 +10,8 @@ const KPI3_ID = "MA-KPI-3";
 const KPI3_NAME = "Percentage of Minor Variation Applications Completed Within Timeline";
 /** Minor variation rows may use VMIN or legacy VAR in `module_code`. */
 const KPI3_MODULE_CODES = ["VMIN", "VAR"] as const;
+const KPI4_ID = "MA-KPI-4";
+const KPI4_NAME = "Percentage of Major Variation Applications Completed Within Timeline";
 const NEW_APPLICATION_PREFIX = /^new application\s*-\s*/i;
 
 const CATEGORY_LABEL_ORDER = [
@@ -83,6 +86,13 @@ export function buildMAKpi3DrilldownData(
   return buildMAKpiDrilldownData(rows, KPI3_MODULE_CODES, KPI3_ID, KPI3_NAME, fallback);
 }
 
+export function buildMAKpi4DrilldownData(
+  rows: MAApiDrilldownRow[],
+  fallback?: KPIDrillDownData
+): KPIDrillDownData {
+  return buildMAKpiDrilldownData(rows, "VMAJ", KPI4_ID, KPI4_NAME, fallback);
+}
+
 function buildMAKpiDrilldownData(
   rows: MAApiDrilldownRow[],
   moduleFilter: string | readonly string[],
@@ -112,7 +122,7 @@ function buildMAKpiDrilldownData(
   >();
 
   rows.forEach((row) => {
-    const moduleCode = String(row.module_code ?? "").toUpperCase();
+    const moduleCode = resolveMAModuleCode(String(row.module_code ?? ""));
     if (!allowedModuleCodes.includes(moduleCode)) return;
 
     const categoryName = normalizeCategoryName(String(row.category_name ?? ""));
