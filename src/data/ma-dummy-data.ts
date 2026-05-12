@@ -282,6 +282,9 @@ export const maKPIData: MAKPIData = {
 };
 
 export type MAProductKey = "medicine" | "food" | "medicalDevice" | "cosmetics";
+export type MAFoodSubTabKey = "food" | "foodNotification";
+
+export const DEFAULT_FOOD_SUB_TAB: MAFoodSubTabKey = "food";
 
 export interface MAProductKpiSeedItem {
   id: string;
@@ -293,6 +296,10 @@ export interface MAProductKpiSeedItem {
   suffix: "%" | " days";
   decimals: number;
   drilldownId: string;
+  /** Strict face APIs: KPI had no usable row (show empty state). */
+  faceDataMissing?: boolean;
+  /** Product policy: KPI not tracked (show N/A empty state instead of dummy metrics). */
+  notApplicableReason?: string;
 }
 
 export interface MAProductKpiSeed {
@@ -520,9 +527,9 @@ export const maProductKpiSeed: Record<MAProductKey, MAProductKpiSeed> = {
         id: "MD-3",
         title: "Minor Variation on Time",
         description: "Minor variations completed within timeline",
-        value: 90.9,
-        numerator: 10,
-        denominator: 11,
+        value: 85.7,
+        numerator: 12,
+        denominator: 14,
         suffix: "%",
         decimals: 1,
         drilldownId: "MA-KPI-3",
@@ -531,9 +538,9 @@ export const maProductKpiSeed: Record<MAProductKey, MAProductKpiSeed> = {
         id: "MD-4",
         title: "Major Variation on Time",
         description: "Major variations completed within timeline",
-        value: 72.7,
-        numerator: 8,
-        denominator: 11,
+        value: 75.0,
+        numerator: 6,
+        denominator: 8,
         suffix: "%",
         decimals: 1,
         drilldownId: "MA-KPI-4",
@@ -586,7 +593,7 @@ export const maProductKpiSeed: Record<MAProductKey, MAProductKpiSeed> = {
   },
   cosmetics: {
     summaryTitle: "Selected KPI for Cosmetics",
-    summaryDescription: "Temporary seeded view",
+    summaryDescription: "On-time completion rate",
     cards: [
       {
         id: "COS-1",
@@ -611,26 +618,15 @@ export const maProductKpiSeed: Record<MAProductKey, MAProductKpiSeed> = {
         drilldownId: "MA-KPI-2",
       },
       {
-        id: "COS-3",
-        title: "Minor Variation on Time",
-        description: "Minor variations completed within timeline",
+        id: "COS-VAR",
+        title: "Variation MA Completed on Time",
+        description: "Variation applications completed within the regulatory processing timeline",
         value: 84.2,
         numerator: 16,
         denominator: 19,
         suffix: "%",
         decimals: 1,
         drilldownId: "MA-KPI-3",
-      },
-      {
-        id: "COS-4",
-        title: "Major Variation on Time",
-        description: "Major variations completed within timeline",
-        value: 68.0,
-        numerator: 17,
-        denominator: 25,
-        suffix: "%",
-        decimals: 1,
-        drilldownId: "MA-KPI-4",
       },
       {
         id: "COS-5",
@@ -679,4 +675,20 @@ export const maProductKpiSeed: Record<MAProductKey, MAProductKpiSeed> = {
     ],
   },
 };
+
+const foodSubTabKpiSeed: Record<MAFoodSubTabKey, MAProductKpiSeed> = {
+  food: maProductKpiSeed.food,
+  foodNotification: maProductKpiSeed.food,
+};
+
+export function getMAProductKpiSeedForView(
+  productKey: MAProductKey,
+  foodSubTab: MAFoodSubTabKey = DEFAULT_FOOD_SUB_TAB
+): MAProductKpiSeed {
+  if (productKey !== "food") {
+    return maProductKpiSeed[productKey];
+  }
+
+  return foodSubTabKpiSeed[foodSubTab];
+}
 
