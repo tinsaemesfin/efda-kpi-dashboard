@@ -37,6 +37,25 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  /* EFDA semantic tokens — see .cursor/efda-kpi-color-style-guidelines.md */
+  --color-efda-primary: var(--efda-primary);
+  --color-efda-secondary: var(--efda-secondary);
+  --color-efda-clinical-trials: var(--efda-clinical-trials);
+  --color-efda-gmp-inspections: var(--efda-gmp-inspections);
+  --color-efda-market-authorizations: var(--efda-market-authorizations);
+  --color-efda-background: var(--efda-background);
+  --color-efda-surface: var(--efda-surface);
+  --color-efda-surface-muted: var(--efda-surface-muted);
+  --color-efda-border-custom: var(--efda-border);
+  --color-efda-border-strong: var(--efda-border-strong);
+  --color-efda-text-primary: var(--efda-text-primary);
+  --color-efda-text-secondary: var(--efda-text-secondary);
+  --color-efda-text-muted: var(--efda-text-muted);
+  --color-efda-text-subtle: var(--efda-text-subtle);
+  --color-efda-status-excellent: var(--efda-status-excellent);
+  --color-efda-status-good: var(--efda-status-good);
+  --color-efda-status-warning: var(--efda-status-warning);
+  --color-efda-status-critical: var(--efda-status-critical);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -76,6 +95,25 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  --efda-primary: #1e3a8a;
+  --efda-secondary: #0f766e;
+  --efda-clinical-trials: #2563eb;
+  --efda-gmp-inspections: #16a34a;
+  --efda-market-authorizations: #7c3aed;
+  --efda-background: #f8fafc;
+  --efda-surface: #ffffff;
+  --efda-surface-muted: #f1f5f9;
+  --efda-border: #e2e8f0;
+  --efda-border-strong: #cbd5e1;
+  --efda-text-primary: #0f172a;
+  --efda-text-secondary: #475569;
+  --efda-text-muted: #64748b;
+  --efda-text-subtle: #94a3b8;
+  --efda-status-excellent: #16a34a;
+  --efda-status-good: #2563eb;
+  --efda-status-warning: #d97706;
+  --efda-status-critical: #dc2626;
 }
 
 .dark {
@@ -110,6 +148,25 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  --efda-primary: #3b82f6;
+  --efda-secondary: #2dd4bf;
+  --efda-clinical-trials: #60a5fa;
+  --efda-gmp-inspections: #4ade80;
+  --efda-market-authorizations: #a78bfa;
+  --efda-background: #020617;
+  --efda-surface: #0f172a;
+  --efda-surface-muted: #1e293b;
+  --efda-border: #334155;
+  --efda-border-strong: #475569;
+  --efda-text-primary: #f8fafc;
+  --efda-text-secondary: #cbd5e1;
+  --efda-text-muted: #94a3b8;
+  --efda-text-subtle: #64748b;
+  --efda-status-excellent: #4ade80;
+  --efda-status-good: #60a5fa;
+  --efda-status-warning: #fbbf24;
+  --efda-status-critical: #f87171;
 }
 
 @layer base {

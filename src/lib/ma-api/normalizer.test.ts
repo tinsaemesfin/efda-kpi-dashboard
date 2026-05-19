@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import {
+  MA_DEFAULT_MODULE_TO_KPI_MAPPING,
+  MA_MODULE_CODE_ALIASES,
+} from "@/lib/ma-api/constants";
 import { normalizeMAFaceData } from "@/lib/ma-api/normalizer";
 import type { MAApiDataRow } from "@/types/ma-api";
 
@@ -109,6 +113,65 @@ describe("normalizeMAFaceData", () => {
       denominator: 40,
       percentage: 25,
     });
+  });
+
+  it("aggregates Food face-style rows (FD) with VMIN and VMAJ when report is product-scoped (no submodule filter)", () => {
+    const rows: MAApiDataRow[] = [
+      {
+        module_code: "NMR",
+        submoduletype_code: "FD",
+        target_days: 120,
+        on_time_count: 10,
+        total_count: 20,
+        percentage: 50,
+      },
+      {
+        module_code: "REN",
+        submoduletype_code: "FD",
+        target_days: 90,
+        on_time_count: 2,
+        total_count: 8,
+        percentage: 25,
+      },
+      {
+        module_code: "VMIN",
+        submoduletype_code: "FD",
+        target_days: 60,
+        on_time_count: 30,
+        total_count: 40,
+        percentage: 75,
+      },
+      {
+        module_code: "VMAJ",
+        submoduletype_code: "FD",
+        target_days: 60,
+        on_time_count: 5,
+        total_count: 10,
+        percentage: 50,
+      },
+    ];
+    const result = normalizeMAFaceData(rows, {
+      moduleToKpiMapping: MA_DEFAULT_MODULE_TO_KPI_MAPPING,
+      moduleCodeAliases: MA_MODULE_CODE_ALIASES,
+    });
+
+    expect(result.kpiFaceDataById["MA-KPI-1"]).toMatchObject({
+      numerator: 10,
+      denominator: 20,
+    });
+    expect(result.kpiFaceDataById["MA-KPI-2"]).toMatchObject({
+      numerator: 2,
+      denominator: 8,
+    });
+    expect(result.kpiFaceDataById["MA-KPI-3"]).toMatchObject({
+      numerator: 30,
+      denominator: 40,
+    });
+    expect(result.kpiFaceDataById["MA-KPI-4"]).toMatchObject({
+      numerator: 5,
+      denominator: 10,
+    });
+    expect(result.totals.acceptedRows).toBe(4);
   });
 
   it("warns and skips unknown module codes", () => {

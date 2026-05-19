@@ -43,11 +43,30 @@ import {
   ReferenceLine,
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MALiveIndicator } from "@/components/kpi/ma-live-indicator";
 import { cn } from "@/lib/utils";
 import type { KPIDrillDownData, KPIDimensionView } from "@/types/ma-drilldown";
 import { KPIFilter, type KPIFilterState } from "./kpi-filter";
-import { useMAKPI1DrilldownData, useMAKPI2DrilldownData } from "@/hooks/useMAApi";
-import { buildMAKpi1DrilldownData, buildMAKpi2DrilldownData } from "@/lib/ma-api/drilldown";
+import {
+  useMAKPI1DrilldownData,
+  useMAFoodKPI1DrilldownData,
+  useMAKPI2DrilldownData,
+  useMAFoodKPI2DrilldownData,
+  useMAKPI3DrilldownData,
+  useMAFoodKPI3DrilldownData,
+  useMAKPI4DrilldownData,
+  useMAFoodKPI4DrilldownData,
+  useMAMedicalDeviceKPI1DrilldownData,
+  useMAMedicalDeviceKPI2DrilldownData,
+  useMAMedicalDeviceKPI3DrilldownData,
+  useMAMedicalDeviceKPI4DrilldownData,
+} from "@/hooks/useMAApi";
+import {
+  buildMAKpi1DrilldownData,
+  buildMAKpi2DrilldownData,
+  buildMAKpi3DrilldownData,
+  buildMAKpi4DrilldownData,
+} from "@/lib/ma-api/drilldown";
 
 type ChartType = "bar" | "column" | "horizontalBar" | "line" | "area" | "pie" | "doughnut";
 
@@ -88,6 +107,7 @@ interface MADrillDownModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   data: KPIDrillDownData;
+  drilldownSource?: "default" | "food" | "medicalDevice";
 }
 
 interface CategoryChartCardProps {
@@ -375,7 +395,12 @@ function SkeletonChartCard() {
   );
 }
 
-export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalProps) {
+export function MADrillDownModal({
+  open,
+  onOpenChange,
+  data,
+  drilldownSource = "default",
+}: MADrillDownModalProps) {
   const [filterExpanded, setFilterExpanded] = useState(false);
   const [dateFilter, setDateFilter] = useState<KPIFilterState>({
     mode: "quarterly",
@@ -385,26 +410,140 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
 
   const isKpi1 = data.kpiId === "MA-KPI-1";
   const isKpi2 = data.kpiId === "MA-KPI-2";
+  const isKpi3 = data.kpiId === "MA-KPI-3";
+  const isKpi4 = data.kpiId === "MA-KPI-4";
+  const isFoodKpi1 = isKpi1 && drilldownSource === "food";
+  const isFoodKpi2 = isKpi2 && drilldownSource === "food";
+  const isFoodKpi3 = isKpi3 && drilldownSource === "food";
+  const isFoodKpi4 = isKpi4 && drilldownSource === "food";
+  const isMedicalDeviceKpi1 = isKpi1 && drilldownSource === "medicalDevice";
+  const isMedicalDeviceKpi2 = isKpi2 && drilldownSource === "medicalDevice";
+  const isMedicalDeviceKpi3 = isKpi3 && drilldownSource === "medicalDevice";
+  const isMedicalDeviceKpi4 = isKpi4 && drilldownSource === "medicalDevice";
 
-  const { data: kpi1ApiData, loading: kpi1Loading } = useMAKPI1DrilldownData(undefined, open && isKpi1);
-  const { data: kpi2ApiData, loading: kpi2Loading } = useMAKPI2DrilldownData(undefined, open && isKpi2);
+  const { data: kpi1ApiData, loading: kpi1Loading } = useMAKPI1DrilldownData(
+    undefined,
+    open && isKpi1 && !isFoodKpi1 && !isMedicalDeviceKpi1
+  );
+  const { data: foodKpi1ApiData, loading: foodKpi1Loading } = useMAFoodKPI1DrilldownData(
+    undefined,
+    open && isFoodKpi1
+  );
+  const { data: medicalDeviceKpi1ApiData, loading: medicalDeviceKpi1Loading } =
+    useMAMedicalDeviceKPI1DrilldownData(undefined, open && isMedicalDeviceKpi1);
+  const { data: kpi2ApiData, loading: kpi2Loading } = useMAKPI2DrilldownData(
+    undefined,
+    open && isKpi2 && !isFoodKpi2 && !isMedicalDeviceKpi2
+  );
+  const { data: foodKpi2ApiData, loading: foodKpi2Loading } = useMAFoodKPI2DrilldownData(
+    undefined,
+    open && isFoodKpi2
+  );
+  const { data: medicalDeviceKpi2ApiData, loading: medicalDeviceKpi2Loading } =
+    useMAMedicalDeviceKPI2DrilldownData(undefined, open && isMedicalDeviceKpi2);
+  const { data: kpi3ApiData, loading: kpi3Loading } = useMAKPI3DrilldownData(
+    undefined,
+    open && isKpi3 && !isFoodKpi3 && !isMedicalDeviceKpi3
+  );
+  const { data: foodKpi3ApiData, loading: foodKpi3Loading } = useMAFoodKPI3DrilldownData(
+    undefined,
+    open && isFoodKpi3
+  );
+  const { data: medicalDeviceKpi3ApiData, loading: medicalDeviceKpi3Loading } =
+    useMAMedicalDeviceKPI3DrilldownData(undefined, open && isMedicalDeviceKpi3);
+  const { data: kpi4ApiData, loading: kpi4Loading } = useMAKPI4DrilldownData(
+    undefined,
+    open && isKpi4 && !isFoodKpi4 && !isMedicalDeviceKpi4
+  );
+  const { data: foodKpi4ApiData, loading: foodKpi4Loading } = useMAFoodKPI4DrilldownData(
+    undefined,
+    open && isFoodKpi4
+  );
+  const { data: medicalDeviceKpi4ApiData, loading: medicalDeviceKpi4Loading } =
+    useMAMedicalDeviceKPI4DrilldownData(undefined, open && isMedicalDeviceKpi4);
 
-  const isLiveApiKpi = isKpi1 || isKpi2;
-  const apiReady =
-    (isKpi1 && !kpi1Loading && !!kpi1ApiData?.data?.length) ||
-    (isKpi2 && !kpi2Loading && !!kpi2ApiData?.data?.length);
+  const isLiveApiKpi = isKpi1 || isKpi2 || isKpi3 || isKpi4;
+  const kpiApiLoading =
+    (isFoodKpi1 && foodKpi1Loading) ||
+    (isMedicalDeviceKpi1 && medicalDeviceKpi1Loading) ||
+    (isKpi1 && !isFoodKpi1 && !isMedicalDeviceKpi1 && kpi1Loading) ||
+    (isFoodKpi2 && foodKpi2Loading) ||
+    (isMedicalDeviceKpi2 && medicalDeviceKpi2Loading) ||
+    (isKpi2 && !isFoodKpi2 && !isMedicalDeviceKpi2 && kpi2Loading) ||
+    (isFoodKpi3 && foodKpi3Loading) ||
+    (isMedicalDeviceKpi3 && medicalDeviceKpi3Loading) ||
+    (isKpi3 && !isFoodKpi3 && !isMedicalDeviceKpi3 && kpi3Loading) ||
+    (isFoodKpi4 && foodKpi4Loading) ||
+    (isMedicalDeviceKpi4 && medicalDeviceKpi4Loading) ||
+    (isKpi4 && !isFoodKpi4 && !isMedicalDeviceKpi4 && kpi4Loading);
 
   const liveData = useMemo(() => {
-    if (isKpi1 && kpi1ApiData?.data?.length) {
+    if (isFoodKpi1 && foodKpi1ApiData?.data?.length) {
+      return buildMAKpi1DrilldownData(foodKpi1ApiData.data, data);
+    }
+    if (isMedicalDeviceKpi1 && medicalDeviceKpi1ApiData?.data?.length) {
+      return buildMAKpi1DrilldownData(medicalDeviceKpi1ApiData.data, data);
+    }
+    if (isKpi1 && !isFoodKpi1 && !isMedicalDeviceKpi1 && kpi1ApiData?.data?.length) {
       return buildMAKpi1DrilldownData(kpi1ApiData.data, data);
     }
-    if (isKpi2 && kpi2ApiData?.data?.length) {
+    if (isFoodKpi2 && foodKpi2ApiData?.data?.length) {
+      return buildMAKpi2DrilldownData(foodKpi2ApiData.data, data);
+    }
+    if (isMedicalDeviceKpi2 && medicalDeviceKpi2ApiData?.data?.length) {
+      return buildMAKpi2DrilldownData(medicalDeviceKpi2ApiData.data, data);
+    }
+    if (isKpi2 && !isFoodKpi2 && !isMedicalDeviceKpi2 && kpi2ApiData?.data?.length) {
       return buildMAKpi2DrilldownData(kpi2ApiData.data, data);
     }
+    if (isFoodKpi3 && foodKpi3ApiData?.data?.length) {
+      return buildMAKpi3DrilldownData(foodKpi3ApiData.data, data);
+    }
+    if (isMedicalDeviceKpi3 && medicalDeviceKpi3ApiData?.data?.length) {
+      return buildMAKpi3DrilldownData(medicalDeviceKpi3ApiData.data, data);
+    }
+    if (isKpi3 && !isFoodKpi3 && !isMedicalDeviceKpi3 && kpi3ApiData?.data?.length) {
+      return buildMAKpi3DrilldownData(kpi3ApiData.data, data);
+    }
+    if (isFoodKpi4 && foodKpi4ApiData?.data?.length) {
+      return buildMAKpi4DrilldownData(foodKpi4ApiData.data, data);
+    }
+    if (isMedicalDeviceKpi4 && medicalDeviceKpi4ApiData?.data?.length) {
+      return buildMAKpi4DrilldownData(medicalDeviceKpi4ApiData.data, data);
+    }
+    if (isKpi4 && !isFoodKpi4 && !isMedicalDeviceKpi4 && kpi4ApiData?.data?.length) {
+      return buildMAKpi4DrilldownData(kpi4ApiData.data, data);
+    }
     return null;
-  }, [isKpi1, isKpi2, kpi1ApiData, kpi2ApiData, data]);
+  }, [
+    isFoodKpi1,
+    isFoodKpi2,
+    isFoodKpi3,
+    isFoodKpi4,
+    isMedicalDeviceKpi1,
+    isMedicalDeviceKpi2,
+    isMedicalDeviceKpi3,
+    isMedicalDeviceKpi4,
+    isKpi1,
+    isKpi2,
+    isKpi3,
+    isKpi4,
+    foodKpi1ApiData,
+    foodKpi2ApiData,
+    foodKpi3ApiData,
+    foodKpi4ApiData,
+    medicalDeviceKpi1ApiData,
+    medicalDeviceKpi2ApiData,
+    medicalDeviceKpi3ApiData,
+    medicalDeviceKpi4ApiData,
+    kpi1ApiData,
+    kpi2ApiData,
+    kpi3ApiData,
+    kpi4ApiData,
+    data,
+  ]);
 
-  const showLoading = isLiveApiKpi && !apiReady;
+  const showLoading = isLiveApiKpi && kpiApiLoading;
   const resolvedData = liveData ?? (isLiveApiKpi ? null : data);
   const dimensionViews = useMemo(
     () => resolvedData?.dimensionViews ?? [],
@@ -446,9 +585,14 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
             <DialogHeader className="mb-0">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
-                  <DialogTitle className="text-xl font-bold tracking-tight leading-tight">
-                    {data.kpiName}
-                  </DialogTitle>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <DialogTitle className="text-xl font-bold tracking-tight leading-tight">
+                      {data.kpiName}
+                    </DialogTitle>
+                    {!showLoading && liveData && (
+                      <MALiveIndicator variant="live" className="text-[10px]" />
+                    )}
+                  </div>
                   <DialogDescription className="mt-1">
                     Detailed breakdown across all classification categories
                   </DialogDescription>
@@ -562,8 +706,12 @@ export function MADrillDownModal({ open, onOpenChange, data }: MADrillDownModalP
               ))}
             </div>
           ) : dimensionViews.length === 0 ? (
-            <div className="flex items-center justify-center py-20 text-muted-foreground">
-              No category data available for this KPI.
+            <div className="flex flex-col items-center justify-center gap-2 px-6 py-20 text-center text-muted-foreground">
+              <p>
+                {isLiveApiKpi && !kpiApiLoading && !liveData
+                  ? "The reporting API returned no rows for this KPI drill-down."
+                  : "No category data available for this KPI."}
+              </p>
             </div>
           ) : (
             <div className="grid gap-5 lg:grid-cols-2">

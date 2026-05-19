@@ -15,12 +15,68 @@ export function maFaceDataCacheKey(filters?: MAApiFilterParams): string {
   return `ma-face:${stableFiltersKey(filters)}`;
 }
 
+export function maFoodFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-food-face:${stableFiltersKey(filters)}`;
+}
+
+export function maFoodNotificationFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-food-notification-face:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicalDeviceFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medical-device-face:${stableFiltersKey(filters)}`;
+}
+
+export function maCosmeticsFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-cosmetics-face:${stableFiltersKey(filters)}`;
+}
+
 export function maKpi1DrilldownCacheKey(filters?: MAApiFilterParams): string {
   return `ma-kpi1-dd:${stableFiltersKey(filters)}`;
 }
 
+export function maFoodKpi1DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-food-kpi1-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maFoodKpi2DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-food-kpi2-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maFoodKpi3DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-food-kpi3-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maFoodKpi4DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-food-kpi4-dd:${stableFiltersKey(filters)}`;
+}
+
 export function maKpi2DrilldownCacheKey(filters?: MAApiFilterParams): string {
   return `ma-kpi2-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maKpi3DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-kpi3-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maKpi4DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-kpi4-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicalDeviceKpi1DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medical-device-kpi1-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicalDeviceKpi2DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medical-device-kpi2-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicalDeviceKpi3DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medical-device-kpi3-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicalDeviceKpi4DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medical-device-kpi4-dd:${stableFiltersKey(filters)}`;
 }
 
 export function peekMaApiCache<T>(key: string): T | null {

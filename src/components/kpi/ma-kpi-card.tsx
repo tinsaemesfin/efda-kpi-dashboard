@@ -3,7 +3,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MALiveIndicator } from "@/components/kpi/ma-live-indicator";
 import { cn } from "@/lib/utils";
+
+type MAKPICardDataAttribution = "live" | "sample" | "none";
 
 interface MAKPICardProps {
   kpiCode?: string;
@@ -22,6 +25,18 @@ interface MAKPICardProps {
   animationDelayMs?: number;
   /** When true, shows a pulsing skeleton for the full card (no dummy metrics). */
   isLoading?: boolean;
+  /** When true (and not loading), hides metric chrome and shows an empty-state message. */
+  isEmpty?: boolean;
+  /** Empty card is policy N/A (not missing API metrics). Changes badge/detail copy. */
+  isNotApplicable?: boolean;
+  emptyMessage?: string;
+  /** Live/sample pill in the header — use `live` only when metrics come from the reporting API */
+  dataAttribution?: MAKPICardDataAttribution;
+  /**
+   * When true, KPI is wired to an API-backed face metric but returned no usable row —
+   * show a Live pill so viewers know the empty state is not dummy/sample data.
+   */
+  strictLiveSlotEmpty?: boolean;
   onClick?: () => void;
 }
 
@@ -41,6 +56,11 @@ export function MAKPICard({
   compact = false,
   animationDelayMs = 0,
   isLoading = false,
+  isEmpty = false,
+  isNotApplicable = false,
+  emptyMessage = "No data found",
+  dataAttribution = "none",
+  strictLiveSlotEmpty = false,
   onClick,
 }: MAKPICardProps) {
   const statusColors = {
@@ -83,7 +103,9 @@ export function MAKPICard({
         <CardHeader className={cn("space-y-2 pb-2", compact && "pb-1")}>
           <div className="flex items-start justify-between gap-3 relative z-10">
             <div className="space-y-2 flex-1 min-w-0">
-              {kpiCode && <Skeleton className="h-5 w-20 rounded-md" />}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {kpiCode && <Skeleton className="h-5 w-20 rounded-md" />}
+              </div>
               <Skeleton className={cn("h-4 w-full max-w-[220px]", compact && "max-w-[160px]")} />
             </div>
             {icon && <Skeleton className="h-6 w-6 shrink-0 rounded-md" />}
@@ -101,6 +123,72 @@ export function MAKPICard({
           <div className="flex items-center justify-between pt-1">
             <Skeleton className="h-5 w-16 rounded-full" />
             {!compact && <Skeleton className="h-3 w-24" />}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isEmpty) {
+    return (
+      <Card
+        className={cn(
+          "group relative overflow-hidden border transition-all duration-300 border-dashed border-muted-foreground/25",
+          compact ? "min-h-[150px]" : "min-h-[205px]",
+          "animate-in fade-in slide-in-from-bottom-2 bg-muted/20",
+          clickable &&
+            "cursor-pointer hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary/40"
+        )}
+        style={{ animationDelay: `${animationDelayMs}ms` }}
+        aria-label={`${title}: ${emptyMessage}`}
+        onClick={onClick}
+        onKeyDown={handleKeyDown}
+        role={clickable ? "button" : undefined}
+        tabIndex={clickable ? 0 : -1}
+      >
+        <CardHeader className={cn("space-y-2 pb-2", compact && "pb-1")}>
+          <div className="flex items-start justify-between gap-3 relative z-10">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {kpiCode && (
+                  <span className="inline-flex rounded-md border bg-background/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    {kpiCode}
+                  </span>
+                )}
+                {(strictLiveSlotEmpty || dataAttribution === "live") && (
+                  <MALiveIndicator variant="live" compact={compact} />
+                )}
+              </div>
+              <CardTitle className={cn("font-semibold leading-5", compact ? "text-xs" : "text-sm")}>
+                {title}
+              </CardTitle>
+            </div>
+            {icon && <div className="mt-1 text-muted-foreground">{icon}</div>}
+          </div>
+          {!compact && description && <CardDescription className="text-xs">{description}</CardDescription>}
+        </CardHeader>
+        <CardContent className="space-y-3 relative z-10">
+          <p
+            className={cn(
+              "font-medium text-muted-foreground",
+              compact ? "text-base" : "text-lg"
+            )}
+          >
+            {emptyMessage}
+          </p>
+          {!compact && !isNotApplicable && (
+            <p className="text-[11px] text-muted-foreground">
+              No metrics were returned for this KPI for the selected filters.
+            </p>
+          )}
+          {!compact && helperText && <p className="text-xs text-muted-foreground">{helperText}</p>}
+          <div className="flex items-center justify-between gap-2 pt-1">
+            <Badge variant="outline" className="text-[10px] text-muted-foreground">
+              {isNotApplicable ? "N/A" : "No data"}
+            </Badge>
+            {clickable && !compact && (
+              <span className="text-[11px] text-muted-foreground">Click to drill down</span>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -127,11 +215,19 @@ export function MAKPICard({
       <CardHeader className={cn("space-y-2 pb-2", compact && "pb-1")}>
         <div className="flex items-start justify-between gap-3 relative z-10">
           <div className="space-y-2">
-            {kpiCode && (
-              <span className="inline-flex rounded-md border bg-background/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                {kpiCode}
-              </span>
-            )}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {kpiCode && (
+                <span className="inline-flex rounded-md border bg-background/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  {kpiCode}
+                </span>
+              )}
+              {dataAttribution === "live" && (
+                <MALiveIndicator variant="live" compact={compact} />
+              )}
+              {dataAttribution === "sample" && (
+                <MALiveIndicator variant="sample" compact={compact} />
+              )}
+            </div>
             <CardTitle className={cn("font-semibold leading-5", compact ? "text-xs" : "text-sm")}>
               {title}
             </CardTitle>
