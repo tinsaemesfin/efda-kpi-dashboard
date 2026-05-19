@@ -63,6 +63,22 @@ export function maKpi4DrilldownCacheKey(filters?: MAApiFilterParams): string {
   return `ma-kpi4-dd:${stableFiltersKey(filters)}`;
 }
 
+export function maMedicalDeviceKpi1DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medical-device-kpi1-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicalDeviceKpi2DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medical-device-kpi2-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicalDeviceKpi3DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medical-device-kpi3-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicalDeviceKpi4DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medical-device-kpi4-dd:${stableFiltersKey(filters)}`;
+}
+
 export function peekMaApiCache<T>(key: string): T | null {
   const hit = store.get(key) as CacheBucket<T> | undefined;
   if (!hit || hit.expiresAt <= Date.now()) {

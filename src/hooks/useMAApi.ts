@@ -16,6 +16,10 @@ import {
   fetchMAFoodKpi3DrilldownTabularData,
   fetchMAKpi4DrilldownTabularData,
   fetchMAFoodKpi4DrilldownTabularData,
+  fetchMAMedicalDeviceKpi1DrilldownTabularData,
+  fetchMAMedicalDeviceKpi2DrilldownTabularData,
+  fetchMAMedicalDeviceKpi3DrilldownTabularData,
+  fetchMAMedicalDeviceKpi4DrilldownTabularData,
 } from '@/lib/ma-api/client';
 import {
   maFaceDataCacheKey,
@@ -31,6 +35,10 @@ import {
   maKpi2DrilldownCacheKey,
   maKpi3DrilldownCacheKey,
   maKpi4DrilldownCacheKey,
+  maMedicalDeviceKpi1DrilldownCacheKey,
+  maMedicalDeviceKpi2DrilldownCacheKey,
+  maMedicalDeviceKpi3DrilldownCacheKey,
+  maMedicalDeviceKpi4DrilldownCacheKey,
   peekMaApiCache,
 } from '@/lib/ma-api/cache';
 import { getConfiguredMAModuleToKpiMapping } from '@/lib/ma-api/mapping';
@@ -262,6 +270,66 @@ export function useMAFoodKPI4DrilldownData(
     filters,
     enabled,
     maFoodKpi4DrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches Medical Device MA KPI 1 (New) drilldown data from the API (endpoint /22).
+ */
+export function useMAMedicalDeviceKPI1DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAMedicalDeviceKpi1DrilldownTabularData,
+    filters,
+    enabled,
+    maMedicalDeviceKpi1DrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches Medical Device MA KPI 2 (Renewal) drilldown data from the API (endpoint /23).
+ */
+export function useMAMedicalDeviceKPI2DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAMedicalDeviceKpi2DrilldownTabularData,
+    filters,
+    enabled,
+    maMedicalDeviceKpi2DrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches Medical Device MA KPI 3 (VMIN) drilldown data from the API (endpoint /24).
+ */
+export function useMAMedicalDeviceKPI3DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAMedicalDeviceKpi3DrilldownTabularData,
+    filters,
+    enabled,
+    maMedicalDeviceKpi3DrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches Medical Device MA KPI 4 (VMAJ) drilldown data from the API (endpoint /25).
+ */
+export function useMAMedicalDeviceKPI4DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAMedicalDeviceKpi4DrilldownTabularData,
+    filters,
+    enabled,
+    maMedicalDeviceKpi4DrilldownCacheKey
   );
 }
 

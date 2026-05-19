@@ -30,6 +30,14 @@ export const MA_TABULAR_FOOD_KPI3_DRILLDOWN_REPORT_ID = 20;
 export const MA_TABULAR_KPI4_DRILLDOWN_REPORT_ID = 13;
 /** Food / Major Variation (VMAJ) drilldown only. Face KPI cards still use /14. */
 export const MA_TABULAR_FOOD_KPI4_DRILLDOWN_REPORT_ID = 21;
+/** Medical Device / New MA drilldown only. Face KPI cards still use /16. */
+export const MA_TABULAR_MEDICAL_DEVICE_KPI1_DRILLDOWN_REPORT_ID = 22;
+/** Medical Device / Renewal drilldown only. Face KPI cards still use /16. */
+export const MA_TABULAR_MEDICAL_DEVICE_KPI2_DRILLDOWN_REPORT_ID = 23;
+/** Medical Device / Minor Variation (VMIN) drilldown only. Face KPI cards still use /16. */
+export const MA_TABULAR_MEDICAL_DEVICE_KPI3_DRILLDOWN_REPORT_ID = 24;
+/** Medical Device / Major Variation (VMAJ) drilldown only. Face KPI cards still use /16. */
+export const MA_TABULAR_MEDICAL_DEVICE_KPI4_DRILLDOWN_REPORT_ID = 25;
 export const MA_TABULAR_ENDPOINT_PREFIX = "/api/kpi/tabular";
 
 export const MA_DEFAULT_TABULAR_PARAMS = {

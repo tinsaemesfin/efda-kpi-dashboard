@@ -12,6 +12,10 @@ import {
   MA_TABULAR_FOOD_KPI3_DRILLDOWN_REPORT_ID,
   MA_TABULAR_KPI4_DRILLDOWN_REPORT_ID,
   MA_TABULAR_FOOD_KPI4_DRILLDOWN_REPORT_ID,
+  MA_TABULAR_MEDICAL_DEVICE_KPI1_DRILLDOWN_REPORT_ID,
+  MA_TABULAR_MEDICAL_DEVICE_KPI2_DRILLDOWN_REPORT_ID,
+  MA_TABULAR_MEDICAL_DEVICE_KPI3_DRILLDOWN_REPORT_ID,
+  MA_TABULAR_MEDICAL_DEVICE_KPI4_DRILLDOWN_REPORT_ID,
   buildMAFaceRequestBody,
   buildMATabularUrl,
   getApiBaseUrl,
@@ -31,6 +35,10 @@ import {
   maKpi2DrilldownCacheKey,
   maKpi3DrilldownCacheKey,
   maKpi4DrilldownCacheKey,
+  maMedicalDeviceKpi1DrilldownCacheKey,
+  maMedicalDeviceKpi2DrilldownCacheKey,
+  maMedicalDeviceKpi3DrilldownCacheKey,
+  maMedicalDeviceKpi4DrilldownCacheKey,
 } from "@/lib/ma-api/cache";
 import type { MAApiDataRow, MAApiDrilldownRow, MAApiFilterParams, MAApiResponse } from "@/types/ma-api";
 
@@ -250,6 +258,70 @@ export async function fetchMAFoodKpi4DrilldownTabularData(
     fetchMATabularData<MAApiDrilldownRow>(
       accessToken,
       MA_TABULAR_FOOD_KPI4_DRILLDOWN_REPORT_ID,
+      filters,
+      "500"
+    )
+  );
+}
+
+export async function fetchMAMedicalDeviceKpi1DrilldownTabularData(
+  accessToken: string,
+  filters?: MAApiFilterParams,
+  options?: MAApiFetchOptions
+): Promise<MAApiResponse<MAApiDrilldownRow>> {
+  const key = maMedicalDeviceKpi1DrilldownCacheKey(filters);
+  return getOrFetchMaApiCache(key, options?.force ?? false, () =>
+    fetchMATabularData<MAApiDrilldownRow>(
+      accessToken,
+      MA_TABULAR_MEDICAL_DEVICE_KPI1_DRILLDOWN_REPORT_ID,
+      filters,
+      "500"
+    )
+  );
+}
+
+export async function fetchMAMedicalDeviceKpi2DrilldownTabularData(
+  accessToken: string,
+  filters?: MAApiFilterParams,
+  options?: MAApiFetchOptions
+): Promise<MAApiResponse<MAApiDrilldownRow>> {
+  const key = maMedicalDeviceKpi2DrilldownCacheKey(filters);
+  return getOrFetchMaApiCache(key, options?.force ?? false, () =>
+    fetchMATabularData<MAApiDrilldownRow>(
+      accessToken,
+      MA_TABULAR_MEDICAL_DEVICE_KPI2_DRILLDOWN_REPORT_ID,
+      filters,
+      "500"
+    )
+  );
+}
+
+export async function fetchMAMedicalDeviceKpi3DrilldownTabularData(
+  accessToken: string,
+  filters?: MAApiFilterParams,
+  options?: MAApiFetchOptions
+): Promise<MAApiResponse<MAApiDrilldownRow>> {
+  const key = maMedicalDeviceKpi3DrilldownCacheKey(filters);
+  return getOrFetchMaApiCache(key, options?.force ?? false, () =>
+    fetchMATabularData<MAApiDrilldownRow>(
+      accessToken,
+      MA_TABULAR_MEDICAL_DEVICE_KPI3_DRILLDOWN_REPORT_ID,
+      filters,
+      "500"
+    )
+  );
+}
+
+export async function fetchMAMedicalDeviceKpi4DrilldownTabularData(
+  accessToken: string,
+  filters?: MAApiFilterParams,
+  options?: MAApiFetchOptions
+): Promise<MAApiResponse<MAApiDrilldownRow>> {
+  const key = maMedicalDeviceKpi4DrilldownCacheKey(filters);
+  return getOrFetchMaApiCache(key, options?.force ?? false, () =>
+    fetchMATabularData<MAApiDrilldownRow>(
+      accessToken,
+      MA_TABULAR_MEDICAL_DEVICE_KPI4_DRILLDOWN_REPORT_ID,
       filters,
       "500"
     )

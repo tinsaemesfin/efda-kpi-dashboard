@@ -259,7 +259,11 @@ export default function MarketAuthorizationsPage() {
   }, [selectedKpiId]);
 
   const selectedDrilldownSource =
-    isFoodFrontApiView && selectedKpiId && isApiKpiId(selectedKpiId) ? "food" : "default";
+    isFoodFrontApiView && selectedKpiId && isApiKpiId(selectedKpiId)
+      ? "food"
+      : isMedicalDeviceFaceApiView && selectedKpiId && isApiKpiId(selectedKpiId)
+        ? "medicalDevice"
+        : "default";
 
   const visibleCards = useMemo(() => {
     if (!searchTerm.trim()) return mergedCards;
@@ -435,7 +439,7 @@ export default function MarketAuthorizationsPage() {
                             `Rows accepted: ${apiFoodNotificationMetadata.acceptedRows}/${apiFoodNotificationMetadata.filteredRows} filtered (${apiFoodNotificationMetadata.totalRows} total).`
                           )
                         : isMedicalDeviceFaceApiView
-                          ? "Medical Device: KPI 1–4 card values use live API (/16); `VMIN` → minor variation, `VMAJ` → major variation. KPI 5+ remain seeded. Drilldowns: KPI 1 /9, KPI 2 /10, KPI 3 /11, KPI 4 /13. ".concat(
+                          ? "Medical Device: KPI 1–4 card values use live API (/16); `VMIN` → minor variation, `VMAJ` → major variation. KPI 5+ remain seeded. Drilldowns: KPI 1 /22, KPI 2 /23, KPI 3 /24, KPI 4 /25. ".concat(
                               `Rows accepted: ${apiMedicalDeviceMetadata.acceptedRows}/${apiMedicalDeviceMetadata.filteredRows} filtered (${apiMedicalDeviceMetadata.totalRows} total).`
                             )
                           : isCosmeticsFaceApiView
