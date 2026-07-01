@@ -16,6 +16,7 @@ import {
   MA_TABULAR_MEDICAL_DEVICE_KPI2_DRILLDOWN_REPORT_ID,
   MA_TABULAR_MEDICAL_DEVICE_KPI3_DRILLDOWN_REPORT_ID,
   MA_TABULAR_MEDICAL_DEVICE_KPI4_DRILLDOWN_REPORT_ID,
+  MA_TABULAR_MEDICINE_MEDIAN_AVERAGE_FACE_REPORT_ID,
   buildMAFaceRequestBody,
   buildMATabularUrl,
   getApiBaseUrl,
@@ -27,6 +28,7 @@ import {
   maFoodNotificationFaceDataCacheKey,
   maMedicalDeviceFaceDataCacheKey,
   maCosmeticsFaceDataCacheKey,
+  maMedicineMedianAverageFaceDataCacheKey,
   maKpi1DrilldownCacheKey,
   maFoodKpi1DrilldownCacheKey,
   maFoodKpi2DrilldownCacheKey,
@@ -40,7 +42,7 @@ import {
   maMedicalDeviceKpi3DrilldownCacheKey,
   maMedicalDeviceKpi4DrilldownCacheKey,
 } from "@/lib/ma-api/cache";
-import type { MAApiDataRow, MAApiDrilldownRow, MAApiFilterParams, MAApiResponse } from "@/types/ma-api";
+import type { MAApiDataRow, MAApiDrilldownRow, MAApiFilterParams, MAApiMedianAverageDataRow, MAApiResponse } from "@/types/ma-api";
 
 export type MAApiFetchOptions = { force?: boolean };
 
@@ -133,6 +135,22 @@ export async function fetchMACosmeticsFaceTabularData(
   const key = maCosmeticsFaceDataCacheKey(filters);
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiDataRow>(accessToken, MA_TABULAR_COSMETICS_FACE_REPORT_ID, filters)
+  );
+}
+
+/** Medicine MA-KPI-6 (median) & MA-KPI-7 (average) face data from tabular report /26. */
+export async function fetchMAMedicineMedianAverageFaceTabularData(
+  accessToken: string,
+  filters?: MAApiFilterParams,
+  options?: MAApiFetchOptions
+): Promise<MAApiResponse<MAApiMedianAverageDataRow>> {
+  const key = maMedicineMedianAverageFaceDataCacheKey(filters);
+  return getOrFetchMaApiCache(key, options?.force ?? false, () =>
+    fetchMATabularData<MAApiMedianAverageDataRow>(
+      accessToken,
+      MA_TABULAR_MEDICINE_MEDIAN_AVERAGE_FACE_REPORT_ID,
+      filters
+    )
   );
 }
 

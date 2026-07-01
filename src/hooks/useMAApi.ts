@@ -20,6 +20,7 @@ import {
   fetchMAMedicalDeviceKpi2DrilldownTabularData,
   fetchMAMedicalDeviceKpi3DrilldownTabularData,
   fetchMAMedicalDeviceKpi4DrilldownTabularData,
+  fetchMAMedicineMedianAverageFaceTabularData,
 } from '@/lib/ma-api/client';
 import {
   maFaceDataCacheKey,
@@ -39,17 +40,22 @@ import {
   maMedicalDeviceKpi2DrilldownCacheKey,
   maMedicalDeviceKpi3DrilldownCacheKey,
   maMedicalDeviceKpi4DrilldownCacheKey,
+  maMedicineMedianAverageFaceDataCacheKey,
   peekMaApiCache,
 } from '@/lib/ma-api/cache';
 import { getConfiguredMAModuleToKpiMapping } from '@/lib/ma-api/mapping';
 import { normalizeMAFaceData } from '@/lib/ma-api/normalizer';
+import { normalizeMAMedicineMedianAverageFaceData } from '@/lib/ma-api/median-average-normalizer';
 import type {
   MAApiDataRow,
   MAApiDrilldownRow,
+  MAApiMedianAverageDataRow,
   MAApiResponse,
   MAApiFilterParams,
   MAKPITransformedData,
+  MAKPITimeTransformedData,
   MANormalizationWarning,
+  MANormalizeMedianAverageWarning,
   MAModuleToKpiMapping,
   MASubmoduleTypeCode,
 } from '@/types/ma-api';
@@ -485,4 +491,72 @@ export function useMAKPIDataCosmeticsFacade(filters?: MAApiFilterParams): MAKPID
     },
     filters
   );
+}
+
+interface MAKPIDataTimeFacade {
+  kpiTimeDataById: MAKPITimeTransformedData | null;
+  rawData: MAApiResponse<MAApiMedianAverageDataRow> | null;
+  loading: boolean;
+  error: Error | null;
+  warnings: MANormalizeMedianAverageWarning[];
+  metadata: {
+    totalRows: number;
+    filteredRows: number;
+    acceptedRows: number;
+    fetchedAt: string | null;
+  };
+  refetch: () => Promise<void>;
+}
+
+/**
+ * Medicine MA-KPI-6 (median) & MA-KPI-7 (average) from tabular report /26.
+ * Normalizer field mapping will be finalized once the backend response format is confirmed.
+ */
+export function useMAMedicineMedianAverageFaceFacade(
+  filters?: MAApiFilterParams
+): MAKPIDataTimeFacade {
+  const { data: rawData, loading, error, refetch } = useMATabularReportData<MAApiMedianAverageDataRow>(
+    fetchMAMedicineMedianAverageFaceTabularData,
+    filters,
+    true,
+    maMedicineMedianAverageFaceDataCacheKey
+  );
+
+  const transformed = useMemo(() => {
+    if (!rawData?.data?.length) {
+      return {
+        kpiTimeDataById: null,
+        warnings: [] as MANormalizeMedianAverageWarning[],
+        totals: { totalRows: rawData?.data?.length ?? 0, filteredRows: 0, acceptedRows: 0 },
+      };
+    }
+
+    return normalizeMAMedicineMedianAverageFaceData(rawData.data, {
+      submoduleFilter: 'MDCN',
+      moduleFilter: 'NMR',
+    });
+  }, [rawData]);
+
+  useEffect(() => {
+    if (!transformed.warnings.length) return;
+    transformed.warnings.forEach((warning) => {
+      if (warning.code === 'EMPTY_RESULT') return;
+      console.warn(`[MA API /26] ${warning.code}: ${warning.message}`, warning.row ?? {});
+    });
+  }, [transformed.warnings]);
+
+  return {
+    kpiTimeDataById: transformed.kpiTimeDataById,
+    rawData,
+    loading,
+    error,
+    warnings: transformed.warnings,
+    metadata: {
+      totalRows: transformed.totals.totalRows,
+      filteredRows: transformed.totals.filteredRows,
+      acceptedRows: transformed.totals.acceptedRows,
+      fetchedAt: rawData ? new Date().toISOString() : null,
+    },
+    refetch,
+  };
 }
