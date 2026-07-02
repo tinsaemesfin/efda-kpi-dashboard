@@ -8,6 +8,7 @@ import {
   MA_TABULAR_MEDICAL_DEVICE_KPI2_DRILLDOWN_REPORT_ID,
   MA_TABULAR_MEDICAL_DEVICE_KPI3_DRILLDOWN_REPORT_ID,
   MA_TABULAR_MEDICAL_DEVICE_KPI4_DRILLDOWN_REPORT_ID,
+  MA_TABULAR_MEDICINE_MEDIAN_AVERAGE_FACE_REPORT_ID,
   MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID,
   MA_TABULAR_KPI2_DRILLDOWN_REPORT_ID,
   MA_TABULAR_KPI3_DRILLDOWN_REPORT_ID,
@@ -41,5 +42,12 @@ describe("MA tabular report ids", () => {
     expect(
       buildMATabularUrl("https://example.test/api/kpi", MA_TABULAR_MEDICAL_DEVICE_KPI1_DRILLDOWN_REPORT_ID)
     ).toBe("https://example.test/api/kpi/tabular/22");
+  });
+
+  it("uses report 26 for Medicine median and average face data", () => {
+    expect(MA_TABULAR_MEDICINE_MEDIAN_AVERAGE_FACE_REPORT_ID).toBe(26);
+    expect(
+      buildMATabularUrl("https://example.test/api/kpi", MA_TABULAR_MEDICINE_MEDIAN_AVERAGE_FACE_REPORT_ID)
+    ).toBe("https://example.test/api/kpi/tabular/26");
   });
 });

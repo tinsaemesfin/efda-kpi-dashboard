@@ -31,6 +31,10 @@ export function maCosmeticsFaceDataCacheKey(filters?: MAApiFilterParams): string
   return `ma-cosmetics-face:${stableFiltersKey(filters)}`;
 }
 
+export function maMedicineMedianAverageFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medicine-median-average-face:${stableFiltersKey(filters)}`;
+}
+
 export function maKpi1DrilldownCacheKey(filters?: MAApiFilterParams): string {
   return `ma-kpi1-dd:${stableFiltersKey(filters)}`;
 }

@@ -1,4 +1,4 @@
-import type { MAApiFilterParams, MAKPIId, MAModuleToKpiMapping } from "@/types/ma-api";
+import type { MAApiFilterParams, MAKPIId, MAModuleToKpiMapping, MAKPITimeId } from "@/types/ma-api";
 
 /** Cosmetics — face KPIs MA-KPI-1..3 only; all variation rows map to MA-KPI-3 (no KPI 4). */
 export const MA_COSMETICS_FACE_MODULE_TO_KPI_MAPPING: MAModuleToKpiMapping = {
@@ -38,6 +38,8 @@ export const MA_TABULAR_MEDICAL_DEVICE_KPI2_DRILLDOWN_REPORT_ID = 23;
 export const MA_TABULAR_MEDICAL_DEVICE_KPI3_DRILLDOWN_REPORT_ID = 24;
 /** Medical Device / Major Variation (VMAJ) drilldown only. Face KPI cards still use /16. */
 export const MA_TABULAR_MEDICAL_DEVICE_KPI4_DRILLDOWN_REPORT_ID = 25;
+/** Medicine — face cards MA-KPI-6 (median) & MA-KPI-7 (average) for New MA processing time. */
+export const MA_TABULAR_MEDICINE_MEDIAN_AVERAGE_FACE_REPORT_ID = 26;
 export const MA_TABULAR_ENDPOINT_PREFIX = "/api/kpi/tabular";
 
 export const MA_DEFAULT_TABULAR_PARAMS = {
@@ -66,6 +68,11 @@ export const MA_FACE_KPI_IDS: readonly MAKPIId[] = [
   "MA-KPI-2",
   "MA-KPI-3",
   "MA-KPI-4",
+] as const;
+
+export const MA_TIME_FACE_KPI_IDS: readonly MAKPITimeId[] = [
+  "MA-KPI-6",
+  "MA-KPI-7",
 ] as const;
 
 export function getApiBaseUrl(): string {
