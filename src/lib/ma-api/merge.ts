@@ -117,12 +117,18 @@ export function mergeMedicineCardsWithStrictFaceData(
   return mergeFoodCardsWithStrictFaceData(seedCards, kpiFaceDataById);
 }
 
-function isUsableMedianRow(row: MAKPITimeTransformedRow | undefined): row is MAKPITimeTransformedRow {
-  return row != null && Number.isFinite(row.median) && row.median >= 0;
+function isUsableMedianRow(
+  row: MAKPITimeTransformedRow | undefined
+): row is MAKPITimeTransformedRow & { median: number } {
+  const median = row?.median;
+  return row != null && median !== undefined && Number.isFinite(median) && median >= 0;
 }
 
-function isUsableAverageRow(row: MAKPITimeTransformedRow | undefined): row is MAKPITimeTransformedRow {
-  return row != null && Number.isFinite(row.average) && row.average >= 0;
+function isUsableAverageRow(
+  row: MAKPITimeTransformedRow | undefined
+): row is MAKPITimeTransformedRow & { average: number } {
+  const average = row?.average;
+  return row != null && average !== undefined && Number.isFinite(average) && average >= 0;
 }
 
 /**
@@ -139,10 +145,30 @@ export function mergeMedicineTimeCardsWithStrictFaceData(
 
     const kpiId = card.drilldownId as MAKPITimeId;
     const apiRow = kpiTimeDataById?.[kpiId];
-    const isUsable =
-      kpiId === "MA-KPI-6" ? isUsableMedianRow(apiRow) : isUsableAverageRow(apiRow);
 
-    if (!isUsable) {
+    if (kpiId === "MA-KPI-6") {
+      if (!isUsableMedianRow(apiRow)) {
+        return {
+          ...card,
+          faceDataMissing: true,
+          value: 0,
+          numerator: 0,
+          denominator: 0,
+          decimals: 1,
+        };
+      }
+
+      return {
+        ...card,
+        faceDataMissing: false,
+        value: apiRow.median,
+        numerator: apiRow.numerator ?? 0,
+        denominator: apiRow.denominator ?? 0,
+        decimals: 1,
+      };
+    }
+
+    if (!isUsableAverageRow(apiRow)) {
       return {
         ...card,
         faceDataMissing: true,
@@ -153,11 +179,10 @@ export function mergeMedicineTimeCardsWithStrictFaceData(
       };
     }
 
-    const value = kpiId === "MA-KPI-6" ? apiRow.median! : apiRow.average!;
     return {
       ...card,
       faceDataMissing: false,
-      value,
+      value: apiRow.average,
       numerator: apiRow.numerator ?? 0,
       denominator: apiRow.denominator ?? 0,
       decimals: 1,
