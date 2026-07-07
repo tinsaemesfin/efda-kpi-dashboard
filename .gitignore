@@ -2,7 +2,8 @@
 
 # dependencies
 /node_modules
-/.cursor
+/.cursor/*
+!/.cursor/mcp.json.example
 /.pnp
 .pnp.*
 .yarn/*
@@ -33,6 +34,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# cursor MCP config with DB credentials (use mcp.json.example as template)
+.cursor/mcp.json
 
 # vercel
 .vercel

@@ -1,21 +1,30 @@
 // Ad-hoc read-only query runner for the ERIS dev database.
 // Usage: node scripts/db-query.js "SELECT ..."
 const { Client } = require("pg");
-
 const fs = require("fs");
+const { loadDatabaseUrl } = require("./load-database-url");
 
 let sql = process.argv[2];
 if (!sql) {
-  console.error("Usage: node scripts/db-query.js \"<SQL>\" | node scripts/db-query.js --file <path>");
+  console.error(
+    'Usage: node scripts/db-query.js "<SQL>" | node scripts/db-query.js --file <path>'
+  );
   process.exit(1);
 }
 if (sql === "--file") {
   sql = fs.readFileSync(process.argv[3], "utf8");
 }
 
+const connectionString = loadDatabaseUrl();
+if (!connectionString) {
+  console.error(
+    "DATABASE_URL is not set. Add it to .env.local (see .env.example)."
+  );
+  process.exit(1);
+}
+
 const client = new Client({
-  connectionString:
-    "postgresql://REDACTED:REDACTED@REDACTED:5432/REDACTED",
+  connectionString,
   ssl: { rejectUnauthorized: false },
 });
 
