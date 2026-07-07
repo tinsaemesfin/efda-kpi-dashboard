@@ -1,0 +1,25 @@
+image:
+  repository: harbor.efda.gov.et/apps/kpi
+  tag: "00000000" # placeholder — Image Updater writes the real 8-char sha back
+  pullPolicy: Always
+namespace: staging
+host: kpi.stage.eaii.efda.gov.et
+port: 3000
+# NEXT_PUBLIC_* config is baked at image build time (see Dockerfile ARGs) —
+# runtime env here only controls the Node server itself.
+env:
+  PORT: "3000"
+secrets: []
+resources:
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+replicas: 1
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  cpuUtilization: 80

@@ -1,0 +1,38 @@
+workflow:
+  rules:
+    # Image Updater write-back commits are authored by the bot; skip their pipelines so the
+    # tag bump doesn't rebuild (prevents the write-back loop WITHOUT a [skip ci] in the message,
+    # which was leaking into developer merge commits and skipping real builds).
+    - if: '$CI_COMMIT_AUTHOR =~ /argocd-image-updater/'
+      when: never
+    - when: always
+
+stages:
+  - build
+
+variables:
+  HARBOR_REGISTRY: harbor.efda.gov.et
+  HARBOR_PROJECT: apps
+  IMAGE: $HARBOR_REGISTRY/$HARBOR_PROJECT/$CI_PROJECT_NAME
+
+# NEXT_PUBLIC_* runtime config is baked into the bundle at build time; staging
+# defaults live as ARG defaults in the Dockerfile. A prod job should override
+# them with --build-arg.
+build:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.0-debug
+    entrypoint: [""]
+  only:
+    - feature/eaii-staging
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$HARBOR_REGISTRY\":{\"username\":\"$HARBOR_USER\",\"password\":\"$HARBOR_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor
+        --context $CI_PROJECT_DIR
+        --dockerfile $CI_PROJECT_DIR/Dockerfile
+        --target production
+        --destination $IMAGE:$CI_COMMIT_SHORT_SHA
+        --destination $IMAGE:latest
+        --snapshotMode=redo
+        --compressed-caching=false

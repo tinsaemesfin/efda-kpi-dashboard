@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Standalone server bundle for the Docker image (see Dockerfile)
+  output: 'standalone',
+
   // Production optimizations
   compress: true,
   
