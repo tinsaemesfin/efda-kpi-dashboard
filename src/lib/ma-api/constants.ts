@@ -40,6 +40,10 @@ export const MA_TABULAR_MEDICAL_DEVICE_KPI3_DRILLDOWN_REPORT_ID = 24;
 export const MA_TABULAR_MEDICAL_DEVICE_KPI4_DRILLDOWN_REPORT_ID = 25;
 /** Medicine — face cards MA-KPI-6 (median) & MA-KPI-7 (average) for New MA processing time. */
 export const MA_TABULAR_MEDICINE_MEDIAN_AVERAGE_FACE_REPORT_ID = 26;
+/** Medicine — MA-KPI-6 median decision time drilldown. */
+export const MA_TABULAR_MEDICINE_MEDIAN_DRILLDOWN_REPORT_ID = 27;
+/** Medicine — MA-KPI-7 average decision time drilldown. */
+export const MA_TABULAR_MEDICINE_AVERAGE_DRILLDOWN_REPORT_ID = 28;
 export const MA_TABULAR_ENDPOINT_PREFIX = "/api/kpi/tabular";
 
 export const MA_DEFAULT_TABULAR_PARAMS = {

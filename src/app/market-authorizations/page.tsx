@@ -5,6 +5,7 @@ import AuthGuard from "@/components/auth/AuthGuard";
 import { DashboardLayout } from "@/components/layout";
 import { MAKPICard } from "@/components/kpi/ma-kpi-card";
 import { MADrillDownModal } from "@/components/kpi/ma-drilldown-modal";
+import { MATimeDrillDownModal } from "@/components/kpi/ma-time-drilldown-modal";
 import { MADevStickyNote } from "@/components/kpi/ma-dev-sticky-note";
 import {
   DEFAULT_FOOD_SUB_TAB,
@@ -41,7 +42,7 @@ import {
   PackageIcon,
   SparklesIcon,
 } from "lucide-react";
-import type { KPIDrillDownData } from "@/types/ma-drilldown";
+import type { KPIDrillDownData, MATimeDrillDownData } from "@/types/ma-drilldown";
 import { cn } from "@/lib/utils";
 import type { MAKPIId } from "@/types/ma-api";
 
@@ -274,6 +275,35 @@ export default function MarketAuthorizationsPage() {
     return maDrillDownData[selectedKpiId] ?? null;
   }, [selectedKpiId]);
 
+  const selectedTimeDrilldown: MATimeDrillDownData | null = useMemo(() => {
+    if (!selectedKpiId || !isMedicineTimeKpiId(selectedKpiId)) return null;
+    const seed = maDrillDownData[selectedKpiId];
+    if (selectedKpiId === "MA-KPI-6") {
+      return {
+        kpiId: "MA-KPI-6",
+        kpiName: seed?.kpiName ?? "Median Time for New MA Applications",
+        metricType: "median",
+        currentValue: {
+          value: seed?.currentValue.median ?? seed?.currentValue.value ?? 0,
+          median: seed?.currentValue.median ?? seed?.currentValue.value,
+          targetDays: 270,
+        },
+        categoryViews: [],
+      };
+    }
+    return {
+      kpiId: "MA-KPI-7",
+      kpiName: seed?.kpiName ?? "Average Time for New MA Applications",
+      metricType: "average",
+      currentValue: {
+        value: seed?.currentValue.average ?? seed?.currentValue.value ?? 0,
+        average: seed?.currentValue.average ?? seed?.currentValue.value,
+        targetDays: 270,
+      },
+      categoryViews: [],
+    };
+  }, [selectedKpiId]);
+
   const selectedDrilldownSource =
     isFoodFrontApiView && selectedKpiId && isApiKpiId(selectedKpiId)
       ? "food"
@@ -444,7 +474,7 @@ export default function MarketAuthorizationsPage() {
               <div className="flex min-w-0 flex-col gap-3 border-t border-border/60 pt-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                 <p className="min-w-0 flex-1 text-pretty text-xs leading-relaxed text-muted-foreground">
                   {activeProduct === "medicine"
-                    ? "Medicine: KPI 1–4 use live API (/8); KPI 6–7 (median & average) use live API (/26). Drilldowns: KPI 1 /9, KPI 2 /10, KPI 3 /11, KPI 4 /13. ".concat(
+                    ? "Medicine: KPI 1–4 use live API (/8); KPI 6–7 (median & average) use live API (/26). Drilldowns: KPI 1 /9, KPI 2 /10, KPI 3 /11, KPI 4 /13, KPI 6 /27, KPI 7 /28. ".concat(
                         `/8 rows: ${apiMedicineMetadata.acceptedRows}/${apiMedicineMetadata.filteredRows} accepted. /26 rows: ${apiMedicineTimeMetadata.acceptedRows}/${apiMedicineTimeMetadata.filteredRows} accepted.`
                       )
                     : isFoodFrontApiView
@@ -656,7 +686,15 @@ export default function MarketAuthorizationsPage() {
             </Card>
           )}
 
-          {selectedDrilldown && (
+          {selectedTimeDrilldown && (
+            <MATimeDrillDownModal
+              open={isModalOpen}
+              onOpenChange={handleModalClose}
+              data={selectedTimeDrilldown}
+            />
+          )}
+
+          {selectedDrilldown && !selectedTimeDrilldown && (
             <MADrillDownModal
               open={isModalOpen}
               onOpenChange={handleModalClose}

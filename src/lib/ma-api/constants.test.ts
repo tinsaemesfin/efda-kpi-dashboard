@@ -9,6 +9,8 @@ import {
   MA_TABULAR_MEDICAL_DEVICE_KPI3_DRILLDOWN_REPORT_ID,
   MA_TABULAR_MEDICAL_DEVICE_KPI4_DRILLDOWN_REPORT_ID,
   MA_TABULAR_MEDICINE_MEDIAN_AVERAGE_FACE_REPORT_ID,
+  MA_TABULAR_MEDICINE_MEDIAN_DRILLDOWN_REPORT_ID,
+  MA_TABULAR_MEDICINE_AVERAGE_DRILLDOWN_REPORT_ID,
   MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID,
   MA_TABULAR_KPI2_DRILLDOWN_REPORT_ID,
   MA_TABULAR_KPI3_DRILLDOWN_REPORT_ID,
@@ -49,5 +51,16 @@ describe("MA tabular report ids", () => {
     expect(
       buildMATabularUrl("https://example.test/api/kpi", MA_TABULAR_MEDICINE_MEDIAN_AVERAGE_FACE_REPORT_ID)
     ).toBe("https://example.test/api/kpi/tabular/26");
+  });
+
+  it("uses reports 27 and 28 for Medicine median and average drilldowns", () => {
+    expect(MA_TABULAR_MEDICINE_MEDIAN_DRILLDOWN_REPORT_ID).toBe(27);
+    expect(MA_TABULAR_MEDICINE_AVERAGE_DRILLDOWN_REPORT_ID).toBe(28);
+    expect(
+      buildMATabularUrl("https://example.test/api/kpi", MA_TABULAR_MEDICINE_MEDIAN_DRILLDOWN_REPORT_ID)
+    ).toBe("https://example.test/api/kpi/tabular/27");
+    expect(
+      buildMATabularUrl("https://example.test/api/kpi", MA_TABULAR_MEDICINE_AVERAGE_DRILLDOWN_REPORT_ID)
+    ).toBe("https://example.test/api/kpi/tabular/28");
   });
 });
