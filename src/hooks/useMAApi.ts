@@ -21,6 +21,8 @@ import {
   fetchMAMedicalDeviceKpi3DrilldownTabularData,
   fetchMAMedicalDeviceKpi4DrilldownTabularData,
   fetchMAMedicineMedianAverageFaceTabularData,
+  fetchMAMedicineMedianDrilldownTabularData,
+  fetchMAMedicineAverageDrilldownTabularData,
 } from '@/lib/ma-api/client';
 import {
   maFaceDataCacheKey,
@@ -41,6 +43,8 @@ import {
   maMedicalDeviceKpi3DrilldownCacheKey,
   maMedicalDeviceKpi4DrilldownCacheKey,
   maMedicineMedianAverageFaceDataCacheKey,
+  maMedicineMedianDrilldownCacheKey,
+  maMedicineAverageDrilldownCacheKey,
   peekMaApiCache,
 } from '@/lib/ma-api/cache';
 import { getConfiguredMAModuleToKpiMapping } from '@/lib/ma-api/mapping';
@@ -50,6 +54,8 @@ import type {
   MAApiDataRow,
   MAApiDrilldownRow,
   MAApiMedianAverageDataRow,
+  MAApiMedianDrilldownRow,
+  MAApiAverageDrilldownRow,
   MAApiResponse,
   MAApiFilterParams,
   MAKPITransformedData,
@@ -559,4 +565,34 @@ export function useMAMedicineMedianAverageFaceFacade(
     },
     refetch,
   };
+}
+
+/**
+ * Fetches Medicine MA-KPI-6 median drilldown data from the API (endpoint /27).
+ */
+export function useMAKPI6DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiMedianDrilldownRow>> {
+  return useMATabularReportData<MAApiMedianDrilldownRow>(
+    fetchMAMedicineMedianDrilldownTabularData,
+    filters,
+    enabled,
+    maMedicineMedianDrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches Medicine MA-KPI-7 average drilldown data from the API (endpoint /28).
+ */
+export function useMAKPI7DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiAverageDrilldownRow>> {
+  return useMATabularReportData<MAApiAverageDrilldownRow>(
+    fetchMAMedicineAverageDrilldownTabularData,
+    filters,
+    enabled,
+    maMedicineAverageDrilldownCacheKey
+  );
 }

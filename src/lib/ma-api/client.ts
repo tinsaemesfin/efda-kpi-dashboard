@@ -17,6 +17,8 @@ import {
   MA_TABULAR_MEDICAL_DEVICE_KPI3_DRILLDOWN_REPORT_ID,
   MA_TABULAR_MEDICAL_DEVICE_KPI4_DRILLDOWN_REPORT_ID,
   MA_TABULAR_MEDICINE_MEDIAN_AVERAGE_FACE_REPORT_ID,
+  MA_TABULAR_MEDICINE_MEDIAN_DRILLDOWN_REPORT_ID,
+  MA_TABULAR_MEDICINE_AVERAGE_DRILLDOWN_REPORT_ID,
   buildMAFaceRequestBody,
   buildMATabularUrl,
   getApiBaseUrl,
@@ -29,6 +31,8 @@ import {
   maMedicalDeviceFaceDataCacheKey,
   maCosmeticsFaceDataCacheKey,
   maMedicineMedianAverageFaceDataCacheKey,
+  maMedicineMedianDrilldownCacheKey,
+  maMedicineAverageDrilldownCacheKey,
   maKpi1DrilldownCacheKey,
   maFoodKpi1DrilldownCacheKey,
   maFoodKpi2DrilldownCacheKey,
@@ -42,7 +46,7 @@ import {
   maMedicalDeviceKpi3DrilldownCacheKey,
   maMedicalDeviceKpi4DrilldownCacheKey,
 } from "@/lib/ma-api/cache";
-import type { MAApiDataRow, MAApiDrilldownRow, MAApiFilterParams, MAApiMedianAverageDataRow, MAApiResponse } from "@/types/ma-api";
+import type { MAApiDataRow, MAApiDrilldownRow, MAApiFilterParams, MAApiMedianAverageDataRow, MAApiMedianDrilldownRow, MAApiAverageDrilldownRow, MAApiResponse } from "@/types/ma-api";
 
 export type MAApiFetchOptions = { force?: boolean };
 
@@ -150,6 +154,40 @@ export async function fetchMAMedicineMedianAverageFaceTabularData(
       accessToken,
       MA_TABULAR_MEDICINE_MEDIAN_AVERAGE_FACE_REPORT_ID,
       filters
+    )
+  );
+}
+
+/** Medicine MA-KPI-6 median decision time drilldown from tabular report /27. */
+export async function fetchMAMedicineMedianDrilldownTabularData(
+  accessToken: string,
+  filters?: MAApiFilterParams,
+  options?: MAApiFetchOptions
+): Promise<MAApiResponse<MAApiMedianDrilldownRow>> {
+  const key = maMedicineMedianDrilldownCacheKey(filters);
+  return getOrFetchMaApiCache(key, options?.force ?? false, () =>
+    fetchMATabularData<MAApiMedianDrilldownRow>(
+      accessToken,
+      MA_TABULAR_MEDICINE_MEDIAN_DRILLDOWN_REPORT_ID,
+      filters,
+      "500"
+    )
+  );
+}
+
+/** Medicine MA-KPI-7 average decision time drilldown from tabular report /28. */
+export async function fetchMAMedicineAverageDrilldownTabularData(
+  accessToken: string,
+  filters?: MAApiFilterParams,
+  options?: MAApiFetchOptions
+): Promise<MAApiResponse<MAApiAverageDrilldownRow>> {
+  const key = maMedicineAverageDrilldownCacheKey(filters);
+  return getOrFetchMaApiCache(key, options?.force ?? false, () =>
+    fetchMATabularData<MAApiAverageDrilldownRow>(
+      accessToken,
+      MA_TABULAR_MEDICINE_AVERAGE_DRILLDOWN_REPORT_ID,
+      filters,
+      "500"
     )
   );
 }

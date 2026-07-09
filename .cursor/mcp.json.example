@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "efda-postgres": {
+      "command": "node",
+      "args": ["scripts/mcp-postgres-launcher.js"]
+    }
+  }
+}

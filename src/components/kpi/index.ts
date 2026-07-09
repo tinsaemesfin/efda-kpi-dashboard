@@ -6,6 +6,7 @@ export { RequirementToggle } from './requirement-toggle';
 export { KPIFilter, type KPIFilterState, type FilterMode } from './kpi-filter';
 export { MAKPICard } from './ma-kpi-card';
 export { MADrillDownModal } from './ma-drilldown-modal';
+export { MATimeDrillDownModal } from './ma-time-drilldown-modal';
 export { GMPKPICard } from './gmp-kpi-card';
 export { GMPDrillDownModal } from './gmp-drilldown-modal';
 

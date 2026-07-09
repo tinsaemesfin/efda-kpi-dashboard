@@ -100,6 +100,44 @@ export interface KPIDimensionView {
   data: DrillDownItem[];
 }
 
+/** Row in MA-KPI-6 / MA-KPI-7 time drilldown category tables. */
+export interface MATimeDrillDownItem {
+  category: string;
+  targetDays: number;
+  onTimeCount: number;
+  totalCount: number;
+  percentage: number;
+  decisionDays: number | null;
+  maxDecisionDays?: number | null;
+  extremeOutlierCount?: number | null;
+  extremeOutlierPct?: number | null;
+  p25Days?: number | null;
+  p75Days?: number | null;
+  p90Days?: number | null;
+  iqrDays?: number | null;
+  meanMedianSkewDays?: number | null;
+}
+
+export interface MATimeDrillDownCategoryView {
+  id: string;
+  label: string;
+  description?: string;
+  items: MATimeDrillDownItem[];
+}
+
+export interface MATimeDrillDownData {
+  kpiId: "MA-KPI-6" | "MA-KPI-7";
+  kpiName: string;
+  metricType: "median" | "average";
+  currentValue: {
+    value: number;
+    median?: number;
+    average?: number;
+    targetDays?: number;
+  };
+  categoryViews: MATimeDrillDownCategoryView[];
+}
+
 // Root Cause Analysis Dimensions
 export interface RootCauseDimension {
   dimension: string;

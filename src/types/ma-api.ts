@@ -48,6 +48,39 @@ export interface MAApiDrilldownRow {
   avg_processing_days?: number | null;
 }
 
+/** Shared base fields for tabular reports /27 (median) and /28 (average) drilldowns. */
+export interface MAApiTimeDrilldownRowBase {
+  rowNumber?: number;
+  category_name: string;
+  category_value: string;
+  module_code: MAApiModuleCode;
+  target_days?: number;
+  on_time_count: number;
+  total_count: number;
+  percentage: number;
+}
+
+/** Tabular report /27 — median decision time drilldown. */
+export interface MAApiMedianDrilldownRow extends MAApiTimeDrilldownRowBase {
+  median_decision_days?: number | null;
+  overall_median_days?: number | null;
+  p25_days?: number | null;
+  p75_days?: number | null;
+  p90_days?: number | null;
+  iqr_days?: number | null;
+  mean_median_skew_days?: number | null;
+}
+
+/** Tabular report /28 — average decision time drilldown. */
+export interface MAApiAverageDrilldownRow extends MAApiTimeDrilldownRowBase {
+  avg_decision_days?: number | null;
+  overall_avg_days?: number | null;
+  gap_vs_overall_avg_days?: number | null;
+  max_decision_days?: number | null;
+  extreme_outlier_count?: number | null;
+  extreme_outlier_pct?: number | null;
+}
+
 export interface MAApiResponse<T = MAApiDataRow> {
   recordsTotal?: number;
   recordsFiltered?: number;
