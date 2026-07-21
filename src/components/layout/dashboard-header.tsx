@@ -14,10 +14,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
+import { profileUrl } from "@/lib/config/auth.config";
 
 export function DashboardHeader() {
   const { profile, logout, isAuthenticated } = useAuth();
-  const profileUrl = "https://dev.id.eris.efda.gov.et/manage/profile";
 
   const handleLogout = async () => {
     await logout();

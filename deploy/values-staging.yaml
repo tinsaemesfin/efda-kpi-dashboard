@@ -9,6 +9,18 @@ port: 3000
 # runtime env here only controls the Node server itself.
 env:
   PORT: "3000"
+  NEXT_PUBLIC_STS_AUTHORITY: "https://eris-identity.stage.eaii.efda.gov.et"
+  NEXT_PUBLIC_CLIENT_ID: "eris-kpi"
+  NEXT_PUBLIC_CLIENT_ROOT: "https://kpi.stage.eaii.efda.gov.et/"
+  NEXT_PUBLIC_REDIRECT_URI: "https://kpi.stage.eaii.efda.gov.et/auth-callback?to=signin"
+  NEXT_PUBLIC_SILENT_REDIRECT_URI: "https://kpi.stage.eaii.efda.gov.et/assets/silent-callback.html"
+  NEXT_PUBLIC_POST_LOGOUT_REDIRECT_URI: "https://kpi.stage.eaii.efda.gov.et"
+  NEXT_PUBLIC_RESPONSE_TYPE: "code"
+  NEXT_PUBLIC_CLIENT_SCOPE: "openid profile email"
+  NEXT_PUBLIC_API_ROOT: "https://facilityregistry-be.stage.eaii.efda.gov.et"
+  NEXT_PUBLIC_API_KPI: "https://eris-be.stage.eaii.efda.gov.et"
+
+
 secrets: []
 resources:
   limits:

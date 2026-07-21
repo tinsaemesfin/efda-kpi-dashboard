@@ -17,3 +17,6 @@ export const apiConfig = {
   baseUrl: process.env.NEXT_PUBLIC_API_ROOT!,
 };
 
+export const profileUrl = `${process.env.NEXT_PUBLIC_STS_AUTHORITY}/manage/profile`;
+
+
