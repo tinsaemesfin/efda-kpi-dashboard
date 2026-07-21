@@ -12,15 +12,16 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ARG NEXT_PUBLIC_STS_AUTHORITY=https://dev.id.eris.efda.gov.et
-ARG NEXT_PUBLIC_CLIENT_ID=eris-portal-spa
-ARG NEXT_PUBLIC_CLIENT_ROOT=https://kpi.stage.eaii.efda.gov.et
+ARG NEXT_PUBLIC_STS_AUTHORITY=https://eris-identity.stage.eaii.efda.gov.et
+ARG NEXT_PUBLIC_CLIENT_ID=eris-kpi
+ARG NEXT_PUBLIC_CLIENT_ROOT=https://kpi.stage.eaii.efda.gov.et/
 ARG NEXT_PUBLIC_REDIRECT_URI=https://kpi.stage.eaii.efda.gov.et/auth-callback?to=signin
 ARG NEXT_PUBLIC_SILENT_REDIRECT_URI=https://kpi.stage.eaii.efda.gov.et/assets/silent-callback.html
 ARG NEXT_PUBLIC_POST_LOGOUT_REDIRECT_URI=https://kpi.stage.eaii.efda.gov.et
-ARG NEXT_PUBLIC_CLIENT_SCOPE="openid profile"
+ARG NEXT_PUBLIC_CLIENT_SCOPE="openid profile email"
 ARG NEXT_PUBLIC_RESPONSE_TYPE=code
-ARG NEXT_PUBLIC_API_ROOT=https://api.feature.eris.efda.gov.et/api
+ARG NEXT_PUBLIC_API_ROOT=https://facilityregistry-be.stage.eaii.efda.gov.et
+ARG NEXT_PUBLIC_API_KPI=https://eris-be.stage.eaii.efda.gov.et
 
 ENV NEXT_PUBLIC_STS_AUTHORITY=$NEXT_PUBLIC_STS_AUTHORITY \
     NEXT_PUBLIC_CLIENT_ID=$NEXT_PUBLIC_CLIENT_ID \
@@ -31,6 +32,7 @@ ENV NEXT_PUBLIC_STS_AUTHORITY=$NEXT_PUBLIC_STS_AUTHORITY \
     NEXT_PUBLIC_CLIENT_SCOPE=$NEXT_PUBLIC_CLIENT_SCOPE \
     NEXT_PUBLIC_RESPONSE_TYPE=$NEXT_PUBLIC_RESPONSE_TYPE \
     NEXT_PUBLIC_API_ROOT=$NEXT_PUBLIC_API_ROOT \
+    NEXT_PUBLIC_API_KPI=$NEXT_PUBLIC_API_KPI \
     NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
