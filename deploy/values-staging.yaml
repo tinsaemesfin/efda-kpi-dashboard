@@ -1,6 +1,6 @@
 image:
   repository: harbor.efda.gov.et/apps/kpi
-  tag: "35af0b83" # placeholder — Image Updater writes the real 8-char sha back
+  tag: "622284a4" # placeholder — Image Updater writes the real 8-char sha back
   pullPolicy: Always
 namespace: staging
 host: kpi.stage.eaii.efda.gov.et
@@ -19,8 +19,6 @@ env:
   NEXT_PUBLIC_CLIENT_SCOPE: "openid profile email"
   NEXT_PUBLIC_API_ROOT: "https://facilityregistry-be.stage.eaii.efda.gov.et"
   NEXT_PUBLIC_API_KPI: "https://eris-be.stage.eaii.efda.gov.et"
-
-
 secrets: []
 resources:
   limits:
