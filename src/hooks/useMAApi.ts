@@ -4,21 +4,79 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import {
   fetchMAFaceTabularData,
+  fetchMAFoodFaceTabularData,
+  fetchMAFoodNotificationFaceTabularData,
+  fetchMACosmeticsFaceTabularData,
+  fetchMAMedicalDeviceFaceTabularData,
   fetchMAKpi1DrilldownTabularData,
+  fetchMAFoodKpi1DrilldownTabularData,
   fetchMAKpi2DrilldownTabularData,
+  fetchMAFoodKpi2DrilldownTabularData,
+  fetchMAKpi3DrilldownTabularData,
+  fetchMAFoodKpi3DrilldownTabularData,
+  fetchMAKpi4DrilldownTabularData,
+  fetchMAFoodKpi4DrilldownTabularData,
+  fetchMAMedicalDeviceKpi1DrilldownTabularData,
+  fetchMAMedicalDeviceKpi2DrilldownTabularData,
+  fetchMAMedicalDeviceKpi3DrilldownTabularData,
+  fetchMAMedicalDeviceKpi4DrilldownTabularData,
+  fetchMAMedicineMedianAverageFaceTabularData,
+  fetchMAMedicineMedianDrilldownTabularData,
+  fetchMAMedicineAverageDrilldownTabularData,
+  fetchMAMedicineParFaceTabularData,
+  fetchMAMedicalDeviceParFaceTabularData,
+  fetchMAFoodParFaceTabularData,
+  fetchMACosmeticsParFaceTabularData,
 } from '@/lib/ma-api/client';
+import {
+  maFaceDataCacheKey,
+  maFoodFaceDataCacheKey,
+  maFoodNotificationFaceDataCacheKey,
+  maCosmeticsFaceDataCacheKey,
+  maMedicalDeviceFaceDataCacheKey,
+  maKpi1DrilldownCacheKey,
+  maFoodKpi1DrilldownCacheKey,
+  maFoodKpi2DrilldownCacheKey,
+  maFoodKpi3DrilldownCacheKey,
+  maFoodKpi4DrilldownCacheKey,
+  maKpi2DrilldownCacheKey,
+  maKpi3DrilldownCacheKey,
+  maKpi4DrilldownCacheKey,
+  maMedicalDeviceKpi1DrilldownCacheKey,
+  maMedicalDeviceKpi2DrilldownCacheKey,
+  maMedicalDeviceKpi3DrilldownCacheKey,
+  maMedicalDeviceKpi4DrilldownCacheKey,
+  maMedicineMedianAverageFaceDataCacheKey,
+  maMedicineMedianDrilldownCacheKey,
+  maMedicineAverageDrilldownCacheKey,
+  maMedicineParFaceDataCacheKey,
+  maMedicalDeviceParFaceDataCacheKey,
+  maFoodParFaceDataCacheKey,
+  maCosmeticsParFaceDataCacheKey,
+  peekMaApiCache,
+} from '@/lib/ma-api/cache';
 import { getConfiguredMAModuleToKpiMapping } from '@/lib/ma-api/mapping';
 import { normalizeMAFaceData } from '@/lib/ma-api/normalizer';
+import { normalizeMAMedicineMedianAverageFaceData } from '@/lib/ma-api/median-average-normalizer';
+import { normalizeMAPARFaceData } from '@/lib/ma-api/par-normalizer';
 import type {
   MAApiDataRow,
   MAApiDrilldownRow,
+  MAApiMedianAverageDataRow,
+  MAApiMedianDrilldownRow,
+  MAApiAverageDrilldownRow,
   MAApiResponse,
   MAApiFilterParams,
   MAKPITransformedData,
+  MAKPITimeTransformedData,
+  MAKPIParTransformedData,
   MANormalizationWarning,
+  MANormalizeMedianAverageWarning,
+  MANormalizeParWarning,
+  MAModuleToKpiMapping,
   MASubmoduleTypeCode,
 } from '@/types/ma-api';
-import { MA_MODULE_CODE_ALIASES } from '@/lib/ma-api/constants';
+import { MA_COSMETICS_FACE_MODULE_TO_KPI_MAPPING, MA_MODULE_CODE_ALIASES } from '@/lib/ma-api/constants';
 
 interface UseMAApiState<T> {
   data: T | null;
@@ -27,39 +85,61 @@ interface UseMAApiState<T> {
   refetch: () => Promise<void>;
 }
 
-function useMATabularReportData<T>(
-  fetcher: (accessToken: string, filters?: MAApiFilterParams) => Promise<MAApiResponse<T>>,
+type MATabularFetcher<T> = (
+  accessToken: string,
   filters?: MAApiFilterParams,
-  enabled = true
+  options?: { force?: boolean }
+) => Promise<MAApiResponse<T>>;
+
+function useMATabularReportData<T>(
+  fetcher: MATabularFetcher<T>,
+  filters: MAApiFilterParams | undefined,
+  enabled: boolean,
+  getCacheKey: (filters?: MAApiFilterParams) => string
 ): UseMAApiState<MAApiResponse<T>> {
   const { isAuthenticated, loading: authLoading, accessToken } = useAuth();
   const [data, setData] = useState<MAApiResponse<T> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchData = useCallback(async () => {
-    if (!enabled) {
-      setLoading(false);
-      return;
-    }
-    if (authLoading) return;
-    if (!isAuthenticated || !accessToken) {
-      setLoading(false);
-      return;
-    }
+  const cacheKey = useMemo(() => getCacheKey(filters), [filters, getCacheKey]);
 
-    setLoading(true);
-    setError(null);
+  const fetchData = useCallback(
+    async (force = false) => {
+      if (!enabled) {
+        setLoading(false);
+        return;
+      }
+      if (authLoading) return;
+      if (!isAuthenticated || !accessToken) {
+        setLoading(false);
+        return;
+      }
 
-    try {
-      const json = await fetcher(accessToken, filters);
-      setData(json);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch MA KPI data'));
-    } finally {
-      setLoading(false);
-    }
-  }, [enabled, isAuthenticated, authLoading, accessToken, filters, fetcher]);
+      if (!force) {
+        const cached = peekMaApiCache<MAApiResponse<T>>(cacheKey);
+        if (cached) {
+          setData(cached);
+          setLoading(false);
+          setError(null);
+          return;
+        }
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const json = await fetcher(accessToken, filters, { force });
+        setData(json);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch MA KPI data'));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [enabled, isAuthenticated, authLoading, accessToken, filters, fetcher, cacheKey]
+  );
 
   useEffect(() => {
     if (!enabled) {
@@ -67,17 +147,19 @@ function useMATabularReportData<T>(
       return;
     }
     if (!authLoading && isAuthenticated && accessToken) {
-      fetchData();
+      void fetchData(false);
     } else if (!authLoading && !isAuthenticated) {
       setLoading(false);
     }
   }, [enabled, authLoading, isAuthenticated, accessToken, fetchData]);
 
+  const refetch = useCallback(() => fetchData(true), [fetchData]);
+
   return {
     data,
     loading: loading || authLoading,
     error,
-    refetch: fetchData,
+    refetch,
   };
 }
 
@@ -86,7 +168,12 @@ function useMATabularReportData<T>(
  * Returns raw response; use useMAKPIDataMedicine for Medicine-only transformed data.
  */
 export function useMAKPIData(filters?: MAApiFilterParams): UseMAApiState<MAApiResponse> {
-  return useMATabularReportData<MAApiDataRow>(fetchMAFaceTabularData, filters);
+  return useMATabularReportData<MAApiDataRow>(
+    fetchMAFaceTabularData,
+    filters,
+    true,
+    maFaceDataCacheKey
+  );
 }
 
 /**
@@ -96,7 +183,27 @@ export function useMAKPI1DrilldownData(
   filters?: MAApiFilterParams,
   enabled = true
 ): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
-  return useMATabularReportData<MAApiDrilldownRow>(fetchMAKpi1DrilldownTabularData, filters, enabled);
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAKpi1DrilldownTabularData,
+    filters,
+    enabled,
+    maKpi1DrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches Food MA KPI 1 drilldown data from the API (endpoint /18).
+ */
+export function useMAFoodKPI1DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAFoodKpi1DrilldownTabularData,
+    filters,
+    enabled,
+    maFoodKpi1DrilldownCacheKey
+  );
 }
 
 /**
@@ -106,7 +213,147 @@ export function useMAKPI2DrilldownData(
   filters?: MAApiFilterParams,
   enabled = true
 ): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
-  return useMATabularReportData<MAApiDrilldownRow>(fetchMAKpi2DrilldownTabularData, filters, enabled);
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAKpi2DrilldownTabularData,
+    filters,
+    enabled,
+    maKpi2DrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches Food MA KPI 2 drilldown data from the API (endpoint /19).
+ */
+export function useMAFoodKPI2DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAFoodKpi2DrilldownTabularData,
+    filters,
+    enabled,
+    maFoodKpi2DrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches MA KPI 3 drilldown data from the API (endpoint /11).
+ */
+export function useMAKPI3DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAKpi3DrilldownTabularData,
+    filters,
+    enabled,
+    maKpi3DrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches Food MA KPI 3 (VMIN) drilldown data from the API (endpoint /20).
+ */
+export function useMAFoodKPI3DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAFoodKpi3DrilldownTabularData,
+    filters,
+    enabled,
+    maFoodKpi3DrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches MA KPI 4 (major variation) drilldown data from the API (endpoint /13).
+ */
+export function useMAKPI4DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAKpi4DrilldownTabularData,
+    filters,
+    enabled,
+    maKpi4DrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches Food MA KPI 4 (VMAJ) drilldown data from the API (endpoint /21).
+ */
+export function useMAFoodKPI4DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAFoodKpi4DrilldownTabularData,
+    filters,
+    enabled,
+    maFoodKpi4DrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches Medical Device MA KPI 1 (New) drilldown data from the API (endpoint /22).
+ */
+export function useMAMedicalDeviceKPI1DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAMedicalDeviceKpi1DrilldownTabularData,
+    filters,
+    enabled,
+    maMedicalDeviceKpi1DrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches Medical Device MA KPI 2 (Renewal) drilldown data from the API (endpoint /23).
+ */
+export function useMAMedicalDeviceKPI2DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAMedicalDeviceKpi2DrilldownTabularData,
+    filters,
+    enabled,
+    maMedicalDeviceKpi2DrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches Medical Device MA KPI 3 (VMIN) drilldown data from the API (endpoint /24).
+ */
+export function useMAMedicalDeviceKPI3DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAMedicalDeviceKpi3DrilldownTabularData,
+    filters,
+    enabled,
+    maMedicalDeviceKpi3DrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches Medical Device MA KPI 4 (VMAJ) drilldown data from the API (endpoint /25).
+ */
+export function useMAMedicalDeviceKPI4DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
+  return useMATabularReportData<MAApiDrilldownRow>(
+    fetchMAMedicalDeviceKpi4DrilldownTabularData,
+    filters,
+    enabled,
+    maMedicalDeviceKpi4DrilldownCacheKey
+  );
 }
 
 interface MAKPIDataFacade {
@@ -124,11 +371,25 @@ interface MAKPIDataFacade {
   refetch: () => Promise<void>;
 }
 
-function useMAKPIDataBySubmodule(
-  submoduleFilter: MASubmoduleTypeCode,
+interface MAFaceFacadeSource {
+  fetcher: MATabularFetcher<MAApiDataRow>;
+  cacheKey: (filters?: MAApiFilterParams) => string;
+  /** Omit when the tabular report is already scoped to one product (e.g. Food /14). */
+  submoduleFilter?: MASubmoduleTypeCode;
+  /** Override default/env module→KPI mapping (e.g. Cosmetics aggregates VMAJ into MA-KPI-3). */
+  moduleToKpiMapping?: MAModuleToKpiMapping;
+}
+
+function useMAKPIDataFaceFacade(
+  { fetcher, cacheKey, submoduleFilter, moduleToKpiMapping: moduleMappingOverride }: MAFaceFacadeSource,
   filters?: MAApiFilterParams
 ): MAKPIDataFacade {
-  const { data: rawData, loading, error, refetch } = useMAKPIData(filters);
+  const { data: rawData, loading, error, refetch } = useMATabularReportData<MAApiDataRow>(
+    fetcher,
+    filters,
+    true,
+    cacheKey
+  );
 
   const transformed = useMemo(() => {
     if (!rawData?.data?.length) {
@@ -139,13 +400,13 @@ function useMAKPIDataBySubmodule(
       };
     }
 
-    const moduleToKpiMapping = getConfiguredMAModuleToKpiMapping();
+    const moduleToKpiMapping = moduleMappingOverride ?? getConfiguredMAModuleToKpiMapping();
     return normalizeMAFaceData(rawData.data, {
       submoduleFilter,
       moduleToKpiMapping,
       moduleCodeAliases: MA_MODULE_CODE_ALIASES,
     });
-  }, [rawData, submoduleFilter]);
+  }, [rawData, submoduleFilter, moduleMappingOverride]);
 
   useEffect(() => {
     if (!transformed.warnings.length) return;
@@ -176,7 +437,7 @@ function useMAKPIDataBySubmodule(
  * Use on the Market Authorizations page when product tab is Medicine for MA-KPI-1, MA-KPI-2, MA-KPI-3.
  */
 export function useMAKPIDataMedicine(filters?: MAApiFilterParams) {
-  const facade = useMAKPIDataBySubmodule('MDCN', filters);
+  const facade = useMAKPIDataMedicineFacade(filters);
   return {
     data: facade.kpiFaceDataById,
     rawData: facade.rawData,
@@ -189,5 +450,272 @@ export function useMAKPIDataMedicine(filters?: MAApiFilterParams) {
 }
 
 export function useMAKPIDataMedicineFacade(filters?: MAApiFilterParams): MAKPIDataFacade {
-  return useMAKPIDataBySubmodule('MDCN', filters);
+  return useMAKPIDataFaceFacade(
+    {
+      fetcher: fetchMAFaceTabularData,
+      cacheKey: maFaceDataCacheKey,
+      submoduleFilter: 'MDCN',
+    },
+    filters
+  );
+}
+
+/** Food MA-KPI-1..4 face values from tabular report /14 (same normalization as Medicine /8). */
+export function useMAKPIDataFoodFacade(filters?: MAApiFilterParams): MAKPIDataFacade {
+  return useMAKPIDataFaceFacade(
+    {
+      fetcher: fetchMAFoodFaceTabularData,
+      cacheKey: maFoodFaceDataCacheKey,
+    },
+    filters
+  );
+}
+
+/** Food Notification MA-KPI-1..4 face values from tabular report /15. */
+export function useMAKPIDataFoodNotificationFacade(
+  filters?: MAApiFilterParams
+): MAKPIDataFacade {
+  return useMAKPIDataFaceFacade(
+    {
+      fetcher: fetchMAFoodNotificationFaceTabularData,
+      cacheKey: maFoodNotificationFaceDataCacheKey,
+    },
+    filters
+  );
+}
+
+/** Medical Device MA-KPI-1..4 face values from tabular report /16. */
+export function useMAKPIDataMedicalDeviceFacade(
+  filters?: MAApiFilterParams
+): MAKPIDataFacade {
+  return useMAKPIDataFaceFacade(
+    {
+      fetcher: fetchMAMedicalDeviceFaceTabularData,
+      cacheKey: maMedicalDeviceFaceDataCacheKey,
+      submoduleFilter: "MD",
+    },
+    filters
+  );
+}
+
+/** Cosmetics MA-KPI-1..3 face values from tabular report /17 (single variation KPI; minor+major → MA-KPI-3). */
+export function useMAKPIDataCosmeticsFacade(filters?: MAApiFilterParams): MAKPIDataFacade {
+  return useMAKPIDataFaceFacade(
+    {
+      fetcher: fetchMACosmeticsFaceTabularData,
+      cacheKey: maCosmeticsFaceDataCacheKey,
+      moduleToKpiMapping: MA_COSMETICS_FACE_MODULE_TO_KPI_MAPPING,
+    },
+    filters
+  );
+}
+
+interface MAKPIDataTimeFacade {
+  kpiTimeDataById: MAKPITimeTransformedData | null;
+  rawData: MAApiResponse<MAApiMedianAverageDataRow> | null;
+  loading: boolean;
+  error: Error | null;
+  warnings: MANormalizeMedianAverageWarning[];
+  metadata: {
+    totalRows: number;
+    filteredRows: number;
+    acceptedRows: number;
+    fetchedAt: string | null;
+  };
+  refetch: () => Promise<void>;
+}
+
+/**
+ * Medicine MA-KPI-6 (median) & MA-KPI-7 (average) from tabular report /26.
+ * Normalizer field mapping will be finalized once the backend response format is confirmed.
+ */
+export function useMAMedicineMedianAverageFaceFacade(
+  filters?: MAApiFilterParams
+): MAKPIDataTimeFacade {
+  const { data: rawData, loading, error, refetch } = useMATabularReportData<MAApiMedianAverageDataRow>(
+    fetchMAMedicineMedianAverageFaceTabularData,
+    filters,
+    true,
+    maMedicineMedianAverageFaceDataCacheKey
+  );
+
+  const transformed = useMemo(() => {
+    if (!rawData?.data?.length) {
+      return {
+        kpiTimeDataById: null,
+        warnings: [] as MANormalizeMedianAverageWarning[],
+        totals: { totalRows: rawData?.data?.length ?? 0, filteredRows: 0, acceptedRows: 0 },
+      };
+    }
+
+    return normalizeMAMedicineMedianAverageFaceData(rawData.data, {
+      submoduleFilter: 'MDCN',
+      moduleFilter: 'NMR',
+    });
+  }, [rawData]);
+
+  useEffect(() => {
+    if (!transformed.warnings.length) return;
+    transformed.warnings.forEach((warning) => {
+      if (warning.code === 'EMPTY_RESULT') return;
+      console.warn(`[MA API /26] ${warning.code}: ${warning.message}`, warning.row ?? {});
+    });
+  }, [transformed.warnings]);
+
+  return {
+    kpiTimeDataById: transformed.kpiTimeDataById,
+    rawData,
+    loading,
+    error,
+    warnings: transformed.warnings,
+    metadata: {
+      totalRows: transformed.totals.totalRows,
+      filteredRows: transformed.totals.filteredRows,
+      acceptedRows: transformed.totals.acceptedRows,
+      fetchedAt: rawData ? new Date().toISOString() : null,
+    },
+    refetch,
+  };
+}
+
+/**
+ * Fetches Medicine MA-KPI-6 median drilldown data from the API (endpoint /27).
+ */
+export function useMAKPI6DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiMedianDrilldownRow>> {
+  return useMATabularReportData<MAApiMedianDrilldownRow>(
+    fetchMAMedicineMedianDrilldownTabularData,
+    filters,
+    enabled,
+    maMedicineMedianDrilldownCacheKey
+  );
+}
+
+/**
+ * Fetches Medicine MA-KPI-7 average drilldown data from the API (endpoint /28).
+ */
+export function useMAKPI7DrilldownData(
+  filters?: MAApiFilterParams,
+  enabled = true
+): UseMAApiState<MAApiResponse<MAApiAverageDrilldownRow>> {
+  return useMATabularReportData<MAApiAverageDrilldownRow>(
+    fetchMAMedicineAverageDrilldownTabularData,
+    filters,
+    enabled,
+    maMedicineAverageDrilldownCacheKey
+  );
+}
+
+interface MAKPIParFaceFacade {
+  parData: MAKPIParTransformedData | null;
+  rawData: MAApiResponse<MAApiDataRow> | null;
+  loading: boolean;
+  error: Error | null;
+  warnings: MANormalizeParWarning[];
+  metadata: {
+    totalRows: number;
+    filteredRows: number;
+    acceptedRows: number;
+    fetchedAt: string | null;
+  };
+  refetch: () => Promise<void>;
+}
+
+function useMAPARFaceFacade(
+  fetcher: MATabularFetcher<MAApiDataRow>,
+  cacheKey: (filters?: MAApiFilterParams) => string,
+  filters?: MAApiFilterParams,
+  enabled = true
+): MAKPIParFaceFacade {
+  const { data: rawData, loading, error, refetch } = useMATabularReportData<MAApiDataRow>(
+    fetcher,
+    filters,
+    enabled,
+    cacheKey
+  );
+
+  const transformed = useMemo(() => {
+    if (!rawData?.data?.length) {
+      return {
+        parData: null as MAKPIParTransformedData | null,
+        warnings: [] as MANormalizeParWarning[],
+        totals: { totalRows: rawData?.data?.length ?? 0, filteredRows: 0, acceptedRows: 0 },
+      };
+    }
+    return normalizeMAPARFaceData(rawData.data);
+  }, [rawData]);
+
+  useEffect(() => {
+    if (!transformed.warnings.length) return;
+    transformed.warnings.forEach((warning) => {
+      if (warning.code === "EMPTY_RESULT") return;
+      console.warn(`[MA API PAR] ${warning.code}: ${warning.message}`, warning.row ?? {});
+    });
+  }, [transformed.warnings]);
+
+  return {
+    parData: transformed.parData,
+    rawData,
+    loading: enabled ? loading : false,
+    error: enabled ? error : null,
+    warnings: transformed.warnings,
+    metadata: {
+      totalRows: transformed.totals.totalRows,
+      filteredRows: transformed.totals.filteredRows,
+      acceptedRows: transformed.totals.acceptedRows,
+      fetchedAt: rawData ? new Date().toISOString() : null,
+    },
+    refetch,
+  };
+}
+
+/** Medicine MA-KPI-8 PAR face from tabular report /29. */
+export function useMAMedicineParFaceFacade(filters?: MAApiFilterParams): MAKPIParFaceFacade {
+  return useMAPARFaceFacade(
+    fetchMAMedicineParFaceTabularData,
+    maMedicineParFaceDataCacheKey,
+    filters,
+    true
+  );
+}
+
+/** Medical Device MA-KPI-8 PAR face from tabular report /30. */
+export function useMAMedicalDeviceParFaceFacade(
+  filters?: MAApiFilterParams,
+  enabled = true
+): MAKPIParFaceFacade {
+  return useMAPARFaceFacade(
+    fetchMAMedicalDeviceParFaceTabularData,
+    maMedicalDeviceParFaceDataCacheKey,
+    filters,
+    enabled
+  );
+}
+
+/** Food MA-KPI-8 PAR face from tabular report /31. */
+export function useMAFoodParFaceFacade(
+  filters?: MAApiFilterParams,
+  enabled = true
+): MAKPIParFaceFacade {
+  return useMAPARFaceFacade(
+    fetchMAFoodParFaceTabularData,
+    maFoodParFaceDataCacheKey,
+    filters,
+    enabled
+  );
+}
+
+/** Cosmetics MA-KPI-8 PAR face from tabular report /32. */
+export function useMACosmeticsParFaceFacade(
+  filters?: MAApiFilterParams,
+  enabled = true
+): MAKPIParFaceFacade {
+  return useMAPARFaceFacade(
+    fetchMACosmeticsParFaceTabularData,
+    maCosmeticsParFaceDataCacheKey,
+    filters,
+    enabled
+  );
 }

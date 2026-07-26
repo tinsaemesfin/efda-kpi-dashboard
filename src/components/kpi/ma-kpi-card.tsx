@@ -2,7 +2,17 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { MALiveIndicator } from "@/components/kpi/ma-live-indicator";
 import { cn } from "@/lib/utils";
+
+type MAKPICardDataAttribution = "live" | "sample" | "none";
+
+export interface MAKPICardModuleBreakdownItem {
+  code: string;
+  label: string;
+  percentage: number;
+}
 
 interface MAKPICardProps {
   kpiCode?: string;
@@ -19,6 +29,22 @@ interface MAKPICardProps {
   active?: boolean;
   compact?: boolean;
   animationDelayMs?: number;
+  /** When true, shows a pulsing skeleton for the full card (no dummy metrics). */
+  isLoading?: boolean;
+  /** When true (and not loading), hides metric chrome and shows an empty-state message. */
+  isEmpty?: boolean;
+  /** Empty card is policy N/A (not missing API metrics). Changes badge/detail copy. */
+  isNotApplicable?: boolean;
+  emptyMessage?: string;
+  /** Live/sample pill in the header — use `live` only when metrics come from the reporting API */
+  dataAttribution?: MAKPICardDataAttribution;
+  /**
+   * When true, KPI is wired to an API-backed face metric but returned no usable row —
+   * show a Live pill so viewers know the empty state is not dummy/sample data.
+   */
+  strictLiveSlotEmpty?: boolean;
+  /** Optional small module percentages under the main value (MA-KPI-8). */
+  moduleBreakdown?: MAKPICardModuleBreakdownItem[];
   onClick?: () => void;
 }
 
@@ -37,6 +63,13 @@ export function MAKPICard({
   active = false,
   compact = false,
   animationDelayMs = 0,
+  isLoading = false,
+  isEmpty = false,
+  isNotApplicable = false,
+  emptyMessage = "No data found",
+  dataAttribution = "none",
+  strictLiveSlotEmpty = false,
+  moduleBreakdown,
   onClick,
 }: MAKPICardProps) {
   const statusColors = {
@@ -46,7 +79,7 @@ export function MAKPICard({
     critical: "bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300",
   };
 
-  const clickable = Boolean(onClick);
+  const clickable = Boolean(onClick) && !isLoading;
   const numericValue = Number(value);
   const safeNumericValue = Number.isFinite(numericValue) ? numericValue : 0;
   const targetValue = suffix === "%" ? 90 : 150;
@@ -63,6 +96,113 @@ export function MAKPICard({
       onClick?.();
     }
   };
+
+  if (isLoading) {
+    return (
+      <Card
+        className={cn(
+          "group relative overflow-hidden border transition-all duration-300",
+          compact ? "min-h-[150px]" : "min-h-[205px]",
+          "animate-in fade-in slide-in-from-bottom-2"
+        )}
+        style={{ animationDelay: `${animationDelayMs}ms` }}
+        aria-busy
+        aria-label={`Loading ${title}`}
+      >
+        <CardHeader className={cn("space-y-2 pb-2", compact && "pb-1")}>
+          <div className="flex items-start justify-between gap-3 relative z-10">
+            <div className="space-y-2 flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {kpiCode && <Skeleton className="h-5 w-20 rounded-md" />}
+              </div>
+              <Skeleton className={cn("h-4 w-full max-w-[220px]", compact && "max-w-[160px]")} />
+            </div>
+            {icon && <Skeleton className="h-6 w-6 shrink-0 rounded-md" />}
+          </div>
+          {!compact && <Skeleton className="h-3 w-full max-w-[280px] mt-1" />}
+        </CardHeader>
+        <CardContent className="space-y-3 relative z-10">
+          <Skeleton className={cn("h-9 w-28", compact && "h-8 w-24")} />
+          <div className={cn("space-y-1", compact && "space-y-0.5")}>
+            <Skeleton className="h-1.5 w-full rounded-full" />
+            {!compact && <Skeleton className="h-3 w-48" />}
+          </div>
+          <Skeleton className="h-4 w-24" />
+          {!compact && <Skeleton className="h-3 w-36" />}
+          <div className="flex items-center justify-between pt-1">
+            <Skeleton className="h-5 w-16 rounded-full" />
+            {!compact && <Skeleton className="h-3 w-24" />}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isEmpty) {
+    return (
+      <Card
+        className={cn(
+          "group relative overflow-hidden border transition-all duration-300 border-dashed border-muted-foreground/25",
+          compact ? "min-h-[150px]" : "min-h-[205px]",
+          "animate-in fade-in slide-in-from-bottom-2 bg-muted/20",
+          clickable &&
+            "cursor-pointer hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary/40"
+        )}
+        style={{ animationDelay: `${animationDelayMs}ms` }}
+        aria-label={`${title}: ${emptyMessage}`}
+        onClick={onClick}
+        onKeyDown={handleKeyDown}
+        role={clickable ? "button" : undefined}
+        tabIndex={clickable ? 0 : -1}
+      >
+        <CardHeader className={cn("space-y-2 pb-2", compact && "pb-1")}>
+          <div className="flex items-start justify-between gap-3 relative z-10">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {kpiCode && (
+                  <span className="inline-flex rounded-md border bg-background/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    {kpiCode}
+                  </span>
+                )}
+                {(strictLiveSlotEmpty || dataAttribution === "live") && (
+                  <MALiveIndicator variant="live" compact={compact} />
+                )}
+              </div>
+              <CardTitle className={cn("font-semibold leading-5", compact ? "text-xs" : "text-sm")}>
+                {title}
+              </CardTitle>
+            </div>
+            {icon && <div className="mt-1 text-muted-foreground">{icon}</div>}
+          </div>
+          {!compact && description && <CardDescription className="text-xs">{description}</CardDescription>}
+        </CardHeader>
+        <CardContent className="space-y-3 relative z-10">
+          <p
+            className={cn(
+              "font-medium text-muted-foreground",
+              compact ? "text-base" : "text-lg"
+            )}
+          >
+            {emptyMessage}
+          </p>
+          {!compact && !isNotApplicable && (
+            <p className="text-[11px] text-muted-foreground">
+              No metrics were returned for this KPI for the selected filters.
+            </p>
+          )}
+          {!compact && helperText && <p className="text-xs text-muted-foreground">{helperText}</p>}
+          <div className="flex items-center justify-between gap-2 pt-1">
+            <Badge variant="outline" className="text-[10px] text-muted-foreground">
+              {isNotApplicable ? "N/A" : "No data"}
+            </Badge>
+            {clickable && !compact && (
+              <span className="text-[11px] text-muted-foreground">Click to drill down</span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card
@@ -84,11 +224,19 @@ export function MAKPICard({
       <CardHeader className={cn("space-y-2 pb-2", compact && "pb-1")}>
         <div className="flex items-start justify-between gap-3 relative z-10">
           <div className="space-y-2">
-            {kpiCode && (
-              <span className="inline-flex rounded-md border bg-background/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                {kpiCode}
-              </span>
-            )}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {kpiCode && (
+                <span className="inline-flex rounded-md border bg-background/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  {kpiCode}
+                </span>
+              )}
+              {dataAttribution === "live" && (
+                <MALiveIndicator variant="live" compact={compact} />
+              )}
+              {dataAttribution === "sample" && (
+                <MALiveIndicator variant="sample" compact={compact} />
+              )}
+            </div>
             <CardTitle className={cn("font-semibold leading-5", compact ? "text-xs" : "text-sm")}>
               {title}
             </CardTitle>
@@ -103,6 +251,34 @@ export function MAKPICard({
           {value}
           {suffix}
         </div>
+        {moduleBreakdown && moduleBreakdown.length > 0 && (
+          <div
+            className={cn(
+              "grid grid-cols-4 gap-1.5",
+              compact ? "pt-0.5" : "pt-1"
+            )}
+          >
+            {moduleBreakdown.map((item) => (
+              <div
+                key={item.code}
+                className="rounded-md border border-border/60 bg-muted/30 px-1 py-1 text-center"
+                title={`${item.label}: ${item.percentage.toFixed(1)}%`}
+              >
+                <div className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {item.code}
+                </div>
+                <div
+                  className={cn(
+                    "font-semibold tabular-nums text-foreground",
+                    compact ? "text-[11px]" : "text-xs"
+                  )}
+                >
+                  {item.percentage.toFixed(1)}%
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         <div className={cn("space-y-1", compact && "space-y-0.5")}>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div

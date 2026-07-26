@@ -1,0 +1,138 @@
+import type { MAApiFilterParams } from '@/types/ma-api';
+
+/** Client-side cache TTL for MA tabular API responses (face + drilldown). */
+export const MA_API_CACHE_TTL_MS = 10 * 60 * 1000;
+
+type CacheBucket<T> = { body: T; expiresAt: number };
+
+const store = new Map<string, CacheBucket<unknown>>();
+
+function stableFiltersKey(filters?: MAApiFilterParams): string {
+  return JSON.stringify(filters ?? null);
+}
+
+export function maFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-face:${stableFiltersKey(filters)}`;
+}
+
+export function maFoodFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-food-face:${stableFiltersKey(filters)}`;
+}
+
+export function maFoodNotificationFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-food-notification-face:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicalDeviceFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medical-device-face:${stableFiltersKey(filters)}`;
+}
+
+export function maCosmeticsFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-cosmetics-face:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicineMedianAverageFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medicine-median-average-face:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicineMedianDrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medicine-median-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicineAverageDrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medicine-average-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maKpi1DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-kpi1-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maFoodKpi1DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-food-kpi1-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maFoodKpi2DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-food-kpi2-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maFoodKpi3DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-food-kpi3-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maFoodKpi4DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-food-kpi4-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maKpi2DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-kpi2-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maKpi3DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-kpi3-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maKpi4DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-kpi4-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicalDeviceKpi1DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medical-device-kpi1-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicalDeviceKpi2DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medical-device-kpi2-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicalDeviceKpi3DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medical-device-kpi3-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicalDeviceKpi4DrilldownCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medical-device-kpi4-dd:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicineParFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medicine-par-face:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicalDeviceParFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medical-device-par-face:${stableFiltersKey(filters)}`;
+}
+
+export function maFoodParFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-food-par-face:${stableFiltersKey(filters)}`;
+}
+
+export function maCosmeticsParFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-cosmetics-par-face:${stableFiltersKey(filters)}`;
+}
+
+export function peekMaApiCache<T>(key: string): T | null {
+  const hit = store.get(key) as CacheBucket<T> | undefined;
+  if (!hit || hit.expiresAt <= Date.now()) {
+    if (hit && hit.expiresAt <= Date.now()) store.delete(key);
+    return null;
+  }
+  return hit.body;
+}
+
+function setMaApiCache<T>(key: string, body: T): void {
+  store.set(key, { body, expiresAt: Date.now() + MA_API_CACHE_TTL_MS });
+}
+
+/**
+ * Returns cached data when fresh and force is false; otherwise runs fetcher and refreshes the cache.
+ */
+export async function getOrFetchMaApiCache<T>(
+  key: string,
+  force: boolean,
+  fetcher: () => Promise<T>
+): Promise<T> {
+  if (!force) {
+    const cached = peekMaApiCache<T>(key);
+    if (cached !== null) return cached;
+  }
+  const fresh = await fetcher();
+  setMaApiCache(key, fresh);
+  return fresh;
+}

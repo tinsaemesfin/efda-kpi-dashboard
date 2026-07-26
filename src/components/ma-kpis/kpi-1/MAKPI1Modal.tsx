@@ -27,7 +27,7 @@ import {
   YAxis,
 } from "recharts";
 import { useKPI1Data } from "./hooks/useKPI1Data";
-import { useMAKPI1DrilldownData } from "@/hooks/useMAApi";
+import { useMAFoodKPI1DrilldownData, useMAKPI1DrilldownData } from "@/hooks/useMAApi";
 
 interface MAKPI1ModalProps {
   open: boolean;
@@ -73,7 +73,7 @@ export function MAKPI1Modal({ open, onOpenChange }: MAKPI1ModalProps) {
     loading: foodLoading,
     error: foodError,
     refetch: refetchFoodDrilldown,
-  } = useMAKPI1DrilldownData(undefined, open && isFoodSelected);
+  } = useMAFoodKPI1DrilldownData(undefined, open && isFoodSelected);
   const {
     data: foodNotificationDrilldownData,
     loading: foodNotificationLoading,

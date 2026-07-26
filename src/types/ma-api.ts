@@ -8,6 +8,17 @@ export type MAModuleCode = 'NMR' | 'REN' | 'VMIN' | 'VMAJ' | 'VAR';
 export type MAApiModuleCode = MAModuleCode | 'IMR' | 'IEN' | 'IAR' | (string & {});
 export type MASubmoduleTypeCode = 'MDCN' | 'FD' | 'FNT' | 'MD' | 'CO' | (string & {});
 export type MAKPIId = 'MA-KPI-1' | 'MA-KPI-2' | 'MA-KPI-3' | 'MA-KPI-4';
+/** Time-based face KPIs from tabular report /26 (Medicine median & average). */
+export type MAKPITimeId = 'MA-KPI-6' | 'MA-KPI-7';
+/** PAR face KPI from tabular reports /29–/32. */
+export type MAKPIParId = 'MA-KPI-8';
+export type MAParModuleCode = 'NMR' | 'REN' | 'VMIN' | 'VMAJ';
+export const MA_PAR_MODULE_ORDER: readonly MAParModuleCode[] = [
+  'NMR',
+  'REN',
+  'VMIN',
+  'VMAJ',
+] as const;
 export type MAModuleToKpiMapping = Record<string, MAKPIId>;
 
 export interface MAApiDataRow {
@@ -20,6 +31,20 @@ export interface MAApiDataRow {
   percentage: number;
 }
 
+/**
+ * Raw row from tabular report /26 (Medicine MA median & average face data).
+ * One row per metric: "Median Decision Time" (MA-KPI-6) and "Average Decision Time" (MA-KPI-7).
+ */
+export interface MAApiMedianAverageDataRow {
+  rowNumber?: number;
+  module_code: MAApiModuleCode;
+  submoduletype_code: MASubmoduleTypeCode;
+  target_days?: number;
+  metric: string;
+  total_count: number;
+  decision_time_in_days: number;
+}
+
 export interface MAApiDrilldownRow {
   rowNumber?: number;
   category_name: string;
@@ -30,6 +55,39 @@ export interface MAApiDrilldownRow {
   total_count: number;
   percentage: number;
   avg_processing_days?: number | null;
+}
+
+/** Shared base fields for tabular reports /27 (median) and /28 (average) drilldowns. */
+export interface MAApiTimeDrilldownRowBase {
+  rowNumber?: number;
+  category_name: string;
+  category_value: string;
+  module_code: MAApiModuleCode;
+  target_days?: number;
+  on_time_count: number;
+  total_count: number;
+  percentage: number;
+}
+
+/** Tabular report /27 — median decision time drilldown. */
+export interface MAApiMedianDrilldownRow extends MAApiTimeDrilldownRowBase {
+  median_decision_days?: number | null;
+  overall_median_days?: number | null;
+  p25_days?: number | null;
+  p75_days?: number | null;
+  p90_days?: number | null;
+  iqr_days?: number | null;
+  mean_median_skew_days?: number | null;
+}
+
+/** Tabular report /28 — average decision time drilldown. */
+export interface MAApiAverageDrilldownRow extends MAApiTimeDrilldownRowBase {
+  avg_decision_days?: number | null;
+  overall_avg_days?: number | null;
+  gap_vs_overall_avg_days?: number | null;
+  max_decision_days?: number | null;
+  extreme_outlier_count?: number | null;
+  extreme_outlier_pct?: number | null;
 }
 
 export interface MAApiResponse<T = MAApiDataRow> {
@@ -59,6 +117,55 @@ export interface MAKPITransformedRow {
 
 /** Per–KPI data keyed by MA-KPI-1..4 that can be backed by face API data */
 export type MAKPITransformedData = Record<MAKPIId, MAKPITransformedRow>;
+
+/** Transformed time KPI row for MA-KPI-6 (median) and MA-KPI-7 (average). */
+export interface MAKPITimeTransformedRow {
+  median?: number;
+  average?: number;
+  numerator?: number;
+  denominator?: number;
+}
+
+export type MAKPITimeTransformedData = Partial<Record<MAKPITimeId, MAKPITimeTransformedRow>>;
+
+/** One module slot on the MA-KPI-8 PAR face card. */
+export interface MAKPIParModuleBreakdownItem {
+  code: MAParModuleCode;
+  label: string;
+  numerator: number;
+  denominator: number;
+  percentage: number;
+}
+
+/** Aggregated PAR face: overall total + fixed NMR/REN/VMIN/VMAJ breakdown. */
+export interface MAKPIParTransformedData {
+  numerator: number;
+  denominator: number;
+  percentage: number;
+  targetDays?: number;
+  modules: MAKPIParModuleBreakdownItem[];
+}
+
+export interface MANormalizeParWarning {
+  code:
+    | 'MISSING_REQUIRED_FIELD'
+    | 'UNKNOWN_MODULE_CODE'
+    | 'INVALID_NUMERIC_VALUE'
+    | 'EMPTY_RESULT';
+  message: string;
+  rowIndex?: number;
+  row?: MAApiDataRow;
+}
+
+export interface MANormalizeParResult {
+  parData: MAKPIParTransformedData | null;
+  warnings: MANormalizeParWarning[];
+  totals: {
+    totalRows: number;
+    filteredRows: number;
+    acceptedRows: number;
+  };
+}
 
 /** Module code → KPI id */
 export const MODULE_CODE_TO_KPI: Record<MAModuleCode, string> = {
@@ -112,6 +219,28 @@ export interface MANormalizeOptions {
 export interface MANormalizeResult {
   kpiFaceDataById: Partial<MAKPITransformedData>;
   warnings: MANormalizationWarning[];
+  totals: {
+    totalRows: number;
+    filteredRows: number;
+    acceptedRows: number;
+  };
+}
+
+export interface MANormalizeMedianAverageWarning {
+  code:
+    | 'MISSING_REQUIRED_FIELD'
+    | 'UNKNOWN_KPI_CODE'
+    | 'INVALID_NUMERIC_VALUE'
+    | 'EMPTY_RESULT'
+    | 'FORMAT_PENDING';
+  message: string;
+  rowIndex?: number;
+  row?: MAApiMedianAverageDataRow;
+}
+
+export interface MANormalizeMedianAverageResult {
+  kpiTimeDataById: MAKPITimeTransformedData;
+  warnings: MANormalizeMedianAverageWarning[];
   totals: {
     totalRows: number;
     filteredRows: number;

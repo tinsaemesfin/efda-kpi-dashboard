@@ -19,9 +19,10 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-function resolveModuleCode(
+/** Uppercases `module_code` and applies MA alias rules (e.g. IAR → VMIN). */
+export function resolveMAModuleCode(
   moduleCode: string,
-  aliases: Record<string, string>
+  aliases: Record<string, string> = MA_MODULE_CODE_ALIASES
 ): string {
   const upperModuleCode = moduleCode.toUpperCase();
   return aliases[upperModuleCode] ?? upperModuleCode;
@@ -72,7 +73,7 @@ export function normalizeMAFaceData(
       return;
     }
 
-    const canonicalModuleCode = resolveModuleCode(String(row.module_code), moduleCodeAliases);
+    const canonicalModuleCode = resolveMAModuleCode(String(row.module_code), moduleCodeAliases);
     const kpiId = moduleToKpi[canonicalModuleCode];
     if (!kpiId) {
       warnings.push({

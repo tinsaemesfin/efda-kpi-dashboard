@@ -24,17 +24,21 @@ export function DashboardHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-14 items-center gap-4 px-4">
-        <SidebarTrigger />
+    <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur-md supports-backdrop-filter:bg-background/70">
+      <div className="flex h-16 items-center gap-3 px-4 md:gap-4 md:px-6">
+        <SidebarTrigger className="size-9 cursor-pointer focus-visible:ring-2 focus-visible:ring-ring" />
 
-        <div className="flex-1 flex items-center gap-4">
-          <div className="relative max-w-md flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <div className="flex min-w-0 flex-1 items-center gap-4">
+          <div className="relative w-full max-w-md">
+            <label htmlFor="global-dashboard-search" className="sr-only">
+              Search KPIs and reports
+            </label>
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <Input
+              id="global-dashboard-search"
               type="search"
-              placeholder="Search KPIs, reports..."
-              className="pl-8"
+              placeholder="KPIs, reports…"
+              className="h-10 rounded-lg bg-muted/50 pl-9 focus-visible:ring-2"
             />
           </div>
         </div>
@@ -43,7 +47,11 @@ export function DashboardHeader() {
           {isAuthenticated && profile ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Button
+                  variant="ghost"
+                  className="relative h-10 w-10 cursor-pointer rounded-full focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label="Open user menu"
+                >
                   <Avatar className="h-8 w-8">
                     <AvatarImage src="" alt={profile.given_name || profile.email || 'User'} />
                     <AvatarFallback>
@@ -72,7 +80,7 @@ export function DashboardHeader() {
                   Profile
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>
