@@ -16,18 +16,23 @@ import {
 } from "@/data/ma-dummy-data";
 import { maDrillDownData } from "@/data/ma-drilldown-data";
 import {
+  useMACosmeticsParFaceFacade,
+  useMAFoodParFaceFacade,
   useMAKPIDataCosmeticsFacade,
   useMAKPIDataFoodFacade,
   useMAKPIDataFoodNotificationFacade,
   useMAKPIDataMedicalDeviceFacade,
   useMAKPIDataMedicineFacade,
+  useMAMedicalDeviceParFaceFacade,
   useMAMedicineMedianAverageFaceFacade,
+  useMAMedicineParFaceFacade,
 } from "@/hooks/useMAApi";
 import {
   mergeCosmeticsCardsWithStrictFaceData,
   mergeFoodCardsWithStrictFaceData,
   mergeMedicalDeviceCardsWithStrictFaceData,
   mergeMedicineCardsWithAllFaceData,
+  mergeParCardsWithStrictFaceData,
 } from "@/lib/ma-api/merge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,6 +89,7 @@ const getStatus = (
 
 const API_KPI_IDS = ["MA-KPI-1", "MA-KPI-2", "MA-KPI-3", "MA-KPI-4"] as const;
 const MEDICINE_TIME_KPI_IDS = ["MA-KPI-6", "MA-KPI-7"] as const;
+const PAR_KPI_IDS = ["MA-KPI-8"] as const;
 
 /** Face API: Cosmetics only — KPI 1–3 (variation aggregates into MA-KPI-3). */
 const COSMETICS_FACE_KPI_IDS = ["MA-KPI-1", "MA-KPI-2", "MA-KPI-3"] as const;
@@ -94,6 +100,10 @@ function isApiKpiId(kpiId: string): kpiId is MAKPIId {
 
 function isMedicineTimeKpiId(kpiId: string): kpiId is (typeof MEDICINE_TIME_KPI_IDS)[number] {
   return MEDICINE_TIME_KPI_IDS.includes(kpiId as (typeof MEDICINE_TIME_KPI_IDS)[number]);
+}
+
+function isParKpiId(kpiId: string): boolean {
+  return PAR_KPI_IDS.includes(kpiId as (typeof PAR_KPI_IDS)[number]);
 }
 
 function isCosmeticsThreeSlotFaceKpi(drilldownId: string): boolean {
@@ -157,6 +167,34 @@ export default function MarketAuthorizationsPage() {
     metadata: apiCosmeticsMetadata,
   } = useMAKPIDataCosmeticsFacade();
 
+  const {
+    parData: apiMedicineParData,
+    loading: apiMedicineParLoading,
+    error: apiMedicineParError,
+    metadata: apiMedicineParMetadata,
+  } = useMAMedicineParFaceFacade();
+
+  const {
+    parData: apiMedicalDeviceParData,
+    loading: apiMedicalDeviceParLoading,
+    error: apiMedicalDeviceParError,
+    metadata: apiMedicalDeviceParMetadata,
+  } = useMAMedicalDeviceParFaceFacade();
+
+  const {
+    parData: apiFoodParData,
+    loading: apiFoodParLoading,
+    error: apiFoodParError,
+    metadata: apiFoodParMetadata,
+  } = useMAFoodParFaceFacade();
+
+  const {
+    parData: apiCosmeticsParData,
+    loading: apiCosmeticsParLoading,
+    error: apiCosmeticsParError,
+    metadata: apiCosmeticsParMetadata,
+  } = useMACosmeticsParFaceFacade();
+
   const isFoodFrontApiView =
     activeProduct === "food" && activeFoodSubTab === "food";
   const isFoodNotificationFaceApiView =
@@ -169,23 +207,37 @@ export default function MarketAuthorizationsPage() {
       ? foodSubTabs.find((tab) => tab.key === activeFoodSubTab)?.label ?? "Food"
       : productTabs.find((tab) => tab.key === activeProduct)?.label;
 
-  /** Medicine: merge API /8 (KPI 1–4) and /26 (KPI 6–7); others use seed only */
+  /** Medicine: /8 (KPI 1–4), /26 (KPI 6–7), /29 (KPI 8 PAR); Food/MD/CO also merge PAR faces. */
   const mergedCards = useMemo(() => {
     const seedCards = activeSeed.cards;
     if (activeProduct === "medicine") {
-      return mergeMedicineCardsWithAllFaceData(seedCards, apiMedicineData, apiMedicineTimeData);
+      return mergeMedicineCardsWithAllFaceData(
+        seedCards,
+        apiMedicineData,
+        apiMedicineTimeData,
+        apiMedicineParData
+      );
     }
     if (isFoodFrontApiView) {
-      return mergeFoodCardsWithStrictFaceData(seedCards, apiFoodData);
+      return mergeParCardsWithStrictFaceData(
+        mergeFoodCardsWithStrictFaceData(seedCards, apiFoodData),
+        apiFoodParData
+      );
     }
     if (isFoodNotificationFaceApiView) {
       return mergeFoodCardsWithStrictFaceData(seedCards, apiFoodNotificationData);
     }
     if (isMedicalDeviceFaceApiView) {
-      return mergeMedicalDeviceCardsWithStrictFaceData(seedCards, apiMedicalDeviceData);
+      return mergeParCardsWithStrictFaceData(
+        mergeMedicalDeviceCardsWithStrictFaceData(seedCards, apiMedicalDeviceData),
+        apiMedicalDeviceParData
+      );
     }
     if (isCosmeticsFaceApiView) {
-      return mergeCosmeticsCardsWithStrictFaceData(seedCards, apiCosmeticsData);
+      return mergeParCardsWithStrictFaceData(
+        mergeCosmeticsCardsWithStrictFaceData(seedCards, apiCosmeticsData),
+        apiCosmeticsParData
+      );
     }
     return seedCards;
   }, [
@@ -193,10 +245,14 @@ export default function MarketAuthorizationsPage() {
     activeSeed.cards,
     apiMedicineData,
     apiMedicineTimeData,
+    apiMedicineParData,
     apiFoodData,
+    apiFoodParData,
     apiFoodNotificationData,
     apiMedicalDeviceData,
+    apiMedicalDeviceParData,
     apiCosmeticsData,
+    apiCosmeticsParData,
     isFoodFrontApiView,
     isFoodNotificationFaceApiView,
     isMedicalDeviceFaceApiView,
@@ -474,24 +530,24 @@ export default function MarketAuthorizationsPage() {
               <div className="flex min-w-0 flex-col gap-3 border-t border-border/60 pt-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                 <p className="min-w-0 flex-1 text-pretty text-xs leading-relaxed text-muted-foreground">
                   {activeProduct === "medicine"
-                    ? "Medicine: KPI 1–4 use live API (/8); KPI 6–7 (median & average) use live API (/26). Drilldowns: KPI 1 /9, KPI 2 /10, KPI 3 /11, KPI 4 /13, KPI 6 /27, KPI 7 /28. ".concat(
-                        `/8 rows: ${apiMedicineMetadata.acceptedRows}/${apiMedicineMetadata.filteredRows} accepted. /26 rows: ${apiMedicineTimeMetadata.acceptedRows}/${apiMedicineTimeMetadata.filteredRows} accepted.`
+                    ? "Medicine: KPI 1–4 /8; KPI 6–7 /26; KPI 8 PAR /29. Drilldowns: KPI 1 /9, KPI 2 /10, KPI 3 /11, KPI 4 /13, KPI 6 /27, KPI 7 /28. ".concat(
+                        `/8: ${apiMedicineMetadata.acceptedRows}/${apiMedicineMetadata.filteredRows}. /26: ${apiMedicineTimeMetadata.acceptedRows}/${apiMedicineTimeMetadata.filteredRows}. /29: ${apiMedicineParMetadata.acceptedRows}/${apiMedicineParMetadata.filteredRows}.`
                       )
                     : isFoodFrontApiView
-                      ? "Food: KPI 1–4 card values use live API (/14). Drilldowns: KPI 1 /18, KPI 2 /19, KPI 3 /20, KPI 4 /21. ".concat(
-                          `Rows accepted: ${apiFoodMetadata.acceptedRows}/${apiFoodMetadata.filteredRows} filtered (${apiFoodMetadata.totalRows} total).`
+                      ? "Food: KPI 1–4 /14; KPI 8 PAR /31. Drilldowns: KPI 1 /18, KPI 2 /19, KPI 3 /20, KPI 4 /21. ".concat(
+                          `/14: ${apiFoodMetadata.acceptedRows}/${apiFoodMetadata.filteredRows}. /31: ${apiFoodParMetadata.acceptedRows}/${apiFoodParMetadata.filteredRows}.`
                         )
                       : isFoodNotificationFaceApiView
                         ? "Food Notification: KPI 1–4 card values use live API (/15). Drilldowns unchanged (KPI 1 /9 … KPI 4 /13). ".concat(
                             `Rows accepted: ${apiFoodNotificationMetadata.acceptedRows}/${apiFoodNotificationMetadata.filteredRows} filtered (${apiFoodNotificationMetadata.totalRows} total).`
                           )
                         : isMedicalDeviceFaceApiView
-                          ? "Medical Device: KPI 1–4 card values use live API (/16); `VMIN` → minor variation, `VMAJ` → major variation. KPI 5+ remain seeded. Drilldowns: KPI 1 /22, KPI 2 /23, KPI 3 /24, KPI 4 /25. ".concat(
-                              `Rows accepted: ${apiMedicalDeviceMetadata.acceptedRows}/${apiMedicalDeviceMetadata.filteredRows} filtered (${apiMedicalDeviceMetadata.totalRows} total).`
+                          ? "Medical Device: KPI 1–4 /16; KPI 8 PAR /30. Drilldowns: KPI 1 /22, KPI 2 /23, KPI 3 /24, KPI 4 /25. ".concat(
+                              `/16: ${apiMedicalDeviceMetadata.acceptedRows}/${apiMedicalDeviceMetadata.filteredRows}. /30: ${apiMedicalDeviceParMetadata.acceptedRows}/${apiMedicalDeviceParMetadata.filteredRows}.`
                             )
                           : isCosmeticsFaceApiView
-                            ? "Cosmetics: New, renewal, and combined variation face values use live API (/17). Minor and major variation rows aggregate into MA-KPI-3. KPI 5+ remain seeded. Drilldowns: KPI 1 /9, KPI 2 /10, KPI 3 /11, KPI 4 /13. ".concat(
-                                `Rows accepted: ${apiCosmeticsMetadata.acceptedRows}/${apiCosmeticsMetadata.filteredRows} filtered (${apiCosmeticsMetadata.totalRows} total).`
+                            ? "Cosmetics: KPI 1–3 /17; KPI 8 PAR /32. Variation rows aggregate into MA-KPI-3. ".concat(
+                                `/17: ${apiCosmeticsMetadata.acceptedRows}/${apiCosmeticsMetadata.filteredRows}. /32: ${apiCosmeticsParMetadata.acceptedRows}/${apiCosmeticsParMetadata.filteredRows}.`
                               )
                             : "Filters apply when API is wired for this product."}
                 </p>
@@ -512,23 +568,31 @@ export default function MarketAuthorizationsPage() {
           </div>
 
           {(warningMessage ||
-            (activeProduct === "medicine" && (apiMedicineError || apiMedicineTimeError)) ||
-            (isFoodFrontApiView && apiFoodError) ||
+            (activeProduct === "medicine" &&
+              (apiMedicineError || apiMedicineTimeError || apiMedicineParError)) ||
+            (isFoodFrontApiView && (apiFoodError || apiFoodParError)) ||
             (isFoodNotificationFaceApiView && apiFoodNotificationError) ||
-            (isMedicalDeviceFaceApiView && apiMedicalDeviceError) ||
-            (isCosmeticsFaceApiView && apiCosmeticsError)) && (
+            (isMedicalDeviceFaceApiView && (apiMedicalDeviceError || apiMedicalDeviceParError)) ||
+            (isCosmeticsFaceApiView && (apiCosmeticsError || apiCosmeticsParError))) && (
             <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/20">
               <CardContent className="pt-4 text-sm text-amber-800 dark:text-amber-200">
-                {activeProduct === "medicine" && (apiMedicineError || apiMedicineTimeError)
-                  ? [apiMedicineError?.message, apiMedicineTimeError?.message].filter(Boolean).join(" · ")
-                  : isFoodFrontApiView && apiFoodError
-                    ? apiFoodError.message
+                {activeProduct === "medicine" &&
+                (apiMedicineError || apiMedicineTimeError || apiMedicineParError)
+                  ? [apiMedicineError?.message, apiMedicineTimeError?.message, apiMedicineParError?.message]
+                      .filter(Boolean)
+                      .join(" · ")
+                  : isFoodFrontApiView && (apiFoodError || apiFoodParError)
+                    ? [apiFoodError?.message, apiFoodParError?.message].filter(Boolean).join(" · ")
                     : isFoodNotificationFaceApiView && apiFoodNotificationError
                       ? apiFoodNotificationError.message
-                      : isMedicalDeviceFaceApiView && apiMedicalDeviceError
-                        ? apiMedicalDeviceError.message
-                        : isCosmeticsFaceApiView && apiCosmeticsError
-                          ? apiCosmeticsError.message
+                      : isMedicalDeviceFaceApiView && (apiMedicalDeviceError || apiMedicalDeviceParError)
+                        ? [apiMedicalDeviceError?.message, apiMedicalDeviceParError?.message]
+                            .filter(Boolean)
+                            .join(" · ")
+                        : isCosmeticsFaceApiView && (apiCosmeticsError || apiCosmeticsParError)
+                          ? [apiCosmeticsError?.message, apiCosmeticsParError?.message]
+                              .filter(Boolean)
+                              .join(" · ")
                           : warningMessage}
               </CardContent>
             </Card>
@@ -540,11 +604,13 @@ export default function MarketAuthorizationsPage() {
               <span className="font-medium text-foreground">
                 {activeProductLabel}
               </span>
-              {(activeProduct === "medicine" && (apiMedicineLoading || apiMedicineTimeLoading)) ||
-              (isFoodFrontApiView && apiFoodLoading) ||
+              {(activeProduct === "medicine" &&
+                (apiMedicineLoading || apiMedicineTimeLoading || apiMedicineParLoading)) ||
+              (isFoodFrontApiView && (apiFoodLoading || apiFoodParLoading)) ||
               (isFoodNotificationFaceApiView && apiFoodNotificationLoading) ||
-              (isMedicalDeviceFaceApiView && apiMedicalDeviceLoading) ||
-              (isCosmeticsFaceApiView && apiCosmeticsLoading) ? (
+              (isMedicalDeviceFaceApiView &&
+                (apiMedicalDeviceLoading || apiMedicalDeviceParLoading)) ||
+              (isCosmeticsFaceApiView && (apiCosmeticsLoading || apiCosmeticsParLoading)) ? (
                 <Loader2Icon className="h-4 w-4 animate-spin text-muted-foreground" aria-hidden />
               ) : null}
             </p>
@@ -588,16 +654,26 @@ export default function MarketAuthorizationsPage() {
                 (activeProduct === "medicine" &&
                   isMedicineTimeKpiId(card.drilldownId) &&
                   apiMedicineTimeLoading) ||
+                (activeProduct === "medicine" &&
+                  isParKpiId(card.drilldownId) &&
+                  apiMedicineParLoading) ||
                 (isFoodFrontApiView && isApiKpiId(card.drilldownId) && apiFoodLoading) ||
+                (isFoodFrontApiView && isParKpiId(card.drilldownId) && apiFoodParLoading) ||
                 (isFoodNotificationFaceApiView &&
                   isApiKpiId(card.drilldownId) &&
                   apiFoodNotificationLoading) ||
                 (isMedicalDeviceFaceApiView &&
                   isApiKpiId(card.drilldownId) &&
                   apiMedicalDeviceLoading) ||
+                (isMedicalDeviceFaceApiView &&
+                  isParKpiId(card.drilldownId) &&
+                  apiMedicalDeviceParLoading) ||
                 (isCosmeticsFaceApiView &&
                   isCosmeticsThreeSlotFaceKpi(card.drilldownId) &&
-                  apiCosmeticsLoading);
+                  apiCosmeticsLoading) ||
+                (isCosmeticsFaceApiView &&
+                  isParKpiId(card.drilldownId) &&
+                  apiCosmeticsParLoading);
               const apiKpi14StrictEmpty =
                 activeProduct === "medicine" &&
                 isApiKpiId(card.drilldownId) &&
@@ -606,6 +682,13 @@ export default function MarketAuthorizationsPage() {
                 activeProduct === "medicine" &&
                 isMedicineTimeKpiId(card.drilldownId) &&
                 Boolean(card.faceDataMissing);
+              const strictParFaceEmpty =
+                isParKpiId(card.drilldownId) &&
+                Boolean(card.faceDataMissing) &&
+                (activeProduct === "medicine" ||
+                  isFoodFrontApiView ||
+                  isMedicalDeviceFaceApiView ||
+                  isCosmeticsFaceApiView);
               const strictFoodFaceEmpty =
                 (isFoodFrontApiView || isFoodNotificationFaceApiView) &&
                 isApiKpiId(card.drilldownId) &&
@@ -621,6 +704,7 @@ export default function MarketAuthorizationsPage() {
               const cardIsEmpty =
                 apiKpi14StrictEmpty ||
                 apiMedicineTimeStrictEmpty ||
+                strictParFaceEmpty ||
                 strictFoodFaceEmpty ||
                 strictMedicalDeviceFaceEmpty ||
                 strictCosmeticsFaceEmpty ||
@@ -629,17 +713,24 @@ export default function MarketAuthorizationsPage() {
                 !maFacePending &&
                 !cardIsEmpty &&
                 ((activeProduct === "medicine" &&
-                  (isApiKpiId(card.drilldownId) || isMedicineTimeKpiId(card.drilldownId))) ||
-                  ((isFoodFrontApiView || isFoodNotificationFaceApiView) &&
-                    isApiKpiId(card.drilldownId)) ||
-                  (isMedicalDeviceFaceApiView && isApiKpiId(card.drilldownId)) ||
-                  (isCosmeticsFaceApiView && isCosmeticsThreeSlotFaceKpi(card.drilldownId)));
+                  (isApiKpiId(card.drilldownId) ||
+                    isMedicineTimeKpiId(card.drilldownId) ||
+                    isParKpiId(card.drilldownId))) ||
+                  (isFoodFrontApiView &&
+                    (isApiKpiId(card.drilldownId) || isParKpiId(card.drilldownId))) ||
+                  (isFoodNotificationFaceApiView && isApiKpiId(card.drilldownId)) ||
+                  (isMedicalDeviceFaceApiView &&
+                    (isApiKpiId(card.drilldownId) || isParKpiId(card.drilldownId))) ||
+                  (isCosmeticsFaceApiView &&
+                    (isCosmeticsThreeSlotFaceKpi(card.drilldownId) ||
+                      isParKpiId(card.drilldownId))));
               const showsSampleMetric = !maFacePending && !cardIsEmpty && !showsLiveFaceMetric;
               const strictLiveSlotEmpty =
                 cardIsEmpty &&
                 !card.notApplicableReason &&
                 (apiKpi14StrictEmpty ||
                   apiMedicineTimeStrictEmpty ||
+                  strictParFaceEmpty ||
                   strictFoodFaceEmpty ||
                   strictMedicalDeviceFaceEmpty ||
                   strictCosmeticsFaceEmpty);
@@ -660,6 +751,7 @@ export default function MarketAuthorizationsPage() {
                   numerator={card.numerator}
                   denominator={card.denominator}
                   helperText={helperText}
+                  moduleBreakdown={card.moduleBreakdown}
                   dataAttribution={
                     showsLiveFaceMetric ? "live" : showsSampleMetric ? "sample" : "none"
                   }

@@ -11,6 +11,10 @@ import {
   MA_TABULAR_MEDICINE_MEDIAN_AVERAGE_FACE_REPORT_ID,
   MA_TABULAR_MEDICINE_MEDIAN_DRILLDOWN_REPORT_ID,
   MA_TABULAR_MEDICINE_AVERAGE_DRILLDOWN_REPORT_ID,
+  MA_TABULAR_MEDICINE_PAR_FACE_REPORT_ID,
+  MA_TABULAR_MEDICAL_DEVICE_PAR_FACE_REPORT_ID,
+  MA_TABULAR_FOOD_PAR_FACE_REPORT_ID,
+  MA_TABULAR_COSMETICS_PAR_FACE_REPORT_ID,
   MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID,
   MA_TABULAR_KPI2_DRILLDOWN_REPORT_ID,
   MA_TABULAR_KPI3_DRILLDOWN_REPORT_ID,
@@ -62,5 +66,15 @@ describe("MA tabular report ids", () => {
     expect(
       buildMATabularUrl("https://example.test/api/kpi", MA_TABULAR_MEDICINE_AVERAGE_DRILLDOWN_REPORT_ID)
     ).toBe("https://example.test/api/kpi/tabular/28");
+  });
+
+  it("uses reports 29–32 for PAR / MA-KPI-8 face data by product", () => {
+    expect(MA_TABULAR_MEDICINE_PAR_FACE_REPORT_ID).toBe(29);
+    expect(MA_TABULAR_MEDICAL_DEVICE_PAR_FACE_REPORT_ID).toBe(30);
+    expect(MA_TABULAR_FOOD_PAR_FACE_REPORT_ID).toBe(31);
+    expect(MA_TABULAR_COSMETICS_PAR_FACE_REPORT_ID).toBe(32);
+    expect(
+      buildMATabularUrl("https://example.test/api/kpi", MA_TABULAR_MEDICINE_PAR_FACE_REPORT_ID)
+    ).toBe("https://example.test/api/kpi/tabular/29");
   });
 });

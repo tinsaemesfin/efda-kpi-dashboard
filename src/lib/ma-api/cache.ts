@@ -91,6 +91,22 @@ export function maMedicalDeviceKpi4DrilldownCacheKey(filters?: MAApiFilterParams
   return `ma-medical-device-kpi4-dd:${stableFiltersKey(filters)}`;
 }
 
+export function maMedicineParFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medicine-par-face:${stableFiltersKey(filters)}`;
+}
+
+export function maMedicalDeviceParFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-medical-device-par-face:${stableFiltersKey(filters)}`;
+}
+
+export function maFoodParFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-food-par-face:${stableFiltersKey(filters)}`;
+}
+
+export function maCosmeticsParFaceDataCacheKey(filters?: MAApiFilterParams): string {
+  return `ma-cosmetics-par-face:${stableFiltersKey(filters)}`;
+}
+
 export function peekMaApiCache<T>(key: string): T | null {
   const hit = store.get(key) as CacheBucket<T> | undefined;
   if (!hit || hit.expiresAt <= Date.now()) {

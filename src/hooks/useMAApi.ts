@@ -23,6 +23,10 @@ import {
   fetchMAMedicineMedianAverageFaceTabularData,
   fetchMAMedicineMedianDrilldownTabularData,
   fetchMAMedicineAverageDrilldownTabularData,
+  fetchMAMedicineParFaceTabularData,
+  fetchMAMedicalDeviceParFaceTabularData,
+  fetchMAFoodParFaceTabularData,
+  fetchMACosmeticsParFaceTabularData,
 } from '@/lib/ma-api/client';
 import {
   maFaceDataCacheKey,
@@ -45,11 +49,16 @@ import {
   maMedicineMedianAverageFaceDataCacheKey,
   maMedicineMedianDrilldownCacheKey,
   maMedicineAverageDrilldownCacheKey,
+  maMedicineParFaceDataCacheKey,
+  maMedicalDeviceParFaceDataCacheKey,
+  maFoodParFaceDataCacheKey,
+  maCosmeticsParFaceDataCacheKey,
   peekMaApiCache,
 } from '@/lib/ma-api/cache';
 import { getConfiguredMAModuleToKpiMapping } from '@/lib/ma-api/mapping';
 import { normalizeMAFaceData } from '@/lib/ma-api/normalizer';
 import { normalizeMAMedicineMedianAverageFaceData } from '@/lib/ma-api/median-average-normalizer';
+import { normalizeMAPARFaceData } from '@/lib/ma-api/par-normalizer';
 import type {
   MAApiDataRow,
   MAApiDrilldownRow,
@@ -60,8 +69,10 @@ import type {
   MAApiFilterParams,
   MAKPITransformedData,
   MAKPITimeTransformedData,
+  MAKPIParTransformedData,
   MANormalizationWarning,
   MANormalizeMedianAverageWarning,
+  MANormalizeParWarning,
   MAModuleToKpiMapping,
   MASubmoduleTypeCode,
 } from '@/types/ma-api';
@@ -594,5 +605,117 @@ export function useMAKPI7DrilldownData(
     filters,
     enabled,
     maMedicineAverageDrilldownCacheKey
+  );
+}
+
+interface MAKPIParFaceFacade {
+  parData: MAKPIParTransformedData | null;
+  rawData: MAApiResponse<MAApiDataRow> | null;
+  loading: boolean;
+  error: Error | null;
+  warnings: MANormalizeParWarning[];
+  metadata: {
+    totalRows: number;
+    filteredRows: number;
+    acceptedRows: number;
+    fetchedAt: string | null;
+  };
+  refetch: () => Promise<void>;
+}
+
+function useMAPARFaceFacade(
+  fetcher: MATabularFetcher<MAApiDataRow>,
+  cacheKey: (filters?: MAApiFilterParams) => string,
+  filters?: MAApiFilterParams,
+  enabled = true
+): MAKPIParFaceFacade {
+  const { data: rawData, loading, error, refetch } = useMATabularReportData<MAApiDataRow>(
+    fetcher,
+    filters,
+    enabled,
+    cacheKey
+  );
+
+  const transformed = useMemo(() => {
+    if (!rawData?.data?.length) {
+      return {
+        parData: null as MAKPIParTransformedData | null,
+        warnings: [] as MANormalizeParWarning[],
+        totals: { totalRows: rawData?.data?.length ?? 0, filteredRows: 0, acceptedRows: 0 },
+      };
+    }
+    return normalizeMAPARFaceData(rawData.data);
+  }, [rawData]);
+
+  useEffect(() => {
+    if (!transformed.warnings.length) return;
+    transformed.warnings.forEach((warning) => {
+      if (warning.code === "EMPTY_RESULT") return;
+      console.warn(`[MA API PAR] ${warning.code}: ${warning.message}`, warning.row ?? {});
+    });
+  }, [transformed.warnings]);
+
+  return {
+    parData: transformed.parData,
+    rawData,
+    loading: enabled ? loading : false,
+    error: enabled ? error : null,
+    warnings: transformed.warnings,
+    metadata: {
+      totalRows: transformed.totals.totalRows,
+      filteredRows: transformed.totals.filteredRows,
+      acceptedRows: transformed.totals.acceptedRows,
+      fetchedAt: rawData ? new Date().toISOString() : null,
+    },
+    refetch,
+  };
+}
+
+/** Medicine MA-KPI-8 PAR face from tabular report /29. */
+export function useMAMedicineParFaceFacade(filters?: MAApiFilterParams): MAKPIParFaceFacade {
+  return useMAPARFaceFacade(
+    fetchMAMedicineParFaceTabularData,
+    maMedicineParFaceDataCacheKey,
+    filters,
+    true
+  );
+}
+
+/** Medical Device MA-KPI-8 PAR face from tabular report /30. */
+export function useMAMedicalDeviceParFaceFacade(
+  filters?: MAApiFilterParams,
+  enabled = true
+): MAKPIParFaceFacade {
+  return useMAPARFaceFacade(
+    fetchMAMedicalDeviceParFaceTabularData,
+    maMedicalDeviceParFaceDataCacheKey,
+    filters,
+    enabled
+  );
+}
+
+/** Food MA-KPI-8 PAR face from tabular report /31. */
+export function useMAFoodParFaceFacade(
+  filters?: MAApiFilterParams,
+  enabled = true
+): MAKPIParFaceFacade {
+  return useMAPARFaceFacade(
+    fetchMAFoodParFaceTabularData,
+    maFoodParFaceDataCacheKey,
+    filters,
+    enabled
+  );
+}
+
+/** Cosmetics MA-KPI-8 PAR face from tabular report /32. */
+export function useMACosmeticsParFaceFacade(
+  filters?: MAApiFilterParams,
+  enabled = true
+): MAKPIParFaceFacade {
+  return useMAPARFaceFacade(
+    fetchMACosmeticsParFaceTabularData,
+    maCosmeticsParFaceDataCacheKey,
+    filters,
+    enabled
   );
 }

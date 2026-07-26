@@ -19,6 +19,10 @@ import {
   MA_TABULAR_MEDICINE_MEDIAN_AVERAGE_FACE_REPORT_ID,
   MA_TABULAR_MEDICINE_MEDIAN_DRILLDOWN_REPORT_ID,
   MA_TABULAR_MEDICINE_AVERAGE_DRILLDOWN_REPORT_ID,
+  MA_TABULAR_MEDICINE_PAR_FACE_REPORT_ID,
+  MA_TABULAR_MEDICAL_DEVICE_PAR_FACE_REPORT_ID,
+  MA_TABULAR_FOOD_PAR_FACE_REPORT_ID,
+  MA_TABULAR_COSMETICS_PAR_FACE_REPORT_ID,
   buildMAFaceRequestBody,
   buildMATabularUrl,
   getApiBaseUrl,
@@ -33,6 +37,10 @@ import {
   maMedicineMedianAverageFaceDataCacheKey,
   maMedicineMedianDrilldownCacheKey,
   maMedicineAverageDrilldownCacheKey,
+  maMedicineParFaceDataCacheKey,
+  maMedicalDeviceParFaceDataCacheKey,
+  maFoodParFaceDataCacheKey,
+  maCosmeticsParFaceDataCacheKey,
   maKpi1DrilldownCacheKey,
   maFoodKpi1DrilldownCacheKey,
   maFoodKpi2DrilldownCacheKey,
@@ -139,6 +147,58 @@ export async function fetchMACosmeticsFaceTabularData(
   const key = maCosmeticsFaceDataCacheKey(filters);
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiDataRow>(accessToken, MA_TABULAR_COSMETICS_FACE_REPORT_ID, filters)
+  );
+}
+
+/** Medicine MA-KPI-8 PAR face data from tabular report /29. */
+export async function fetchMAMedicineParFaceTabularData(
+  accessToken: string,
+  filters?: MAApiFilterParams,
+  options?: MAApiFetchOptions
+): Promise<MAApiResponse<MAApiDataRow>> {
+  const key = maMedicineParFaceDataCacheKey(filters);
+  return getOrFetchMaApiCache(key, options?.force ?? false, () =>
+    fetchMATabularData<MAApiDataRow>(accessToken, MA_TABULAR_MEDICINE_PAR_FACE_REPORT_ID, filters)
+  );
+}
+
+/** Medical Device MA-KPI-8 PAR face data from tabular report /30. */
+export async function fetchMAMedicalDeviceParFaceTabularData(
+  accessToken: string,
+  filters?: MAApiFilterParams,
+  options?: MAApiFetchOptions
+): Promise<MAApiResponse<MAApiDataRow>> {
+  const key = maMedicalDeviceParFaceDataCacheKey(filters);
+  return getOrFetchMaApiCache(key, options?.force ?? false, () =>
+    fetchMATabularData<MAApiDataRow>(
+      accessToken,
+      MA_TABULAR_MEDICAL_DEVICE_PAR_FACE_REPORT_ID,
+      filters
+    )
+  );
+}
+
+/** Food MA-KPI-8 PAR face data from tabular report /31. */
+export async function fetchMAFoodParFaceTabularData(
+  accessToken: string,
+  filters?: MAApiFilterParams,
+  options?: MAApiFetchOptions
+): Promise<MAApiResponse<MAApiDataRow>> {
+  const key = maFoodParFaceDataCacheKey(filters);
+  return getOrFetchMaApiCache(key, options?.force ?? false, () =>
+    fetchMATabularData<MAApiDataRow>(accessToken, MA_TABULAR_FOOD_PAR_FACE_REPORT_ID, filters)
+  );
+}
+
+/** Cosmetics MA-KPI-8 PAR face data from tabular report /32. */
+export async function fetchMACosmeticsParFaceTabularData(
+  accessToken: string,
+  filters?: MAApiFilterParams,
+  options?: MAApiFetchOptions
+): Promise<MAApiResponse<MAApiDataRow>> {
+  const key = maCosmeticsParFaceDataCacheKey(filters);
+  return getOrFetchMaApiCache(key, options?.force ?? false, () =>
+    fetchMATabularData<MAApiDataRow>(accessToken, MA_TABULAR_COSMETICS_PAR_FACE_REPORT_ID, filters)
   );
 }
 

@@ -10,6 +10,15 @@ export type MASubmoduleTypeCode = 'MDCN' | 'FD' | 'FNT' | 'MD' | 'CO' | (string 
 export type MAKPIId = 'MA-KPI-1' | 'MA-KPI-2' | 'MA-KPI-3' | 'MA-KPI-4';
 /** Time-based face KPIs from tabular report /26 (Medicine median & average). */
 export type MAKPITimeId = 'MA-KPI-6' | 'MA-KPI-7';
+/** PAR face KPI from tabular reports /29–/32. */
+export type MAKPIParId = 'MA-KPI-8';
+export type MAParModuleCode = 'NMR' | 'REN' | 'VMIN' | 'VMAJ';
+export const MA_PAR_MODULE_ORDER: readonly MAParModuleCode[] = [
+  'NMR',
+  'REN',
+  'VMIN',
+  'VMAJ',
+] as const;
 export type MAModuleToKpiMapping = Record<string, MAKPIId>;
 
 export interface MAApiDataRow {
@@ -118,6 +127,45 @@ export interface MAKPITimeTransformedRow {
 }
 
 export type MAKPITimeTransformedData = Partial<Record<MAKPITimeId, MAKPITimeTransformedRow>>;
+
+/** One module slot on the MA-KPI-8 PAR face card. */
+export interface MAKPIParModuleBreakdownItem {
+  code: MAParModuleCode;
+  label: string;
+  numerator: number;
+  denominator: number;
+  percentage: number;
+}
+
+/** Aggregated PAR face: overall total + fixed NMR/REN/VMIN/VMAJ breakdown. */
+export interface MAKPIParTransformedData {
+  numerator: number;
+  denominator: number;
+  percentage: number;
+  targetDays?: number;
+  modules: MAKPIParModuleBreakdownItem[];
+}
+
+export interface MANormalizeParWarning {
+  code:
+    | 'MISSING_REQUIRED_FIELD'
+    | 'UNKNOWN_MODULE_CODE'
+    | 'INVALID_NUMERIC_VALUE'
+    | 'EMPTY_RESULT';
+  message: string;
+  rowIndex?: number;
+  row?: MAApiDataRow;
+}
+
+export interface MANormalizeParResult {
+  parData: MAKPIParTransformedData | null;
+  warnings: MANormalizeParWarning[];
+  totals: {
+    totalRows: number;
+    filteredRows: number;
+    acceptedRows: number;
+  };
+}
 
 /** Module code → KPI id */
 export const MODULE_CODE_TO_KPI: Record<MAModuleCode, string> = {

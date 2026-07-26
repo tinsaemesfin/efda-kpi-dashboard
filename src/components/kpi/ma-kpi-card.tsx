@@ -8,6 +8,12 @@ import { cn } from "@/lib/utils";
 
 type MAKPICardDataAttribution = "live" | "sample" | "none";
 
+export interface MAKPICardModuleBreakdownItem {
+  code: string;
+  label: string;
+  percentage: number;
+}
+
 interface MAKPICardProps {
   kpiCode?: string;
   title: string;
@@ -37,6 +43,8 @@ interface MAKPICardProps {
    * show a Live pill so viewers know the empty state is not dummy/sample data.
    */
   strictLiveSlotEmpty?: boolean;
+  /** Optional small module percentages under the main value (MA-KPI-8). */
+  moduleBreakdown?: MAKPICardModuleBreakdownItem[];
   onClick?: () => void;
 }
 
@@ -61,6 +69,7 @@ export function MAKPICard({
   emptyMessage = "No data found",
   dataAttribution = "none",
   strictLiveSlotEmpty = false,
+  moduleBreakdown,
   onClick,
 }: MAKPICardProps) {
   const statusColors = {
@@ -242,6 +251,34 @@ export function MAKPICard({
           {value}
           {suffix}
         </div>
+        {moduleBreakdown && moduleBreakdown.length > 0 && (
+          <div
+            className={cn(
+              "grid grid-cols-4 gap-1.5",
+              compact ? "pt-0.5" : "pt-1"
+            )}
+          >
+            {moduleBreakdown.map((item) => (
+              <div
+                key={item.code}
+                className="rounded-md border border-border/60 bg-muted/30 px-1 py-1 text-center"
+                title={`${item.label}: ${item.percentage.toFixed(1)}%`}
+              >
+                <div className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {item.code}
+                </div>
+                <div
+                  className={cn(
+                    "font-semibold tabular-nums text-foreground",
+                    compact ? "text-[11px]" : "text-xs"
+                  )}
+                >
+                  {item.percentage.toFixed(1)}%
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         <div className={cn("space-y-1", compact && "space-y-0.5")}>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div

@@ -44,6 +44,14 @@ export const MA_TABULAR_MEDICINE_MEDIAN_AVERAGE_FACE_REPORT_ID = 26;
 export const MA_TABULAR_MEDICINE_MEDIAN_DRILLDOWN_REPORT_ID = 27;
 /** Medicine — MA-KPI-7 average decision time drilldown. */
 export const MA_TABULAR_MEDICINE_AVERAGE_DRILLDOWN_REPORT_ID = 28;
+/** Medicine — MA-KPI-8 PAR face (post-approval docs within SLA). */
+export const MA_TABULAR_MEDICINE_PAR_FACE_REPORT_ID = 29;
+/** Medical Device — MA-KPI-8 PAR face. */
+export const MA_TABULAR_MEDICAL_DEVICE_PAR_FACE_REPORT_ID = 30;
+/** Food — MA-KPI-8 PAR face. */
+export const MA_TABULAR_FOOD_PAR_FACE_REPORT_ID = 31;
+/** Cosmetics — MA-KPI-8 PAR face. */
+export const MA_TABULAR_COSMETICS_PAR_FACE_REPORT_ID = 32;
 export const MA_TABULAR_ENDPOINT_PREFIX = "/api/kpi/tabular";
 
 export const MA_DEFAULT_TABULAR_PARAMS = {

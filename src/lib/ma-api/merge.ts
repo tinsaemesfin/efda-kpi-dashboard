@@ -1,5 +1,6 @@
 import type { MAProductKpiSeedItem } from "@/data/ma-dummy-data";
 import type {
+  MAKPIParTransformedData,
   MAKPITimeId,
   MAKPITimeTransformedData,
   MAKPITimeTransformedRow,
@@ -9,6 +10,7 @@ import type {
 
 const API_KPI_IDS = ["MA-KPI-1", "MA-KPI-2", "MA-KPI-3", "MA-KPI-4"] as const;
 const TIME_KPI_IDS = ["MA-KPI-6", "MA-KPI-7"] as const;
+const PAR_KPI_IDS = ["MA-KPI-8"] as const;
 const COSMETICS_FACE_KPI_IDS = ["MA-KPI-1", "MA-KPI-2", "MA-KPI-3"] as const;
 
 function isUsableFaceRow(row: MAKPITransformedRow | undefined): row is MAKPITransformedRow {
@@ -190,12 +192,60 @@ export function mergeMedicineTimeCardsWithStrictFaceData(
   });
 }
 
+function isUsableParData(
+  data: MAKPIParTransformedData | null | undefined
+): data is MAKPIParTransformedData {
+  if (!data) return false;
+  if (!Number.isFinite(data.numerator) || !Number.isFinite(data.denominator) || !Number.isFinite(data.percentage)) {
+    return false;
+  }
+  return data.denominator > 0;
+}
+
+/**
+ * MA-KPI-8 PAR face: overall total from the product report (/29–/32).
+ * Also attaches the four module percentages for the card breakdown.
+ */
+export function mergeParCardsWithStrictFaceData(
+  seedCards: MAProductKpiSeedItem[],
+  parData: MAKPIParTransformedData | null
+): MAProductKpiSeedItem[] {
+  return seedCards.map((card) => {
+    const isParKpi = PAR_KPI_IDS.includes(card.drilldownId as (typeof PAR_KPI_IDS)[number]);
+    if (!isParKpi) return card;
+
+    if (!isUsableParData(parData)) {
+      return {
+        ...card,
+        faceDataMissing: true,
+        value: 0,
+        numerator: 0,
+        denominator: 0,
+        decimals: 1,
+        moduleBreakdown: undefined,
+      };
+    }
+
+    return {
+      ...card,
+      faceDataMissing: false,
+      value: parData.percentage,
+      numerator: parData.numerator,
+      denominator: parData.denominator,
+      decimals: 1,
+      moduleBreakdown: parData.modules,
+    };
+  });
+}
+
 /** Merge Medicine percentage face data (/8) and time face data (/26). */
 export function mergeMedicineCardsWithAllFaceData(
   seedCards: MAProductKpiSeedItem[],
   kpiFaceDataById: Partial<MAKPITransformedData> | null,
-  kpiTimeDataById: MAKPITimeTransformedData | null
+  kpiTimeDataById: MAKPITimeTransformedData | null,
+  parData: MAKPIParTransformedData | null = null
 ): MAProductKpiSeedItem[] {
   const withPercentage = mergeMedicineCardsWithStrictFaceData(seedCards, kpiFaceDataById);
-  return mergeMedicineTimeCardsWithStrictFaceData(withPercentage, kpiTimeDataById);
+  const withTime = mergeMedicineTimeCardsWithStrictFaceData(withPercentage, kpiTimeDataById);
+  return mergeParCardsWithStrictFaceData(withTime, parData);
 }

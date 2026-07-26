@@ -286,6 +286,14 @@ export type MAFoodSubTabKey = "food" | "foodNotification";
 
 export const DEFAULT_FOOD_SUB_TAB: MAFoodSubTabKey = "food";
 
+export interface MAProductKpiModuleBreakdownItem {
+  code: string;
+  label: string;
+  numerator: number;
+  denominator: number;
+  percentage: number;
+}
+
 export interface MAProductKpiSeedItem {
   id: string;
   title: string;
@@ -300,6 +308,8 @@ export interface MAProductKpiSeedItem {
   faceDataMissing?: boolean;
   /** Product policy: KPI not tracked (show N/A empty state instead of dummy metrics). */
   notApplicableReason?: string;
+  /** MA-KPI-8: per-module percentages shown under the overall total. */
+  moduleBreakdown?: MAProductKpiModuleBreakdownItem[];
 }
 
 export interface MAProductKpiSeed {
