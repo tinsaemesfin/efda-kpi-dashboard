@@ -46,6 +46,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MALiveIndicator } from "@/components/kpi/ma-live-indicator";
 import { cn } from "@/lib/utils";
 import type { KPIDrillDownData, KPIDimensionView } from "@/types/ma-drilldown";
+import type { MAApiFilterParams } from "@/types/ma-api";
 import { KPIFilter, type KPIFilterState } from "./kpi-filter";
 import {
   useMAKPI1DrilldownData,
@@ -108,6 +109,8 @@ interface MADrillDownModalProps {
   onOpenChange: (open: boolean) => void;
   data: KPIDrillDownData;
   drilldownSource?: "default" | "food" | "medicalDevice";
+  /** Snapshot of page date filters at open time; fetch runs only while open. */
+  filters?: MAApiFilterParams;
 }
 
 interface CategoryChartCardProps {
@@ -400,6 +403,7 @@ export function MADrillDownModal({
   onOpenChange,
   data,
   drilldownSource = "default",
+  filters,
 }: MADrillDownModalProps) {
   const [filterExpanded, setFilterExpanded] = useState(false);
   const [dateFilter, setDateFilter] = useState<KPIFilterState>({
@@ -422,45 +426,45 @@ export function MADrillDownModal({
   const isMedicalDeviceKpi4 = isKpi4 && drilldownSource === "medicalDevice";
 
   const { data: kpi1ApiData, loading: kpi1Loading } = useMAKPI1DrilldownData(
-    undefined,
+    filters,
     open && isKpi1 && !isFoodKpi1 && !isMedicalDeviceKpi1
   );
   const { data: foodKpi1ApiData, loading: foodKpi1Loading } = useMAFoodKPI1DrilldownData(
-    undefined,
+    filters,
     open && isFoodKpi1
   );
   const { data: medicalDeviceKpi1ApiData, loading: medicalDeviceKpi1Loading } =
-    useMAMedicalDeviceKPI1DrilldownData(undefined, open && isMedicalDeviceKpi1);
+    useMAMedicalDeviceKPI1DrilldownData(filters, open && isMedicalDeviceKpi1);
   const { data: kpi2ApiData, loading: kpi2Loading } = useMAKPI2DrilldownData(
-    undefined,
+    filters,
     open && isKpi2 && !isFoodKpi2 && !isMedicalDeviceKpi2
   );
   const { data: foodKpi2ApiData, loading: foodKpi2Loading } = useMAFoodKPI2DrilldownData(
-    undefined,
+    filters,
     open && isFoodKpi2
   );
   const { data: medicalDeviceKpi2ApiData, loading: medicalDeviceKpi2Loading } =
-    useMAMedicalDeviceKPI2DrilldownData(undefined, open && isMedicalDeviceKpi2);
+    useMAMedicalDeviceKPI2DrilldownData(filters, open && isMedicalDeviceKpi2);
   const { data: kpi3ApiData, loading: kpi3Loading } = useMAKPI3DrilldownData(
-    undefined,
+    filters,
     open && isKpi3 && !isFoodKpi3 && !isMedicalDeviceKpi3
   );
   const { data: foodKpi3ApiData, loading: foodKpi3Loading } = useMAFoodKPI3DrilldownData(
-    undefined,
+    filters,
     open && isFoodKpi3
   );
   const { data: medicalDeviceKpi3ApiData, loading: medicalDeviceKpi3Loading } =
-    useMAMedicalDeviceKPI3DrilldownData(undefined, open && isMedicalDeviceKpi3);
+    useMAMedicalDeviceKPI3DrilldownData(filters, open && isMedicalDeviceKpi3);
   const { data: kpi4ApiData, loading: kpi4Loading } = useMAKPI4DrilldownData(
-    undefined,
+    filters,
     open && isKpi4 && !isFoodKpi4 && !isMedicalDeviceKpi4
   );
   const { data: foodKpi4ApiData, loading: foodKpi4Loading } = useMAFoodKPI4DrilldownData(
-    undefined,
+    filters,
     open && isFoodKpi4
   );
   const { data: medicalDeviceKpi4ApiData, loading: medicalDeviceKpi4Loading } =
-    useMAMedicalDeviceKPI4DrilldownData(undefined, open && isMedicalDeviceKpi4);
+    useMAMedicalDeviceKPI4DrilldownData(filters, open && isMedicalDeviceKpi4);
 
   const isLiveApiKpi = isKpi1 || isKpi2 || isKpi3 || isKpi4;
   const kpiApiLoading =
