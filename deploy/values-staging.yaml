@@ -1,6 +1,6 @@
 image:
   repository: harbor.efda.gov.et/apps/kpi
-  tag: "3bc847cc" # placeholder — Image Updater writes the real 8-char sha back
+  tag: "1b849aa5" # placeholder — Image Updater writes the real 8-char sha back
   pullPolicy: Always
 namespace: staging
 host: kpi.stage.eaii.efda.gov.et
