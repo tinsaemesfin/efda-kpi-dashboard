@@ -28,6 +28,7 @@ import type {
   MATimeDrillDownData,
   MATimeDrillDownItem,
 } from "@/types/ma-drilldown";
+import type { MAApiFilterParams } from "@/types/ma-api";
 import {
   useMAKPI6DrilldownData,
   useMAKPI7DrilldownData,
@@ -101,6 +102,8 @@ interface MATimeDrillDownModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   data: MATimeDrillDownData;
+  /** Snapshot of page date filters at open time; fetch runs only while open. */
+  filters?: MAApiFilterParams;
 }
 
 interface TimeChartRow {
@@ -772,6 +775,7 @@ export function MATimeDrillDownModal({
   open,
   onOpenChange,
   data,
+  filters,
 }: MATimeDrillDownModalProps) {
   const [filterExpanded, setFilterExpanded] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("chart");
@@ -784,11 +788,11 @@ export function MATimeDrillDownModal({
   const isMedian = data.kpiId === "MA-KPI-6";
 
   const { data: kpi6ApiData, loading: kpi6Loading } = useMAKPI6DrilldownData(
-    undefined,
+    filters,
     open && isMedian
   );
   const { data: kpi7ApiData, loading: kpi7Loading } = useMAKPI7DrilldownData(
-    undefined,
+    filters,
     open && !isMedian
   );
 

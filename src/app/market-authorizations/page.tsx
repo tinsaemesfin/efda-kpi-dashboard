@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { DashboardLayout } from "@/components/layout";
 import { MAKPICard } from "@/components/kpi/ma-kpi-card";
 import { MADrillDownModal } from "@/components/kpi/ma-drilldown-modal";
 import { MATimeDrillDownModal } from "@/components/kpi/ma-time-drilldown-modal";
-import { MADevStickyNote } from "@/components/kpi/ma-dev-sticky-note";
 import {
   DEFAULT_FOOD_SUB_TAB,
   getMAProductKpiSeedForView,
@@ -49,7 +48,7 @@ import {
 } from "lucide-react";
 import type { KPIDrillDownData, MATimeDrillDownData } from "@/types/ma-drilldown";
 import { cn } from "@/lib/utils";
-import type { MAKPIId } from "@/types/ma-api";
+import type { MAApiFilterParams, MAKPIId } from "@/types/ma-api";
 
 const productTabs: Array<{ key: MAProductKey; label: string }> = [
   { key: "medicine", label: "Medicine" },
@@ -120,80 +119,114 @@ export default function MarketAuthorizationsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [datePreset, setDatePreset] = useState("last-30");
+  const [datePreset, setDatePreset] = useState("ytd");
+  /** Draft values bound to the date inputs (may change while spinning month/year). */
+  const [draftDateFrom, setDraftDateFrom] = useState("2026-01-01");
+  const [draftDateTo, setDraftDateTo] = useState("2026-12-31");
+  /** Committed values — drive face APIs; drilldowns snapshot these on open. */
   const [dateFrom, setDateFrom] = useState("2026-01-01");
-  const [dateTo, setDateTo] = useState("2026-03-31");
+  const [dateTo, setDateTo] = useState("2026-12-31");
+  const [drilldownApiFilters, setDrilldownApiFilters] = useState<
+    MAApiFilterParams | undefined
+  >(undefined);
   const [cardDensity, setCardDensity] = useState<"grid" | "condensed">("grid");
+  const dateCommitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftDatesRef = useRef({ from: "2026-01-01", to: "2026-12-31" });
+
+  const clearDateCommitTimer = () => {
+    if (dateCommitTimerRef.current != null) {
+      clearTimeout(dateCommitTimerRef.current);
+      dateCommitTimerRef.current = null;
+    }
+  };
+
+  const commitDateFilters = (from: string, to: string) => {
+    clearDateCommitTimer();
+    setDateFrom(from);
+    setDateTo(to);
+  };
+
+  /** Commit after the picker settles so month/year spinning does not spam face APIs. */
+  const scheduleDateFilterCommit = () => {
+    clearDateCommitTimer();
+    dateCommitTimerRef.current = setTimeout(() => {
+      const { from: nextFrom, to: nextTo } = draftDatesRef.current;
+      setDateFrom(nextFrom);
+      setDateTo(nextTo);
+      dateCommitTimerRef.current = null;
+    }, 500);
+  };
+
+  useEffect(() => () => clearDateCommitTimer(), []);
+
+  const dateFiltersReady = Boolean(dateFrom && dateTo);
+  const apiDateFilters = useMemo(
+    () =>
+      dateFiltersReady
+        ? { startDate: dateFrom, endDate: dateTo }
+        : undefined,
+    [dateFiltersReady, dateFrom, dateTo]
+  );
 
   const {
     kpiFaceDataById: apiMedicineData,
     loading: apiMedicineLoading,
     error: apiMedicineError,
-    metadata: apiMedicineMetadata,
-  } = useMAKPIDataMedicineFacade();
+  } = useMAKPIDataMedicineFacade(apiDateFilters, dateFiltersReady);
 
   const {
     kpiTimeDataById: apiMedicineTimeData,
     loading: apiMedicineTimeLoading,
     error: apiMedicineTimeError,
-    metadata: apiMedicineTimeMetadata,
-  } = useMAMedicineMedianAverageFaceFacade();
+  } = useMAMedicineMedianAverageFaceFacade(apiDateFilters, dateFiltersReady);
 
   const {
     kpiFaceDataById: apiFoodData,
     loading: apiFoodLoading,
     error: apiFoodError,
-    metadata: apiFoodMetadata,
-  } = useMAKPIDataFoodFacade();
+  } = useMAKPIDataFoodFacade(apiDateFilters, dateFiltersReady);
 
   const {
     kpiFaceDataById: apiFoodNotificationData,
     loading: apiFoodNotificationLoading,
     error: apiFoodNotificationError,
-    metadata: apiFoodNotificationMetadata,
-  } = useMAKPIDataFoodNotificationFacade();
+  } = useMAKPIDataFoodNotificationFacade(apiDateFilters, dateFiltersReady);
 
   const {
     kpiFaceDataById: apiMedicalDeviceData,
     loading: apiMedicalDeviceLoading,
     error: apiMedicalDeviceError,
-    metadata: apiMedicalDeviceMetadata,
-  } = useMAKPIDataMedicalDeviceFacade();
+  } = useMAKPIDataMedicalDeviceFacade(apiDateFilters, dateFiltersReady);
 
   const {
     kpiFaceDataById: apiCosmeticsData,
     loading: apiCosmeticsLoading,
     error: apiCosmeticsError,
-    metadata: apiCosmeticsMetadata,
-  } = useMAKPIDataCosmeticsFacade();
+  } = useMAKPIDataCosmeticsFacade(apiDateFilters, dateFiltersReady);
 
   const {
     parData: apiMedicineParData,
     loading: apiMedicineParLoading,
     error: apiMedicineParError,
-    metadata: apiMedicineParMetadata,
-  } = useMAMedicineParFaceFacade();
+  } = useMAMedicineParFaceFacade(apiDateFilters, dateFiltersReady);
 
   const {
     parData: apiMedicalDeviceParData,
     loading: apiMedicalDeviceParLoading,
     error: apiMedicalDeviceParError,
-    metadata: apiMedicalDeviceParMetadata,
-  } = useMAMedicalDeviceParFaceFacade();
+  } = useMAMedicalDeviceParFaceFacade(apiDateFilters, dateFiltersReady);
 
   const {
     parData: apiFoodParData,
     loading: apiFoodParLoading,
     error: apiFoodParError,
-    metadata: apiFoodParMetadata,
-  } = useMAFoodParFaceFacade();
+  } = useMAFoodParFaceFacade(apiDateFilters, dateFiltersReady);
 
   const {
     parData: apiCosmeticsParData,
     loading: apiCosmeticsParLoading,
     error: apiCosmeticsParError,
-    metadata: apiCosmeticsParMetadata,
-  } = useMACosmeticsParFaceFacade();
+  } = useMACosmeticsParFaceFacade(apiDateFilters, dateFiltersReady);
 
   const isFoodFrontApiView =
     activeProduct === "food" && activeFoodSubTab === "food";
@@ -267,15 +300,20 @@ export default function MarketAuthorizationsPage() {
           ? mergedCards[0]
           : seed.cards[0];
       const summaryLoadingPulse =
-        (activeProduct === "medicine" && product.key === "medicine" && (apiMedicineLoading || apiMedicineTimeLoading)) ||
-        (isFoodFrontApiView && product.key === "food" && apiFoodLoading) ||
+        !dateFiltersReady ||
+        (activeProduct === "medicine" &&
+          product.key === "medicine" &&
+          (apiMedicineLoading || apiMedicineTimeLoading || apiMedicineParLoading)) ||
+        (isFoodFrontApiView && product.key === "food" && (apiFoodLoading || apiFoodParLoading)) ||
         (isFoodNotificationFaceApiView &&
           product.key === "food" &&
           apiFoodNotificationLoading) ||
         (isMedicalDeviceFaceApiView &&
           product.key === "medicalDevice" &&
-          apiMedicalDeviceLoading) ||
-        (isCosmeticsFaceApiView && product.key === "cosmetics" && apiCosmeticsLoading);
+          (apiMedicalDeviceLoading || apiMedicalDeviceParLoading)) ||
+        (isCosmeticsFaceApiView &&
+          product.key === "cosmetics" &&
+          (apiCosmeticsLoading || apiCosmeticsParLoading));
 
       const text: ReactNode = summaryLoadingPulse ? (
         <span
@@ -299,12 +337,17 @@ export default function MarketAuthorizationsPage() {
   }, [
     mergedCards,
     activeProduct,
+    dateFiltersReady,
     apiMedicineLoading,
     apiMedicineTimeLoading,
+    apiMedicineParLoading,
     apiFoodLoading,
+    apiFoodParLoading,
     apiFoodNotificationLoading,
     apiMedicalDeviceLoading,
+    apiMedicalDeviceParLoading,
     apiCosmeticsLoading,
+    apiCosmeticsParLoading,
     isFoodFrontApiView,
     isFoodNotificationFaceApiView,
     isMedicalDeviceFaceApiView,
@@ -317,13 +360,17 @@ export default function MarketAuthorizationsPage() {
       return;
     }
     setWarningMessage(null);
+    // Snapshot dates at open so face date changes do not refetch an open drilldown.
+    setDrilldownApiFilters(apiDateFilters);
     setSelectedKpiId(kpiId);
     setIsModalOpen(true);
   };
 
-  const handleModalClose = () => {
+  const handleModalClose = (open?: boolean) => {
+    if (open) return;
     setIsModalOpen(false);
     setSelectedKpiId(null);
+    setDrilldownApiFilters(undefined);
   };
 
   const selectedDrilldown: KPIDrillDownData | null = useMemo(() => {
@@ -378,31 +425,32 @@ export default function MarketAuthorizationsPage() {
 
   const applyDatePreset = (preset: string) => {
     setDatePreset(preset);
+    const applyBoth = (from: string, to: string) => {
+      setDraftDateFrom(from);
+      setDraftDateTo(to);
+      draftDatesRef.current = { from, to };
+      commitDateFilters(from, to);
+    };
     if (preset === "this-quarter") {
-      setDateFrom("2026-01-01");
-      setDateTo("2026-03-31");
+      applyBoth("2026-01-01", "2026-03-31");
       return;
     }
     if (preset === "last-quarter") {
-      setDateFrom("2025-10-01");
-      setDateTo("2025-12-31");
+      applyBoth("2025-10-01", "2025-12-31");
       return;
     }
     if (preset === "last-30") {
-      setDateFrom("2026-02-01");
-      setDateTo("2026-03-31");
+      applyBoth("2026-02-01", "2026-03-31");
       return;
     }
     if (preset === "ytd") {
-      setDateFrom("2026-01-01");
-      setDateTo("2026-12-31");
+      applyBoth("2026-01-01", "2026-12-31");
     }
   };
 
   return (
     <AuthGuard>
       <DashboardLayout>
-        <MADevStickyNote />
         <div className="space-y-6">
           <Card className="border-primary/40 bg-card shadow-sm">
             <CardHeader className="space-y-2">
@@ -478,9 +526,12 @@ export default function MarketAuthorizationsPage() {
               <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="min-w-0 space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Preset</label>
-                  <Select value={datePreset} onValueChange={applyDatePreset}>
+                  <Select
+                    value={datePreset || undefined}
+                    onValueChange={applyDatePreset}
+                  >
                     <SelectTrigger className="h-9 w-full min-w-0">
-                      <SelectValue />
+                      <SelectValue placeholder="Choose preset" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="this-quarter">This quarter</SelectItem>
@@ -497,10 +548,23 @@ export default function MarketAuthorizationsPage() {
                     <Input
                       type="date"
                       className="h-9 min-w-0 pl-8"
-                      value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
+                      value={draftDateFrom}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        setDatePreset("");
+                        setDraftDateFrom(next);
+                        draftDatesRef.current = { ...draftDatesRef.current, from: next };
+                        scheduleDateFilterCommit();
+                      }}
+                      onBlur={() => {
+                        commitDateFilters(
+                          draftDatesRef.current.from,
+                          draftDatesRef.current.to
+                        );
+                      }}
                     />
                   </div>
+                  <p className="text-[10px] text-muted-foreground">DD/MM/YYYY</p>
                 </div>
                 <div className="min-w-0 space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">To</label>
@@ -509,10 +573,24 @@ export default function MarketAuthorizationsPage() {
                     <Input
                       type="date"
                       className="h-9 min-w-0 pl-8"
-                      value={dateTo}
-                      onChange={(e) => setDateTo(e.target.value)}
+                      value={draftDateTo}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        setDatePreset("");
+                        setDraftDateTo(next);
+                        draftDatesRef.current = { ...draftDatesRef.current, to: next };
+                        scheduleDateFilterCommit();
+                      }}
+                      onBlur={() => {
+                        commitDateFilters(
+                          draftDatesRef.current.from,
+                          draftDatesRef.current.to
+                        );
+                      }}
+                      min={draftDateFrom || undefined}
                     />
                   </div>
+                  <p className="text-[10px] text-muted-foreground">DD/MM/YYYY</p>
                 </div>
                 <div className="min-w-0 space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">Find KPI</label>
@@ -527,38 +605,15 @@ export default function MarketAuthorizationsPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex min-w-0 flex-col gap-3 border-t border-border/60 pt-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                <p className="min-w-0 flex-1 text-pretty text-xs leading-relaxed text-muted-foreground">
-                  {activeProduct === "medicine"
-                    ? "Medicine: KPI 1–4 /8; KPI 6–7 /26; KPI 8 PAR /29. Drilldowns: KPI 1 /9, KPI 2 /10, KPI 3 /11, KPI 4 /13, KPI 6 /27, KPI 7 /28. ".concat(
-                        `/8: ${apiMedicineMetadata.acceptedRows}/${apiMedicineMetadata.filteredRows}. /26: ${apiMedicineTimeMetadata.acceptedRows}/${apiMedicineTimeMetadata.filteredRows}. /29: ${apiMedicineParMetadata.acceptedRows}/${apiMedicineParMetadata.filteredRows}.`
-                      )
-                    : isFoodFrontApiView
-                      ? "Food: KPI 1–4 /14; KPI 8 PAR /31. Drilldowns: KPI 1 /18, KPI 2 /19, KPI 3 /20, KPI 4 /21. ".concat(
-                          `/14: ${apiFoodMetadata.acceptedRows}/${apiFoodMetadata.filteredRows}. /31: ${apiFoodParMetadata.acceptedRows}/${apiFoodParMetadata.filteredRows}.`
-                        )
-                      : isFoodNotificationFaceApiView
-                        ? "Food Notification: KPI 1–4 card values use live API (/15). Drilldowns unchanged (KPI 1 /9 … KPI 4 /13). ".concat(
-                            `Rows accepted: ${apiFoodNotificationMetadata.acceptedRows}/${apiFoodNotificationMetadata.filteredRows} filtered (${apiFoodNotificationMetadata.totalRows} total).`
-                          )
-                        : isMedicalDeviceFaceApiView
-                          ? "Medical Device: KPI 1–4 /16; KPI 8 PAR /30. Drilldowns: KPI 1 /22, KPI 2 /23, KPI 3 /24, KPI 4 /25. ".concat(
-                              `/16: ${apiMedicalDeviceMetadata.acceptedRows}/${apiMedicalDeviceMetadata.filteredRows}. /30: ${apiMedicalDeviceParMetadata.acceptedRows}/${apiMedicalDeviceParMetadata.filteredRows}.`
-                            )
-                          : isCosmeticsFaceApiView
-                            ? "Cosmetics: KPI 1–3 /17; KPI 8 PAR /32. Variation rows aggregate into MA-KPI-3. ".concat(
-                                `/17: ${apiCosmeticsMetadata.acceptedRows}/${apiCosmeticsMetadata.filteredRows}. /32: ${apiCosmeticsParMetadata.acceptedRows}/${apiCosmeticsParMetadata.filteredRows}.`
-                              )
-                            : "Filters apply when API is wired for this product."}
-                </p>
+              <div className="flex min-w-0 justify-end border-t border-border/60 pt-3">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="w-full shrink-0 sm:w-auto sm:self-center"
+                  className="w-full shrink-0 sm:w-auto"
                   onClick={() => {
                     setSearchTerm("");
-                    applyDatePreset("last-30");
+                    applyDatePreset("ytd");
                   }}
                 >
                   Reset
@@ -647,33 +702,48 @@ export default function MarketAuthorizationsPage() {
             )}
           >
             {visibleCards.map((card, index) => {
+              const isLiveFaceSlot =
+                (activeProduct === "medicine" &&
+                  (isApiKpiId(card.drilldownId) ||
+                    isMedicineTimeKpiId(card.drilldownId) ||
+                    isParKpiId(card.drilldownId))) ||
+                (isFoodFrontApiView &&
+                  (isApiKpiId(card.drilldownId) || isParKpiId(card.drilldownId))) ||
+                (isFoodNotificationFaceApiView && isApiKpiId(card.drilldownId)) ||
+                (isMedicalDeviceFaceApiView &&
+                  (isApiKpiId(card.drilldownId) || isParKpiId(card.drilldownId))) ||
+                (isCosmeticsFaceApiView &&
+                  (isCosmeticsThreeSlotFaceKpi(card.drilldownId) ||
+                    isParKpiId(card.drilldownId)));
               const maFacePending =
-                (activeProduct === "medicine" &&
-                  isApiKpiId(card.drilldownId) &&
-                  apiMedicineLoading) ||
-                (activeProduct === "medicine" &&
-                  isMedicineTimeKpiId(card.drilldownId) &&
-                  apiMedicineTimeLoading) ||
-                (activeProduct === "medicine" &&
-                  isParKpiId(card.drilldownId) &&
-                  apiMedicineParLoading) ||
-                (isFoodFrontApiView && isApiKpiId(card.drilldownId) && apiFoodLoading) ||
-                (isFoodFrontApiView && isParKpiId(card.drilldownId) && apiFoodParLoading) ||
-                (isFoodNotificationFaceApiView &&
-                  isApiKpiId(card.drilldownId) &&
-                  apiFoodNotificationLoading) ||
-                (isMedicalDeviceFaceApiView &&
-                  isApiKpiId(card.drilldownId) &&
-                  apiMedicalDeviceLoading) ||
-                (isMedicalDeviceFaceApiView &&
-                  isParKpiId(card.drilldownId) &&
-                  apiMedicalDeviceParLoading) ||
-                (isCosmeticsFaceApiView &&
-                  isCosmeticsThreeSlotFaceKpi(card.drilldownId) &&
-                  apiCosmeticsLoading) ||
-                (isCosmeticsFaceApiView &&
-                  isParKpiId(card.drilldownId) &&
-                  apiCosmeticsParLoading);
+                isLiveFaceSlot &&
+                (!dateFiltersReady ||
+                  (activeProduct === "medicine" &&
+                    isApiKpiId(card.drilldownId) &&
+                    apiMedicineLoading) ||
+                  (activeProduct === "medicine" &&
+                    isMedicineTimeKpiId(card.drilldownId) &&
+                    apiMedicineTimeLoading) ||
+                  (activeProduct === "medicine" &&
+                    isParKpiId(card.drilldownId) &&
+                    apiMedicineParLoading) ||
+                  (isFoodFrontApiView && isApiKpiId(card.drilldownId) && apiFoodLoading) ||
+                  (isFoodFrontApiView && isParKpiId(card.drilldownId) && apiFoodParLoading) ||
+                  (isFoodNotificationFaceApiView &&
+                    isApiKpiId(card.drilldownId) &&
+                    apiFoodNotificationLoading) ||
+                  (isMedicalDeviceFaceApiView &&
+                    isApiKpiId(card.drilldownId) &&
+                    apiMedicalDeviceLoading) ||
+                  (isMedicalDeviceFaceApiView &&
+                    isParKpiId(card.drilldownId) &&
+                    apiMedicalDeviceParLoading) ||
+                  (isCosmeticsFaceApiView &&
+                    isCosmeticsThreeSlotFaceKpi(card.drilldownId) &&
+                    apiCosmeticsLoading) ||
+                  (isCosmeticsFaceApiView &&
+                    isParKpiId(card.drilldownId) &&
+                    apiCosmeticsParLoading));
               const apiKpi14StrictEmpty =
                 activeProduct === "medicine" &&
                 isApiKpiId(card.drilldownId) &&
@@ -783,6 +853,7 @@ export default function MarketAuthorizationsPage() {
               open={isModalOpen}
               onOpenChange={handleModalClose}
               data={selectedTimeDrilldown}
+              filters={drilldownApiFilters}
             />
           )}
 
@@ -792,6 +863,7 @@ export default function MarketAuthorizationsPage() {
               onOpenChange={handleModalClose}
               data={selectedDrilldown}
               drilldownSource={selectedDrilldownSource}
+              filters={drilldownApiFilters}
             />
           )}
         </div>

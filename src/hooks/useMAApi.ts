@@ -99,7 +99,7 @@ function useMATabularReportData<T>(
 ): UseMAApiState<MAApiResponse<T>> {
   const { isAuthenticated, loading: authLoading, accessToken } = useAuth();
   const [data, setData] = useState<MAApiResponse<T> | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<Error | null>(null);
 
   const cacheKey = useMemo(() => getCacheKey(filters), [filters, getCacheKey]);
@@ -382,12 +382,13 @@ interface MAFaceFacadeSource {
 
 function useMAKPIDataFaceFacade(
   { fetcher, cacheKey, submoduleFilter, moduleToKpiMapping: moduleMappingOverride }: MAFaceFacadeSource,
-  filters?: MAApiFilterParams
+  filters?: MAApiFilterParams,
+  enabled = true
 ): MAKPIDataFacade {
   const { data: rawData, loading, error, refetch } = useMATabularReportData<MAApiDataRow>(
     fetcher,
     filters,
-    true,
+    enabled,
     cacheKey
   );
 
@@ -449,44 +450,55 @@ export function useMAKPIDataMedicine(filters?: MAApiFilterParams) {
   };
 }
 
-export function useMAKPIDataMedicineFacade(filters?: MAApiFilterParams): MAKPIDataFacade {
+export function useMAKPIDataMedicineFacade(
+  filters?: MAApiFilterParams,
+  enabled = true
+): MAKPIDataFacade {
   return useMAKPIDataFaceFacade(
     {
       fetcher: fetchMAFaceTabularData,
       cacheKey: maFaceDataCacheKey,
       submoduleFilter: 'MDCN',
     },
-    filters
+    filters,
+    enabled
   );
 }
 
 /** Food MA-KPI-1..4 face values from tabular report /14 (same normalization as Medicine /8). */
-export function useMAKPIDataFoodFacade(filters?: MAApiFilterParams): MAKPIDataFacade {
+export function useMAKPIDataFoodFacade(
+  filters?: MAApiFilterParams,
+  enabled = true
+): MAKPIDataFacade {
   return useMAKPIDataFaceFacade(
     {
       fetcher: fetchMAFoodFaceTabularData,
       cacheKey: maFoodFaceDataCacheKey,
     },
-    filters
+    filters,
+    enabled
   );
 }
 
 /** Food Notification MA-KPI-1..4 face values from tabular report /15. */
 export function useMAKPIDataFoodNotificationFacade(
-  filters?: MAApiFilterParams
+  filters?: MAApiFilterParams,
+  enabled = true
 ): MAKPIDataFacade {
   return useMAKPIDataFaceFacade(
     {
       fetcher: fetchMAFoodNotificationFaceTabularData,
       cacheKey: maFoodNotificationFaceDataCacheKey,
     },
-    filters
+    filters,
+    enabled
   );
 }
 
 /** Medical Device MA-KPI-1..4 face values from tabular report /16. */
 export function useMAKPIDataMedicalDeviceFacade(
-  filters?: MAApiFilterParams
+  filters?: MAApiFilterParams,
+  enabled = true
 ): MAKPIDataFacade {
   return useMAKPIDataFaceFacade(
     {
@@ -494,19 +506,24 @@ export function useMAKPIDataMedicalDeviceFacade(
       cacheKey: maMedicalDeviceFaceDataCacheKey,
       submoduleFilter: "MD",
     },
-    filters
+    filters,
+    enabled
   );
 }
 
 /** Cosmetics MA-KPI-1..3 face values from tabular report /17 (single variation KPI; minor+major → MA-KPI-3). */
-export function useMAKPIDataCosmeticsFacade(filters?: MAApiFilterParams): MAKPIDataFacade {
+export function useMAKPIDataCosmeticsFacade(
+  filters?: MAApiFilterParams,
+  enabled = true
+): MAKPIDataFacade {
   return useMAKPIDataFaceFacade(
     {
       fetcher: fetchMACosmeticsFaceTabularData,
       cacheKey: maCosmeticsFaceDataCacheKey,
       moduleToKpiMapping: MA_COSMETICS_FACE_MODULE_TO_KPI_MAPPING,
     },
-    filters
+    filters,
+    enabled
   );
 }
 
@@ -530,12 +547,13 @@ interface MAKPIDataTimeFacade {
  * Normalizer field mapping will be finalized once the backend response format is confirmed.
  */
 export function useMAMedicineMedianAverageFaceFacade(
-  filters?: MAApiFilterParams
+  filters?: MAApiFilterParams,
+  enabled = true
 ): MAKPIDataTimeFacade {
   const { data: rawData, loading, error, refetch } = useMATabularReportData<MAApiMedianAverageDataRow>(
     fetchMAMedicineMedianAverageFaceTabularData,
     filters,
-    true,
+    enabled,
     maMedicineMedianAverageFaceDataCacheKey
   );
 
@@ -672,12 +690,15 @@ function useMAPARFaceFacade(
 }
 
 /** Medicine MA-KPI-8 PAR face from tabular report /29. */
-export function useMAMedicineParFaceFacade(filters?: MAApiFilterParams): MAKPIParFaceFacade {
+export function useMAMedicineParFaceFacade(
+  filters?: MAApiFilterParams,
+  enabled = true
+): MAKPIParFaceFacade {
   return useMAPARFaceFacade(
     fetchMAMedicineParFaceTabularData,
     maMedicineParFaceDataCacheKey,
     filters,
-    true
+    enabled
   );
 }
 
