@@ -530,29 +530,34 @@ function TimeCategoryChartCard({
   }, [chartData, chartType, view.id, targetDays, daysDomainMax, ChartTooltip]);
 
   return (
-    <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-      <div className="flex items-start justify-between gap-3 border-b bg-muted/30 px-5 py-4">
+    <section className="group overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_16px_40px_-32px_rgba(15,23,42,.65)] transition-shadow duration-300 hover:shadow-[0_22px_52px_-34px_rgba(91,33,182,.45)] dark:border-slate-800 dark:bg-slate-950/70">
+      <div className="flex flex-col gap-4 border-b border-violet-100 bg-linear-to-r from-violet-50/90 via-white to-sky-50/40 px-5 py-4 dark:border-violet-900/50 dark:from-violet-950/35 dark:via-slate-950 dark:to-sky-950/20">
+        <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold tracking-tight truncate">{view.label}</h3>
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-violet-600 dark:text-violet-300">Cycle-time view</p>
+          <h3 className="truncate text-base font-bold tracking-tight text-slate-900 dark:text-white">{view.label}</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {chartData.length} categories &middot; {totalAll.toLocaleString()} total applications
           </p>
         </div>
-        <div className="flex items-center gap-1 rounded-lg border bg-background p-0.5 shrink-0">
+        <Badge className="border-0 bg-violet-100 text-[10px] text-violet-700 shadow-none dark:bg-violet-950 dark:text-violet-300">Target {targetDays} days</Badge>
+        </div>
+        <div className="flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white/80 p-1 dark:border-slate-800 dark:bg-slate-950/70" aria-label={`Chart type for ${view.label}`}>
           {CHART_OPTIONS.map((opt) => (
             <button
               key={opt.id}
               type="button"
               onClick={() => setChartType(opt.id)}
               className={cn(
-                "flex items-center justify-center rounded-md p-1.5 transition-colors",
+                "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold transition-all duration-200",
                 chartType === opt.id
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  ? "bg-violet-600 text-white shadow-sm shadow-violet-600/20"
+                  : "text-slate-500 hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-950/40 dark:hover:text-violet-300"
               )}
-              title={opt.label}
+              aria-pressed={chartType === opt.id}
             >
               {opt.icon}
+              <span>{opt.label}</span>
             </button>
           ))}
         </div>
@@ -560,15 +565,15 @@ function TimeCategoryChartCard({
 
       <div className="px-5 py-4">
         <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="rounded-lg bg-muted/40 px-3 py-2">
+          <div className="rounded-xl border border-violet-100 bg-violet-50/60 px-3 py-2.5 dark:border-violet-900/60 dark:bg-violet-950/25">
             <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Overall</div>
             <div className="text-lg font-bold">{overallPct.toFixed(1)}%</div>
           </div>
-          <div className="rounded-lg bg-muted/40 px-3 py-2">
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5 dark:border-emerald-900/60 dark:bg-emerald-950/25">
             <div className="text-[11px] uppercase tracking-wide text-muted-foreground">On-time</div>
             <div className="text-lg font-bold">{totalOnTime.toLocaleString()}</div>
           </div>
-          <div className="rounded-lg bg-muted/40 px-3 py-2">
+          <div className="rounded-xl border border-sky-100 bg-sky-50/60 px-3 py-2.5 dark:border-sky-900/60 dark:bg-sky-950/25">
             <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Fastest</div>
             <div className="text-sm font-semibold truncate" title={fastestPerformer?.name}>
               {fastestPerformer?.name ?? "—"}
@@ -642,7 +647,7 @@ function TimeCategoryChartCard({
           )}
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -850,22 +855,24 @@ export function MATimeDrillDownModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-[1400px] w-[96vw] max-h-[94vh] flex flex-col overflow-hidden border-none bg-background p-0 gap-0">
-        <div className="shrink-0 border-b bg-background/95 backdrop-blur-sm">
-          <div className="px-6 pt-5 pb-4">
+      <DialogContent className="flex max-h-[94vh] w-[96vw] max-w-[1400px] flex-col gap-0 overflow-hidden rounded-3xl border border-violet-200/70 bg-slate-50 p-0 shadow-[0_35px_100px_-30px_rgba(15,23,42,.65)] dark:border-violet-900/60 dark:bg-slate-950">
+        <div className="relative shrink-0 overflow-hidden border-b border-violet-200/60 bg-[linear-gradient(135deg,#ffffff_0%,#faf8ff_58%,#f0ebff_100%)] dark:border-violet-900/60 dark:bg-[linear-gradient(135deg,#0f172a_0%,#15112a_58%,#1c1235_100%)]">
+          <div className="pointer-events-none absolute -right-20 -top-28 size-72 rounded-full border border-violet-300/30" />
+          <div className="relative px-6 pb-5 pt-6">
             <DialogHeader className="mb-0">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
+                  <div className="mb-2 flex flex-wrap items-center gap-2"><span className="rounded-md bg-slate-950 px-2 py-1 text-[10px] font-bold tracking-[.1em] text-white dark:bg-white dark:text-slate-950">{data.kpiId}</span><span className="text-[10px] font-bold uppercase tracking-[.14em] text-violet-600 dark:text-violet-300">Cycle-time explorer</span></div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <DialogTitle className="text-xl font-bold tracking-tight leading-tight">
+                    <DialogTitle className="max-w-4xl text-xl font-bold leading-tight tracking-[-.025em] sm:text-2xl">
                       {data.kpiName}
                     </DialogTitle>
                     {!showLoading && liveData && (
                       <MALiveIndicator variant="live" className="text-[10px]" />
                     )}
                   </div>
-                  <DialogDescription className="mt-1">
-                    Detailed breakdown across all classification categories
+                  <DialogDescription className="mt-2 max-w-3xl text-sm">
+                    Explore processing duration across several chart types, detailed categories, and statistical distributions.
                   </DialogDescription>
                 </div>
                 {showLoading && (
@@ -886,13 +893,13 @@ export function MATimeDrillDownModal({
                 <Skeleton className="h-8 w-32 rounded-full" />
               </div>
             ) : (
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <div
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold",
+                    "flex items-center gap-3 rounded-xl border bg-white/75 px-3 py-3 shadow-sm backdrop-blur dark:bg-slate-950/50",
                     meetsTarget
-                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                      : "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                      ? "border-emerald-200 text-emerald-700 dark:border-emerald-900/70 dark:text-emerald-300"
+                      : "border-amber-200 text-amber-700 dark:border-amber-900/70 dark:text-amber-300"
                   )}
                 >
                   {meetsTarget ? (
@@ -900,30 +907,26 @@ export function MATimeDrillDownModal({
                   ) : (
                     <XCircleIcon className="h-4 w-4" />
                   )}
-                  {formattedValue}
+                  <div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Current time</p><p className="text-lg font-bold">{formattedValue}</p></div>
                 </div>
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1.5 text-xs text-muted-foreground">
-                  <TargetIcon className="h-3.5 w-3.5" />
-                  Target: {targetDays} days
+                <div className="flex items-center gap-3 rounded-xl border border-violet-200 bg-white/75 px-3 py-3 text-violet-700 shadow-sm dark:border-violet-900/70 dark:bg-slate-950/50 dark:text-violet-300">
+                  <TargetIcon className="size-5" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Target</p><p className="text-lg font-bold">{targetDays} days</p></div>
                 </div>
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1.5 text-xs text-muted-foreground">
-                  <ActivityIcon className="h-3.5 w-3.5" />
-                  {onTimeNumerator.toLocaleString()} / {onTimeDenominator.toLocaleString()} on-time
+                <div className="flex items-center gap-3 rounded-xl border border-sky-200 bg-white/75 px-3 py-3 text-sky-700 shadow-sm dark:border-sky-900/70 dark:bg-slate-950/50 dark:text-sky-300">
+                  <ActivityIcon className="size-5" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">On time</p><p className="text-lg font-bold">{onTimeNumerator.toLocaleString()} <span className="text-xs font-medium opacity-60">/ {onTimeDenominator.toLocaleString()}</span></p></div>
                 </div>
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1.5 text-xs text-muted-foreground">
-                  <BarChart3Icon className="h-3.5 w-3.5" />
-                  {categoryViews.length} categories
+                <div className="flex items-center gap-3 rounded-xl border border-fuchsia-200 bg-white/75 px-3 py-3 text-fuchsia-700 shadow-sm dark:border-fuchsia-900/70 dark:bg-slate-950/50 dark:text-fuchsia-300">
+                  <BarChart3Icon className="size-5" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Dimensions</p><p className="text-lg font-bold">{categoryViews.length}</p></div>
                 </div>
                 <div
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium",
+                    "flex items-center gap-3 rounded-xl border bg-white/75 px-3 py-3 shadow-sm dark:bg-slate-950/50",
                     daysGap > 0
                       ? "bg-red-500/10 text-red-600 dark:text-red-400"
                       : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                   )}
                 >
-                  <ClockIcon className="h-3.5 w-3.5" />
-                  Gap: {formatDays(daysGap)} days
+                  <ClockIcon className="size-5" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Gap</p><p className="text-lg font-bold">{formatDays(daysGap)} days</p></div>
                 </div>
                 {!isMedian && (
                   <div className="inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1.5 text-xs text-muted-foreground">
@@ -934,15 +937,15 @@ export function MATimeDrillDownModal({
               </div>
             )}
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1 rounded-lg border bg-background p-0.5">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 rounded-xl border border-violet-200 bg-white/70 p-1 dark:border-violet-900/60 dark:bg-slate-950/50">
                 <button
                   type="button"
                   onClick={() => setViewMode("chart")}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                    "flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors",
                     viewMode === "chart"
-                      ? "bg-primary text-primary-foreground shadow-sm"
+                      ? "bg-violet-600 text-white shadow-sm"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}
                 >
@@ -953,9 +956,9 @@ export function MATimeDrillDownModal({
                   type="button"
                   onClick={() => setViewMode("table")}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                    "flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors",
                     viewMode === "table"
-                      ? "bg-primary text-primary-foreground shadow-sm"
+                      ? "bg-violet-600 text-white shadow-sm"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}
                 >
@@ -973,7 +976,7 @@ export function MATimeDrillDownModal({
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/80 px-6 py-6 dark:bg-slate-950">
           {showLoading ? (
             viewMode === "chart" ? (
               <div className="grid gap-5 lg:grid-cols-2">
