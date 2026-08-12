@@ -15,8 +15,6 @@ import {
   PieChartIcon,
   TrendingUpIcon,
   AreaChartIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
   DownloadIcon,
   ActivityIcon,
   ClockIcon,
@@ -24,6 +22,7 @@ import {
   CheckCircle2Icon,
   XCircleIcon,
   Loader2Icon,
+  CalendarDaysIcon,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -47,7 +46,7 @@ import { MALiveIndicator } from "@/components/kpi/ma-live-indicator";
 import { cn } from "@/lib/utils";
 import type { KPIDrillDownData, KPIDimensionView } from "@/types/ma-drilldown";
 import type { MAApiFilterParams } from "@/types/ma-api";
-import { KPIFilter, type KPIFilterState } from "./kpi-filter";
+import { getMAApiFilterChipLabels } from "@/lib/ma-api/filter-labels";
 import {
   useMAKPI1DrilldownData,
   useMAFoodKPI1DrilldownData,
@@ -405,12 +404,7 @@ export function MADrillDownModal({
   drilldownSource = "default",
   filters,
 }: MADrillDownModalProps) {
-  const [filterExpanded, setFilterExpanded] = useState(false);
-  const [dateFilter, setDateFilter] = useState<KPIFilterState>({
-    mode: "quarterly",
-    quarter: "Q4",
-    year: 2024,
-  });
+  const filterChipLabels = useMemo(() => getMAApiFilterChipLabels(filters), [filters]);
 
   const isKpi1 = data.kpiId === "MA-KPI-1";
   const isKpi2 = data.kpiId === "MA-KPI-2";
@@ -554,13 +548,6 @@ export function MADrillDownModal({
     [resolvedData]
   );
 
-  const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) {
-      setFilterExpanded(false);
-    }
-    onOpenChange(isOpen);
-  };
-
   const formattedValue = useMemo(() => {
     if (!resolvedData) return null;
     const cv = resolvedData.currentValue;
@@ -581,7 +568,7 @@ export function MADrillDownModal({
   );
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[1400px] w-[96vw] max-h-[94vh] flex flex-col overflow-hidden border-none bg-background p-0 gap-0">
         {/* Fixed header */}
         <div className="shrink-0 border-b bg-background/95 backdrop-blur-sm">
@@ -659,46 +646,17 @@ export function MADrillDownModal({
               </div>
             )}
 
-            {/* Filter toggle */}
-            <div className="mt-3 flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 text-xs"
-                onClick={() => setFilterExpanded(!filterExpanded)}
-              >
-                {filterExpanded ? <ChevronUpIcon className="h-3.5 w-3.5" /> : <ChevronDownIcon className="h-3.5 w-3.5" />}
-                {filterExpanded ? "Hide filters" : "Show filters"}
-              </Button>
-              {dateFilter.mode === "quarterly" && dateFilter.quarter && (
-                <Badge variant="secondary" className="text-[11px]">
-                  {dateFilter.quarter} {dateFilter.year}
-                </Badge>
-              )}
-              {dateFilter.mode === "annual" && (
-                <Badge variant="secondary" className="text-[11px]">
-                  {dateFilter.year}
-                </Badge>
-              )}
-              {dateFilter.mode === "monthly" && dateFilter.month !== undefined && (
-                <Badge variant="secondary" className="text-[11px]">
-                  {new Date(2024, dateFilter.month).toLocaleString("default", { month: "short" })} {dateFilter.year}
-                </Badge>
-              )}
-            </div>
+            {filterChipLabels.length > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {filterChipLabels.map((label) => (
+                  <Badge key={label} variant="secondary" className="gap-1 text-[11px]">
+                    <CalendarDaysIcon className="h-3 w-3" />
+                    {label}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
-
-          {/* Collapsible filter area */}
-          {filterExpanded && (
-            <div className="border-t bg-muted/20 px-6 py-3">
-              <KPIFilter
-                onFilterChange={setDateFilter}
-                defaultYear={2024}
-                defaultQuarter="Q4"
-                showAllModes
-              />
-            </div>
-          )}
         </div>
 
         {/* Scrollable content */}
