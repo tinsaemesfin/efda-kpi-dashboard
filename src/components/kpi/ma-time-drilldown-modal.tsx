@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { KPIFilter, type KPIFilterState } from "./kpi-filter";
 import { MALiveIndicator } from "@/components/kpi/ma-live-indicator";
 import { cn } from "@/lib/utils";
 import type {
@@ -37,6 +36,7 @@ import {
   buildMAKpi6DrilldownData,
   buildMAKpi7DrilldownData,
 } from "@/lib/ma-api/time-drilldown";
+import { getMAApiFilterChipLabels } from "@/lib/ma-api/filter-labels";
 import {
   BarChart3Icon,
   PieChartIcon,
@@ -48,6 +48,7 @@ import {
   ActivityIcon,
   ClockIcon,
   TargetIcon,
+  CalendarDaysIcon,
   CheckCircle2Icon,
   XCircleIcon,
   Loader2Icon,
@@ -777,13 +778,8 @@ export function MATimeDrillDownModal({
   data,
   filters,
 }: MATimeDrillDownModalProps) {
-  const [filterExpanded, setFilterExpanded] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("chart");
-  const [dateFilter, setDateFilter] = useState<KPIFilterState>({
-    mode: "quarterly",
-    quarter: "Q4",
-    year: 2024,
-  });
+  const filterChipLabels = useMemo(() => getMAApiFilterChipLabels(filters), [filters]);
 
   const isMedian = data.kpiId === "MA-KPI-6";
 
@@ -847,7 +843,6 @@ export function MATimeDrillDownModal({
 
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
-      setFilterExpanded(false);
       setViewMode("chart");
     }
     onOpenChange(isOpen);
@@ -968,48 +963,14 @@ export function MATimeDrillDownModal({
                   Table
                 </button>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 text-xs"
-                onClick={() => setFilterExpanded(!filterExpanded)}
-              >
-                {filterExpanded ? (
-                  <ChevronUpIcon className="h-3.5 w-3.5" />
-                ) : (
-                  <ChevronDownIcon className="h-3.5 w-3.5" />
-                )}
-                {filterExpanded ? "Hide filters" : "Show filters"}
-              </Button>
-              {dateFilter.mode === "quarterly" && dateFilter.quarter && (
-                <Badge variant="secondary" className="text-[11px]">
-                  {dateFilter.quarter} {dateFilter.year}
+              {filterChipLabels.map((label) => (
+                <Badge key={label} variant="secondary" className="gap-1 text-[11px]">
+                  <CalendarDaysIcon className="h-3 w-3" />
+                  {label}
                 </Badge>
-              )}
-              {dateFilter.mode === "annual" && (
-                <Badge variant="secondary" className="text-[11px]">
-                  {dateFilter.year}
-                </Badge>
-              )}
-              {dateFilter.mode === "monthly" && dateFilter.month !== undefined && (
-                <Badge variant="secondary" className="text-[11px]">
-                  {new Date(2024, dateFilter.month).toLocaleString("default", { month: "short" })}{" "}
-                  {dateFilter.year}
-                </Badge>
-              )}
+              ))}
             </div>
           </div>
-
-          {filterExpanded && (
-            <div className="border-t bg-muted/20 px-6 py-3">
-              <KPIFilter
-                onFilterChange={setDateFilter}
-                defaultYear={2024}
-                defaultQuarter="Q4"
-                showAllModes
-              />
-            </div>
-          )}
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6">
