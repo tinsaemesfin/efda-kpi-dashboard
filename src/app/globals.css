@@ -177,3 +177,72 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes ma-enter {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ma-orbit {
+  from { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.05); }
+  to { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes ma-sheen {
+  0% { transform: translateX(-150%) skewX(-18deg); opacity: 0; }
+  20% { opacity: .28; }
+  60%, 100% { transform: translateX(220%) skewX(-18deg); opacity: 0; }
+}
+
+@keyframes ma-filter-loading {
+  0% { transform: translateX(-100%) scaleX(.35); }
+  50% { transform: translateX(15%) scaleX(.7); }
+  100% { transform: translateX(100%) scaleX(.35); }
+}
+
+.ma-enter {
+  animation: ma-enter .65s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.ma-enter-delay {
+  animation-delay: 120ms;
+}
+
+.ma-product-option {
+  animation: ma-enter .55s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.ma-orbit {
+  animation: ma-orbit 24s linear infinite;
+  transform-origin: 58% 44%;
+}
+
+.ma-orbit-reverse {
+  animation-direction: reverse;
+  animation-duration: 32s;
+}
+
+.ma-selection-sheen::after {
+  content: "";
+  position: absolute;
+  inset: -30% auto -30% 0;
+  width: 32%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / .7), transparent);
+  animation: ma-sheen 3.6s ease-in-out infinite;
+}
+
+.ma-filter-loading {
+  transform-origin: left;
+  animation: ma-filter-loading 1.35s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ma-enter,
+  .ma-product-option,
+  .ma-orbit,
+  .ma-selection-sheen::after,
+  .ma-filter-loading {
+    animation: none !important;
+  }
+}

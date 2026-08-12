@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { DashboardLayout } from "@/components/layout";
 import { MAKPICard } from "@/components/kpi/ma-kpi-card";
@@ -9,7 +9,6 @@ import { MATimeDrillDownModal } from "@/components/kpi/ma-time-drilldown-modal";
 import {
   DEFAULT_FOOD_SUB_TAB,
   getMAProductKpiSeedForView,
-  maProductKpiSeed,
   type MAFoodSubTabKey,
   type MAProductKey,
 } from "@/data/ma-dummy-data";
@@ -34,16 +33,24 @@ import {
   mergeParCardsWithStrictFaceData,
 } from "@/lib/ma-api/merge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  ActivityIcon,
+  ArrowRightIcon,
   CalendarDaysIcon,
+  CheckCircle2Icon,
   ClipboardCheckIcon,
   CroissantIcon,
+  FileSearchIcon,
+  LayoutGridIcon,
   Loader2Icon,
+  RotateCcwIcon,
+  Rows3Icon,
   SearchIcon,
   PackageIcon,
+  SlidersHorizontalIcon,
   SparklesIcon,
 } from "lucide-react";
 import type { KPIDrillDownData, MATimeDrillDownData } from "@/types/ma-drilldown";
@@ -67,6 +74,36 @@ const summaryIcons: Record<MAProductKey, React.ReactNode> = {
   food: <CroissantIcon className="h-4 w-4" />,
   medicalDevice: <PackageIcon className="h-4 w-4" />,
   cosmetics: <SparklesIcon className="h-4 w-4" />,
+};
+
+const productTheme: Record<
+  MAProductKey,
+  { active: string; icon: string; border: string; description: string }
+> = {
+  medicine: {
+    active: "border-violet-400 bg-violet-600 text-white shadow-violet-900/20",
+    icon: "bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300",
+    border: "hover:border-violet-300 dark:hover:border-violet-700",
+    description: "New, renewal, variation and PAR pathways",
+  },
+  food: {
+    active: "border-amber-400 bg-amber-500 text-white shadow-amber-900/20",
+    icon: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+    border: "hover:border-amber-300 dark:hover:border-amber-700",
+    description: "Food applications and notification services",
+  },
+  medicalDevice: {
+    active: "border-sky-400 bg-sky-600 text-white shadow-sky-900/20",
+    icon: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
+    border: "hover:border-sky-300 dark:hover:border-sky-700",
+    description: "Device authorization and publication pathways",
+  },
+  cosmetics: {
+    active: "border-fuchsia-400 bg-fuchsia-600 text-white shadow-fuchsia-900/20",
+    icon: "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-950 dark:text-fuchsia-300",
+    border: "hover:border-fuchsia-300 dark:hover:border-fuchsia-700",
+    description: "Cosmetic product authorization performance",
+  },
 };
 
 const getStatus = (
@@ -292,68 +329,6 @@ export default function MarketAuthorizationsPage() {
     isCosmeticsFaceApiView,
   ]);
 
-  const summaryCards = useMemo(() => {
-    return productTabs.map((product) => {
-      const seed = maProductKpiSeed[product.key];
-      const lead =
-        product.key === activeProduct && mergedCards.length > 0
-          ? mergedCards[0]
-          : seed.cards[0];
-      const summaryLoadingPulse =
-        !dateFiltersReady ||
-        (activeProduct === "medicine" &&
-          product.key === "medicine" &&
-          (apiMedicineLoading || apiMedicineTimeLoading || apiMedicineParLoading)) ||
-        (isFoodFrontApiView && product.key === "food" && (apiFoodLoading || apiFoodParLoading)) ||
-        (isFoodNotificationFaceApiView &&
-          product.key === "food" &&
-          apiFoodNotificationLoading) ||
-        (isMedicalDeviceFaceApiView &&
-          product.key === "medicalDevice" &&
-          (apiMedicalDeviceLoading || apiMedicalDeviceParLoading)) ||
-        (isCosmeticsFaceApiView &&
-          product.key === "cosmetics" &&
-          (apiCosmeticsLoading || apiCosmeticsParLoading));
-
-      const text: ReactNode = summaryLoadingPulse ? (
-        <span
-          className="inline-block h-7 w-28 animate-pulse rounded-md bg-muted"
-          aria-hidden
-        />
-      ) : lead.faceDataMissing ? (
-        <span className="text-sm text-muted-foreground">No data found</span>
-      ) : lead.notApplicableReason ? (
-        <span className="text-sm text-muted-foreground">N/A</span>
-      ) : (
-        `${lead.value.toFixed(lead.decimals)}${lead.suffix}`
-      );
-      return {
-        key: product.key,
-        label: seed.summaryTitle,
-        text,
-        description: seed.summaryDescription,
-      };
-    });
-  }, [
-    mergedCards,
-    activeProduct,
-    dateFiltersReady,
-    apiMedicineLoading,
-    apiMedicineTimeLoading,
-    apiMedicineParLoading,
-    apiFoodLoading,
-    apiFoodParLoading,
-    apiFoodNotificationLoading,
-    apiMedicalDeviceLoading,
-    apiMedicalDeviceParLoading,
-    apiCosmeticsLoading,
-    apiCosmeticsParLoading,
-    isFoodFrontApiView,
-    isFoodNotificationFaceApiView,
-    isMedicalDeviceFaceApiView,
-    isCosmeticsFaceApiView,
-  ]);
-
   const handleCardClick = (kpiId: string) => {
     if (!maDrillDownData[kpiId]) {
       setWarningMessage(`No drilldown data found for ${kpiId}.`);
@@ -448,70 +423,80 @@ export default function MarketAuthorizationsPage() {
     }
   };
 
+  const isFaceRefreshing =
+    !dateFiltersReady ||
+    (activeProduct === "medicine" &&
+      (apiMedicineLoading || apiMedicineTimeLoading || apiMedicineParLoading)) ||
+    (isFoodFrontApiView && (apiFoodLoading || apiFoodParLoading)) ||
+    (isFoodNotificationFaceApiView && apiFoodNotificationLoading) ||
+    (isMedicalDeviceFaceApiView &&
+      (apiMedicalDeviceLoading || apiMedicalDeviceParLoading)) ||
+    (isCosmeticsFaceApiView && (apiCosmeticsLoading || apiCosmeticsParLoading));
+
+  const formatPeriodDate = (value: string) => {
+    if (!value) return "Not set";
+    const date = new Date(`${value}T00:00:00`);
+    return new Intl.DateTimeFormat("en", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(date);
+  };
+
   return (
     <AuthGuard>
       <DashboardLayout>
-        <div className="space-y-6">
-          <Card className="border-primary/40 bg-card shadow-sm">
-            <CardHeader className="space-y-2">
-              <CardTitle className="text-3xl tracking-tight">
-                Market Authorization KPI
-              </CardTitle>
-              <CardDescription className="max-w-3xl text-sm">
-                Product-specific KPI dashboard for Market Authorization. Use the tabs
-                below to switch context, then click any KPI card to open drilldown.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {summaryCards.map((item) => (
-                <div
-                  key={item.key}
-                  className={cn(
-                    "rounded-xl border bg-muted/40 p-3",
-                    item.key === activeProduct && "border-primary/60 bg-primary/5"
-                  )}
-                >
-                  <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-                    {summaryIcons[item.key]}
-                    <span>{item.label}</span>
-                  </div>
-                  <div className="text-xl font-semibold">{item.text}</div>
-                  <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
+        <div className="mx-auto max-w-[1600px] space-y-6">
+          <section className="ma-enter relative overflow-hidden rounded-[2rem] border border-violet-200/70 bg-[linear-gradient(135deg,#ffffff_0%,#faf8ff_48%,#f1edff_100%)] shadow-[0_30px_80px_-55px_rgba(76,29,149,0.7)] dark:border-violet-900/60 dark:bg-[linear-gradient(135deg,#0f172a_0%,#111024_52%,#18112e_100%)]">
+            <div className="ma-orbit pointer-events-none absolute -right-24 -top-32 size-[26rem] rounded-full border border-violet-300/30" />
+            <div className="ma-orbit ma-orbit-reverse pointer-events-none absolute -right-6 -top-24 size-[20rem] rounded-full border border-fuchsia-300/20" />
+            <div className="relative grid lg:grid-cols-[0.85fr_1.15fr]">
+              <div className="flex flex-col justify-between border-b border-violet-100 p-6 sm:p-8 lg:min-h-[320px] lg:border-b-0 lg:border-r dark:border-violet-900/50">
+                <div>
+                  <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white/80 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-violet-700 shadow-sm backdrop-blur dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-300"><ActivityIcon className="size-3.5" /> Market authorization</div>
+                  <h1 className="max-w-xl text-3xl font-bold tracking-[-0.045em] text-slate-950 sm:text-5xl dark:text-white">From submission to <span className="text-violet-600 dark:text-violet-400">regulatory decision.</span></h1>
+                  <p className="mt-4 max-w-lg text-sm leading-6 text-slate-600 sm:text-base dark:text-slate-300">Explore timeliness, processing speed, and publication transparency in the context of a specific regulated product.</p>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+                <div className="mt-8 flex flex-wrap gap-3 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  <span className="inline-flex items-center gap-1.5"><CheckCircle2Icon className="size-4 text-emerald-500" /> API-backed face metrics</span>
+                  <span className="inline-flex items-center gap-1.5"><FileSearchIcon className="size-4 text-violet-500" /> Indicator-level exploration</span>
+                </div>
+              </div>
 
-          <div className="rounded-xl border bg-card p-2">
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-              {productTabs.map((tab) => (
-                <Button
-                  key={tab.key}
-                  type="button"
-                  variant={activeProduct === tab.key ? "default" : "outline"}
-                  className="w-full"
-                  onClick={() => {
-                    setActiveProduct(tab.key);
-                    if (tab.key === "food") {
-                      setActiveFoodSubTab(DEFAULT_FOOD_SUB_TAB);
-                    }
-                  }}
-                >
-                  {tab.label}
-                </Button>
-              ))}
+              <nav className="relative p-5 sm:p-7" aria-label="Market authorization product contexts">
+                <div className="mb-4 flex items-end justify-between gap-4">
+                  <div><p className="text-sm font-bold text-slate-900 dark:text-white">Choose a product context</p><p className="mt-1 text-xs text-slate-500">The indicator catalogue adapts to your selection.</p></div>
+                  <span className="hidden rounded-full bg-violet-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-violet-700 sm:inline dark:bg-violet-950 dark:text-violet-300">Current: {activeProductLabel}</span>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {productTabs.map((tab, index) => {
+                    const selected = activeProduct === tab.key;
+                    const theme = productTheme[tab.key];
+                    return (
+                      <button key={tab.key} type="button" className={cn("ma-product-option group relative min-h-28 overflow-hidden rounded-2xl border bg-white/80 p-4 text-left shadow-sm backdrop-blur transition-[transform,border-color,box-shadow,background-color] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 dark:bg-slate-950/55", theme.border, selected ? cn(theme.active, "-translate-y-0.5 shadow-xl") : "border-slate-200 hover:-translate-y-1 hover:shadow-lg dark:border-slate-800")} style={{ animationDelay: `${100 + index * 70}ms` }} onClick={() => { setActiveProduct(tab.key); if (tab.key === "food") setActiveFoodSubTab(DEFAULT_FOOD_SUB_TAB); }} aria-pressed={selected}>
+                        {selected && <span className="ma-selection-sheen pointer-events-none absolute inset-0" />}
+                        <div className="relative flex h-full items-start gap-3">
+                          <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl transition-transform duration-300 group-hover:rotate-3 group-hover:scale-110", selected ? "bg-white/15 text-white" : theme.icon)}>{summaryIcons[tab.key]}</span>
+                          <div className="min-w-0"><div className="flex items-center gap-2"><p className="font-bold">{tab.label}</p>{selected && <span className="rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide">Viewing</span>}</div><p className={cn("mt-2 text-xs leading-5", selected ? "text-white/75" : "text-slate-500 dark:text-slate-400")}>{theme.description}</p></div>
+                          <ArrowRightIcon className={cn("ml-auto mt-1 size-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1", selected ? "text-white" : "text-slate-300")} />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </nav>
             </div>
-          </div>
+          </section>
 
           {activeProduct === "food" && (
-            <div className="rounded-xl border bg-card p-2">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-2 dark:border-amber-900/70 dark:bg-amber-950/20">
               <div className="grid grid-cols-2 gap-2">
                 {foodSubTabs.map((tab) => (
                   <Button
                     key={tab.key}
                     type="button"
-                    variant={activeFoodSubTab === tab.key ? "default" : "outline"}
-                    className="w-full"
+                    variant={activeFoodSubTab === tab.key ? "default" : "ghost"}
+                    className={cn("w-full rounded-xl", activeFoodSubTab === tab.key && "bg-amber-500 text-white hover:bg-amber-600")}
                     onClick={() => setActiveFoodSubTab(tab.key)}
                   >
                     {tab.label}
@@ -521,106 +506,33 @@ export default function MarketAuthorizationsPage() {
             </div>
           )}
 
-          <div className="rounded-xl border bg-card p-3">
-            <div className="flex min-w-0 flex-col gap-3">
-              <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="min-w-0 space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Preset</label>
-                  <Select
-                    value={datePreset || undefined}
-                    onValueChange={applyDatePreset}
-                  >
-                    <SelectTrigger className="h-9 w-full min-w-0">
-                      <SelectValue placeholder="Choose preset" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="this-quarter">This quarter</SelectItem>
-                      <SelectItem value="last-quarter">Last quarter</SelectItem>
-                      <SelectItem value="last-30">Last 30 days</SelectItem>
-                      <SelectItem value="ytd">Year to date</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="min-w-0 space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">From</label>
-                  <div className="relative min-w-0">
-                    <CalendarDaysIcon className="pointer-events-none absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="date"
-                      className="h-9 min-w-0 pl-8"
-                      value={draftDateFrom}
-                      onChange={(e) => {
-                        const next = e.target.value;
-                        setDatePreset("");
-                        setDraftDateFrom(next);
-                        draftDatesRef.current = { ...draftDatesRef.current, from: next };
-                        scheduleDateFilterCommit();
-                      }}
-                      onBlur={() => {
-                        commitDateFilters(
-                          draftDatesRef.current.from,
-                          draftDatesRef.current.to
-                        );
-                      }}
-                    />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">DD/MM/YYYY</p>
-                </div>
-                <div className="min-w-0 space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">To</label>
-                  <div className="relative min-w-0">
-                    <CalendarDaysIcon className="pointer-events-none absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="date"
-                      className="h-9 min-w-0 pl-8"
-                      value={draftDateTo}
-                      onChange={(e) => {
-                        const next = e.target.value;
-                        setDatePreset("");
-                        setDraftDateTo(next);
-                        draftDatesRef.current = { ...draftDatesRef.current, to: next };
-                        scheduleDateFilterCommit();
-                      }}
-                      onBlur={() => {
-                        commitDateFilters(
-                          draftDatesRef.current.from,
-                          draftDatesRef.current.to
-                        );
-                      }}
-                      min={draftDateFrom || undefined}
-                    />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">DD/MM/YYYY</p>
-                </div>
-                <div className="min-w-0 space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Find KPI</label>
-                  <div className="relative min-w-0">
-                    <SearchIcon className="pointer-events-none absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search KPI title"
-                      className="h-9 min-w-0 pl-8"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                </div>
+          <section className="ma-enter ma-enter-delay relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_50px_-38px_rgba(15,23,42,0.55)] dark:border-slate-800 dark:bg-slate-950/70" aria-label="Dashboard filters">
+            {isFaceRefreshing && <div className="ma-filter-loading absolute inset-x-0 top-0 z-10 h-1 bg-linear-to-r from-violet-500 via-fuchsia-400 to-sky-400" />}
+            <div className="grid gap-3 p-3 md:grid-cols-2 xl:grid-cols-[0.85fr_1fr_1fr_1.25fr_auto]">
+              <div className="min-w-0">
+                <label htmlFor="ma-date-preset" className="sr-only">Date preset</label>
+                <Select value={datePreset || undefined} onValueChange={applyDatePreset}>
+                  <SelectTrigger id="ma-date-preset" className="h-11 w-full rounded-xl border-violet-200 bg-violet-50/70 py-1 pl-1.5 pr-3 hover:border-violet-300 dark:border-violet-900/70 dark:bg-violet-950/30">
+                    <div className="flex min-w-0 items-center gap-2.5"><span className="grid size-8 shrink-0 place-items-center rounded-lg bg-violet-600 text-white shadow-sm shadow-violet-600/25"><SlidersHorizontalIcon className="size-4" /></span><SelectValue placeholder="Custom period" /></div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="this-quarter">This quarter</SelectItem>
+                    <SelectItem value="last-quarter">Last quarter</SelectItem>
+                    <SelectItem value="last-30">Last 30 days</SelectItem>
+                    <SelectItem value="ytd">Year to date</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="flex min-w-0 justify-end border-t border-border/60 pt-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full shrink-0 sm:w-auto"
-                  onClick={() => {
-                    setSearchTerm("");
-                    applyDatePreset("ytd");
-                  }}
-                >
-                  Reset
-                </Button>
-              </div>
+              <div className="relative min-w-0"><label htmlFor="ma-date-from" className="sr-only">Start date</label><span className="pointer-events-none absolute left-1.5 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-lg bg-sky-500 text-white shadow-sm shadow-sky-500/25"><CalendarDaysIcon className="size-4" /></span><Input id="ma-date-from" type="date" className="h-11 rounded-xl border-sky-200 bg-sky-50/60 pl-11 focus-visible:border-sky-400 focus-visible:ring-sky-300 dark:border-sky-900/70 dark:bg-sky-950/25" value={draftDateFrom} onChange={(e) => { const next = e.target.value; setDatePreset(""); setDraftDateFrom(next); draftDatesRef.current = { ...draftDatesRef.current, from: next }; scheduleDateFilterCommit(); }} onBlur={() => commitDateFilters(draftDatesRef.current.from, draftDatesRef.current.to)} /></div>
+              <div className="relative min-w-0"><label htmlFor="ma-date-to" className="sr-only">End date</label><span className="pointer-events-none absolute left-1.5 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-lg bg-indigo-500 text-white shadow-sm shadow-indigo-500/25"><CalendarDaysIcon className="size-4" /></span><Input id="ma-date-to" type="date" className="h-11 rounded-xl border-indigo-200 bg-indigo-50/60 pl-11 focus-visible:border-indigo-400 focus-visible:ring-indigo-300 dark:border-indigo-900/70 dark:bg-indigo-950/25" value={draftDateTo} onChange={(e) => { const next = e.target.value; setDatePreset(""); setDraftDateTo(next); draftDatesRef.current = { ...draftDatesRef.current, to: next }; scheduleDateFilterCommit(); }} onBlur={() => commitDateFilters(draftDatesRef.current.from, draftDatesRef.current.to)} min={draftDateFrom || undefined} /></div>
+              <div className="relative min-w-0"><label htmlFor="ma-kpi-search" className="sr-only">Find an indicator</label><span className="pointer-events-none absolute left-1.5 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-lg bg-fuchsia-500 text-white shadow-sm shadow-fuchsia-500/25"><SearchIcon className="size-4" /></span><Input id="ma-kpi-search" type="search" placeholder="Search indicators…" className="h-11 rounded-xl border-fuchsia-200 bg-fuchsia-50/50 pl-11 focus-visible:border-fuchsia-400 focus-visible:ring-fuchsia-300 dark:border-fuchsia-900/70 dark:bg-fuchsia-950/20" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
+              <Button type="button" variant="outline" className="h-11 gap-2 rounded-xl border-rose-200 bg-rose-50/60 px-3 text-rose-700 hover:border-rose-300 hover:bg-rose-100 hover:text-rose-800 dark:border-rose-900/70 dark:bg-rose-950/25 dark:text-rose-300" onClick={() => { setSearchTerm(""); applyDatePreset("ytd"); }}><span className="grid size-7 place-items-center rounded-lg bg-rose-500 text-white"><RotateCcwIcon className="size-3.5" /></span><span className="xl:sr-only">Reset</span></Button>
             </div>
-          </div>
+            <div className="flex min-h-10 w-full flex-wrap items-center justify-between gap-2 border-t border-violet-100 bg-violet-50/60 px-4 py-2 text-xs dark:border-violet-900/60 dark:bg-violet-950/25">
+              <span className="flex items-center gap-2 text-slate-600 dark:text-slate-300"><span className={cn("size-2 rounded-full", isFaceRefreshing ? "animate-pulse bg-amber-500" : "bg-emerald-600")} />{isFaceRefreshing ? "Updating indicators…" : "Filters applied"}</span>
+              <span className="font-semibold text-violet-700 dark:text-violet-300">{formatPeriodDate(dateFrom)} → {formatPeriodDate(dateTo)}{searchTerm && ` · “${searchTerm}”`}</span>
+            </div>
+          </section>
 
           {(warningMessage ||
             (activeProduct === "medicine" &&
@@ -653,12 +565,15 @@ export default function MarketAuthorizationsPage() {
             </Card>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
-              Showing {visibleCards.length} KPI cards for{" "}
-              <span className="font-medium text-foreground">
-                {activeProductLabel}
-              </span>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className={cn("grid size-9 place-items-center rounded-xl", productTheme[activeProduct].icon)}>{summaryIcons[activeProduct]}</span>
+                <div>
+                  <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">{activeProductLabel} performance</h2>
+                  <p className="text-xs text-muted-foreground">{visibleCards.length} indicators · select a card to explore details</p>
+                </div>
+              </div>
               {(activeProduct === "medicine" &&
                 (apiMedicineLoading || apiMedicineTimeLoading || apiMedicineParLoading)) ||
               (isFoodFrontApiView && (apiFoodLoading || apiFoodParLoading)) ||
@@ -666,28 +581,28 @@ export default function MarketAuthorizationsPage() {
               (isMedicalDeviceFaceApiView &&
                 (apiMedicalDeviceLoading || apiMedicalDeviceParLoading)) ||
               (isCosmeticsFaceApiView && (apiCosmeticsLoading || apiCosmeticsParLoading)) ? (
-                <Loader2Icon className="h-4 w-4 animate-spin text-muted-foreground" aria-hidden />
+                <span className="mt-2 inline-flex items-center gap-2 text-xs text-muted-foreground"><Loader2Icon className="h-3.5 w-3.5 animate-spin" aria-hidden /> Refreshing live metrics</span>
               ) : null}
-            </p>
-            <div className="rounded-lg border bg-card p-1">
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-800 dark:bg-slate-950">
               <div className="flex items-center gap-1">
                 <Button
                   type="button"
                   variant={cardDensity === "grid" ? "default" : "ghost"}
                   size="sm"
-                  className="h-7 px-3 text-xs"
+                  className="h-8 gap-1.5 rounded-lg px-3 text-xs"
                   onClick={() => setCardDensity("grid")}
                 >
-                  Grid
+                  <LayoutGridIcon className="size-3.5" /> Grid
                 </Button>
                 <Button
                   type="button"
                   variant={cardDensity === "condensed" ? "default" : "ghost"}
                   size="sm"
-                  className="h-7 px-3 text-xs"
+                  className="h-8 gap-1.5 rounded-lg px-3 text-xs"
                   onClick={() => setCardDensity("condensed")}
                 >
-                  Condensed
+                  <Rows3Icon className="size-3.5" /> Compact
                 </Button>
               </div>
             </div>
@@ -695,7 +610,7 @@ export default function MarketAuthorizationsPage() {
 
           <div
             className={cn(
-              "grid gap-4",
+              "grid items-stretch gap-4",
               cardDensity === "grid"
                 ? "md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
                 : "md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
