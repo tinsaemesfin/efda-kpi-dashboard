@@ -35,4 +35,5 @@ build:
         --destination $IMAGE:$CI_COMMIT_SHORT_SHA
         --destination $IMAGE:latest
         --snapshotMode=redo
+        --registry-map "mcr.microsoft.com=harbor.efda.gov.et/mcr;index.docker.io=harbor.efda.gov.et/dockerhub"
         --compressed-caching=false
