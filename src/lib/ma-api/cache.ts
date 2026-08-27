@@ -11,6 +11,10 @@ function stableFiltersKey(filters?: MAApiFilterParams): string {
   return JSON.stringify(filters ?? null);
 }
 
+export function maReportDataCacheKey(reportId: number, filters?: MAApiFilterParams): string {
+  return `ma-report:${reportId}:${stableFiltersKey(filters)}`;
+}
+
 export function maFaceDataCacheKey(filters?: MAApiFilterParams): string {
   return `ma-face:${stableFiltersKey(filters)}`;
 }

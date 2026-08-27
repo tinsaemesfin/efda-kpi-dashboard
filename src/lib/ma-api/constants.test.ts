@@ -19,6 +19,9 @@ import {
   MA_TABULAR_KPI2_DRILLDOWN_REPORT_ID,
   MA_TABULAR_KPI3_DRILLDOWN_REPORT_ID,
   MA_TABULAR_KPI4_DRILLDOWN_REPORT_ID,
+  MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS,
+  MA_PRODUCT_TIME_REPORT_IDS,
+  MA_PRODUCT_PAR_REPORT_IDS,
   buildMATabularUrl,
 } from "@/lib/ma-api/constants";
 
@@ -76,5 +79,29 @@ describe("MA tabular report ids", () => {
     expect(
       buildMATabularUrl("https://example.test/api/kpi", MA_TABULAR_MEDICINE_PAR_FACE_REPORT_ID)
     ).toBe("https://example.test/api/kpi/tabular/29");
+  });
+
+  it("maps the consecutive completion reports 89–113 by product and KPI", () => {
+    expect(MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS.foodNotification).toEqual({
+      "MA-KPI-1": 89,
+      "MA-KPI-2": 90,
+      "MA-KPI-3": 91,
+      "MA-KPI-4": 92,
+    });
+    expect(MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS.cosmetics).toEqual({
+      "MA-KPI-1": 93,
+      "MA-KPI-2": 94,
+      "MA-KPI-3": 95,
+    });
+    expect(MA_PRODUCT_TIME_REPORT_IDS.food).toEqual({ face: 96, median: 97, average: 98 });
+    expect(MA_PRODUCT_TIME_REPORT_IDS.foodNotification).toEqual({ face: 99, median: 100, average: 101 });
+    expect(MA_PRODUCT_TIME_REPORT_IDS.medicalDevice).toEqual({ face: 102, median: 103, average: 104 });
+    expect(MA_PRODUCT_TIME_REPORT_IDS.cosmetics).toEqual({ face: 105, median: 106, average: 107 });
+    expect(MA_PRODUCT_TIME_REPORT_IDS.medicine).toEqual({ face: 118, median: 119, average: 120 });
+    expect(MA_PRODUCT_PAR_REPORT_IDS.foodNotification).toEqual({ face: 108, drilldown: 111 });
+    expect(MA_PRODUCT_PAR_REPORT_IDS.medicine).toEqual({ face: 114, drilldown: 109 });
+    expect(MA_PRODUCT_PAR_REPORT_IDS.food).toEqual({ face: 115, drilldown: 110 });
+    expect(MA_PRODUCT_PAR_REPORT_IDS.medicalDevice).toEqual({ face: 116, drilldown: 112 });
+    expect(MA_PRODUCT_PAR_REPORT_IDS.cosmetics).toEqual({ face: 117, drilldown: 113 });
   });
 });
