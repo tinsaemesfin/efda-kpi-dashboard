@@ -17,7 +17,6 @@ import {
   AreaChartIcon,
   DownloadIcon,
   ActivityIcon,
-  ClockIcon,
   TargetIcon,
   CheckCircle2Icon,
   XCircleIcon,
@@ -60,13 +59,17 @@ import {
   useMAMedicalDeviceKPI2DrilldownData,
   useMAMedicalDeviceKPI3DrilldownData,
   useMAMedicalDeviceKPI4DrilldownData,
+  useMAProductStandardDrilldownData,
+  useMAProductParDrilldownData,
 } from "@/hooks/useMAApi";
 import {
   buildMAKpi1DrilldownData,
   buildMAKpi2DrilldownData,
   buildMAKpi3DrilldownData,
   buildMAKpi4DrilldownData,
+  buildMAKpi8DrilldownData,
 } from "@/lib/ma-api/drilldown";
+import type { MAKPIId, MAReportProduct } from "@/types/ma-api";
 
 type ChartType = "bar" | "column" | "horizontalBar" | "line" | "area" | "pie" | "doughnut";
 
@@ -107,7 +110,7 @@ interface MADrillDownModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   data: KPIDrillDownData;
-  drilldownSource?: "default" | "food" | "medicalDevice";
+  drilldownSource?: MAReportProduct;
   /** Snapshot of page date filters at open time; fetch runs only while open. */
   filters?: MAApiFilterParams;
 }
@@ -406,7 +409,7 @@ export function MADrillDownModal({
   open,
   onOpenChange,
   data,
-  drilldownSource = "default",
+  drilldownSource = "medicine",
   filters,
 }: MADrillDownModalProps) {
   const filterChipLabels = useMemo(() => getMAApiFilterChipLabels(filters), [filters]);
@@ -415,6 +418,7 @@ export function MADrillDownModal({
   const isKpi2 = data.kpiId === "MA-KPI-2";
   const isKpi3 = data.kpiId === "MA-KPI-3";
   const isKpi4 = data.kpiId === "MA-KPI-4";
+  const isKpi8 = data.kpiId === "MA-KPI-8";
   const isFoodKpi1 = isKpi1 && drilldownSource === "food";
   const isFoodKpi2 = isKpi2 && drilldownSource === "food";
   const isFoodKpi3 = isKpi3 && drilldownSource === "food";
@@ -423,10 +427,28 @@ export function MADrillDownModal({
   const isMedicalDeviceKpi2 = isKpi2 && drilldownSource === "medicalDevice";
   const isMedicalDeviceKpi3 = isKpi3 && drilldownSource === "medicalDevice";
   const isMedicalDeviceKpi4 = isKpi4 && drilldownSource === "medicalDevice";
+  const usesGenericStandardDrilldown =
+    (drilldownSource === "foodNotification" || drilldownSource === "cosmetics") &&
+    (isKpi1 || isKpi2 || isKpi3 || isKpi4);
+  const genericStandardKpiId = (isKpi1 || isKpi2 || isKpi3 || isKpi4
+    ? data.kpiId
+    : "MA-KPI-1") as MAKPIId;
+  const { data: genericStandardApiData, loading: genericStandardLoading } =
+    useMAProductStandardDrilldownData(
+      drilldownSource,
+      genericStandardKpiId,
+      filters,
+      open && usesGenericStandardDrilldown
+    );
+  const { data: parApiData, loading: parLoading } = useMAProductParDrilldownData(
+    drilldownSource,
+    filters,
+    open && isKpi8
+  );
 
   const { data: kpi1ApiData, loading: kpi1Loading } = useMAKPI1DrilldownData(
     filters,
-    open && isKpi1 && !isFoodKpi1 && !isMedicalDeviceKpi1
+    open && isKpi1 && !isFoodKpi1 && !isMedicalDeviceKpi1 && !usesGenericStandardDrilldown
   );
   const { data: foodKpi1ApiData, loading: foodKpi1Loading } = useMAFoodKPI1DrilldownData(
     filters,
@@ -436,7 +458,7 @@ export function MADrillDownModal({
     useMAMedicalDeviceKPI1DrilldownData(filters, open && isMedicalDeviceKpi1);
   const { data: kpi2ApiData, loading: kpi2Loading } = useMAKPI2DrilldownData(
     filters,
-    open && isKpi2 && !isFoodKpi2 && !isMedicalDeviceKpi2
+    open && isKpi2 && !isFoodKpi2 && !isMedicalDeviceKpi2 && !usesGenericStandardDrilldown
   );
   const { data: foodKpi2ApiData, loading: foodKpi2Loading } = useMAFoodKPI2DrilldownData(
     filters,
@@ -446,7 +468,7 @@ export function MADrillDownModal({
     useMAMedicalDeviceKPI2DrilldownData(filters, open && isMedicalDeviceKpi2);
   const { data: kpi3ApiData, loading: kpi3Loading } = useMAKPI3DrilldownData(
     filters,
-    open && isKpi3 && !isFoodKpi3 && !isMedicalDeviceKpi3
+    open && isKpi3 && !isFoodKpi3 && !isMedicalDeviceKpi3 && !usesGenericStandardDrilldown
   );
   const { data: foodKpi3ApiData, loading: foodKpi3Loading } = useMAFoodKPI3DrilldownData(
     filters,
@@ -456,7 +478,7 @@ export function MADrillDownModal({
     useMAMedicalDeviceKPI3DrilldownData(filters, open && isMedicalDeviceKpi3);
   const { data: kpi4ApiData, loading: kpi4Loading } = useMAKPI4DrilldownData(
     filters,
-    open && isKpi4 && !isFoodKpi4 && !isMedicalDeviceKpi4
+    open && isKpi4 && !isFoodKpi4 && !isMedicalDeviceKpi4 && !usesGenericStandardDrilldown
   );
   const { data: foodKpi4ApiData, loading: foodKpi4Loading } = useMAFoodKPI4DrilldownData(
     filters,
@@ -465,8 +487,10 @@ export function MADrillDownModal({
   const { data: medicalDeviceKpi4ApiData, loading: medicalDeviceKpi4Loading } =
     useMAMedicalDeviceKPI4DrilldownData(filters, open && isMedicalDeviceKpi4);
 
-  const isLiveApiKpi = isKpi1 || isKpi2 || isKpi3 || isKpi4;
+  const isLiveApiKpi = isKpi1 || isKpi2 || isKpi3 || isKpi4 || isKpi8;
   const kpiApiLoading =
+    (usesGenericStandardDrilldown && genericStandardLoading) ||
+    (isKpi8 && parLoading) ||
     (isFoodKpi1 && foodKpi1Loading) ||
     (isMedicalDeviceKpi1 && medicalDeviceKpi1Loading) ||
     (isKpi1 && !isFoodKpi1 && !isMedicalDeviceKpi1 && kpi1Loading) ||
@@ -481,6 +505,15 @@ export function MADrillDownModal({
     (isKpi4 && !isFoodKpi4 && !isMedicalDeviceKpi4 && kpi4Loading);
 
   const liveData = useMemo(() => {
+    if (isKpi8 && parApiData?.data?.length) {
+      return buildMAKpi8DrilldownData(parApiData.data, data);
+    }
+    if (usesGenericStandardDrilldown && genericStandardApiData?.data?.length) {
+      if (isKpi1) return buildMAKpi1DrilldownData(genericStandardApiData.data, data);
+      if (isKpi2) return buildMAKpi2DrilldownData(genericStandardApiData.data, data);
+      if (isKpi3) return buildMAKpi3DrilldownData(genericStandardApiData.data, data);
+      if (isKpi4) return buildMAKpi4DrilldownData(genericStandardApiData.data, data);
+    }
     if (isFoodKpi1 && foodKpi1ApiData?.data?.length) {
       return buildMAKpi1DrilldownData(foodKpi1ApiData.data, data);
     }
@@ -539,6 +572,10 @@ export function MADrillDownModal({
     medicalDeviceKpi2ApiData,
     medicalDeviceKpi3ApiData,
     medicalDeviceKpi4ApiData,
+    genericStandardApiData,
+    parApiData,
+    usesGenericStandardDrilldown,
+    isKpi8,
     kpi1ApiData,
     kpi2ApiData,
     kpi3ApiData,

@@ -12,6 +12,8 @@ const KPI3_NAME = "Percentage of Minor Variation Applications Completed Within T
 const KPI3_MODULE_CODES = ["VMIN", "VAR"] as const;
 const KPI4_ID = "MA-KPI-4";
 const KPI4_NAME = "Percentage of Major Variation Applications Completed Within Timeline";
+const KPI8_ID = "MA-KPI-8";
+const KPI8_NAME = "Percentage of Public Assessment Reports Published Within Timeline";
 const NEW_APPLICATION_PREFIX = /^new application\s*-\s*/i;
 
 const CATEGORY_LABEL_ORDER = [
@@ -91,6 +93,19 @@ export function buildMAKpi4DrilldownData(
   fallback?: KPIDrillDownData
 ): KPIDrillDownData {
   return buildMAKpiDrilldownData(rows, "VMAJ", KPI4_ID, KPI4_NAME, fallback);
+}
+
+export function buildMAKpi8DrilldownData(
+  rows: MAApiDrilldownRow[],
+  fallback?: KPIDrillDownData
+): KPIDrillDownData {
+  return buildMAKpiDrilldownData(
+    rows,
+    ["NMR", "REN", "VMIN", "VMAJ", "VAR"],
+    KPI8_ID,
+    KPI8_NAME,
+    fallback
+  );
 }
 
 function buildMAKpiDrilldownData(

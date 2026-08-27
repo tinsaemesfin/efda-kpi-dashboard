@@ -23,6 +23,9 @@ import {
   MA_TABULAR_MEDICAL_DEVICE_PAR_FACE_REPORT_ID,
   MA_TABULAR_FOOD_PAR_FACE_REPORT_ID,
   MA_TABULAR_COSMETICS_PAR_FACE_REPORT_ID,
+  MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS,
+  MA_PRODUCT_TIME_REPORT_IDS,
+  MA_PRODUCT_PAR_REPORT_IDS,
   buildMAFaceRequestBody,
   buildMATabularUrl,
   getApiBaseUrl,
@@ -41,6 +44,7 @@ import {
   maMedicalDeviceParFaceDataCacheKey,
   maFoodParFaceDataCacheKey,
   maCosmeticsParFaceDataCacheKey,
+  maReportDataCacheKey,
   maKpi1DrilldownCacheKey,
   maFoodKpi1DrilldownCacheKey,
   maFoodKpi2DrilldownCacheKey,
@@ -54,7 +58,7 @@ import {
   maMedicalDeviceKpi3DrilldownCacheKey,
   maMedicalDeviceKpi4DrilldownCacheKey,
 } from "@/lib/ma-api/cache";
-import type { MAApiDataRow, MAApiDrilldownRow, MAApiFilterParams, MAApiMedianAverageDataRow, MAApiMedianDrilldownRow, MAApiAverageDrilldownRow, MAApiResponse } from "@/types/ma-api";
+import type { MAApiDataRow, MAApiDrilldownRow, MAApiFilterParams, MAApiMedianAverageDataRow, MAApiMedianDrilldownRow, MAApiAverageDrilldownRow, MAApiResponse, MAKPIId, MAKPITimeId, MAReportProduct } from "@/types/ma-api";
 
 export type MAApiFetchOptions = { force?: boolean };
 
@@ -93,6 +97,38 @@ async function fetchMATabularData<T>(
   }
 
   return json;
+}
+
+export async function fetchMAReportTabularData<T>(
+  accessToken: string,
+  reportId: number,
+  filters?: MAApiFilterParams,
+  options?: MAApiFetchOptions,
+  lengthOverride = "500"
+): Promise<MAApiResponse<T>> {
+  const key = maReportDataCacheKey(reportId, filters);
+  return getOrFetchMaApiCache(key, options?.force ?? false, () =>
+    fetchMATabularData<T>(accessToken, reportId, filters, lengthOverride)
+  );
+}
+
+export function getMAStandardDrilldownReportId(
+  product: MAReportProduct,
+  kpiId: MAKPIId
+): number | null {
+  return MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS[product][kpiId] ?? null;
+}
+
+export function getMATimeReportId(
+  product: MAReportProduct,
+  kpiId: MAKPITimeId | "face"
+): number {
+  const reports = MA_PRODUCT_TIME_REPORT_IDS[product];
+  return kpiId === "MA-KPI-6" ? reports.median : kpiId === "MA-KPI-7" ? reports.average : reports.face;
+}
+
+export function getMAParReportId(product: MAReportProduct, kind: "face" | "drilldown"): number {
+  return MA_PRODUCT_PAR_REPORT_IDS[product][kind];
 }
 
 export async function fetchMAFaceTabularData(

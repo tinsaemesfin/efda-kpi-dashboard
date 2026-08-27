@@ -12,6 +12,7 @@ export type MAKPIId = 'MA-KPI-1' | 'MA-KPI-2' | 'MA-KPI-3' | 'MA-KPI-4';
 export type MAKPITimeId = 'MA-KPI-6' | 'MA-KPI-7';
 /** PAR face KPI from tabular reports /29–/32. */
 export type MAKPIParId = 'MA-KPI-8';
+export type MAReportProduct = 'medicine' | 'food' | 'foodNotification' | 'medicalDevice' | 'cosmetics';
 export type MAParModuleCode = 'NMR' | 'REN' | 'VMIN' | 'VMAJ';
 export const MA_PAR_MODULE_ORDER: readonly MAParModuleCode[] = [
   'NMR',

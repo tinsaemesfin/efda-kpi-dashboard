@@ -1,4 +1,4 @@
-import type { MAApiFilterParams, MAKPIId, MAModuleToKpiMapping, MAKPITimeId } from "@/types/ma-api";
+import type { MAApiFilterParams, MAKPIId, MAModuleToKpiMapping, MAKPITimeId, MAReportProduct } from "@/types/ma-api";
 
 /** Cosmetics — face KPIs MA-KPI-1..3 only; all variation rows map to MA-KPI-3 (no KPI 4). */
 export const MA_COSMETICS_FACE_MODULE_TO_KPI_MAPPING: MAModuleToKpiMapping = {
@@ -52,6 +52,39 @@ export const MA_TABULAR_MEDICAL_DEVICE_PAR_FACE_REPORT_ID = 30;
 export const MA_TABULAR_FOOD_PAR_FACE_REPORT_ID = 31;
 /** Cosmetics — MA-KPI-8 PAR face. */
 export const MA_TABULAR_COSMETICS_PAR_FACE_REPORT_ID = 32;
+/** Remaining non-FIR MA reports added consecutively after the prior latest id (88). */
+export const MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS: Record<
+  MAReportProduct,
+  Partial<Record<MAKPIId, number>>
+> = {
+  medicine: { "MA-KPI-1": 9, "MA-KPI-2": 10, "MA-KPI-3": 11, "MA-KPI-4": 13 },
+  food: { "MA-KPI-1": 18, "MA-KPI-2": 19, "MA-KPI-3": 20, "MA-KPI-4": 21 },
+  foodNotification: { "MA-KPI-1": 89, "MA-KPI-2": 90, "MA-KPI-3": 91, "MA-KPI-4": 92 },
+  medicalDevice: { "MA-KPI-1": 22, "MA-KPI-2": 23, "MA-KPI-3": 24, "MA-KPI-4": 25 },
+  cosmetics: { "MA-KPI-1": 93, "MA-KPI-2": 94, "MA-KPI-3": 95 },
+};
+
+export const MA_PRODUCT_TIME_REPORT_IDS: Record<
+  MAReportProduct,
+  { face: number; median: number; average: number }
+> = {
+  medicine: { face: 118, median: 119, average: 120 },
+  food: { face: 96, median: 97, average: 98 },
+  foodNotification: { face: 99, median: 100, average: 101 },
+  medicalDevice: { face: 102, median: 103, average: 104 },
+  cosmetics: { face: 105, median: 106, average: 107 },
+};
+
+export const MA_PRODUCT_PAR_REPORT_IDS: Record<
+  MAReportProduct,
+  { face: number; drilldown: number }
+> = {
+  medicine: { face: 114, drilldown: 109 },
+  food: { face: 115, drilldown: 110 },
+  foodNotification: { face: 108, drilldown: 111 },
+  medicalDevice: { face: 116, drilldown: 112 },
+  cosmetics: { face: 117, drilldown: 113 },
+};
 export const MA_TABULAR_ENDPOINT_PREFIX = "/api/kpi/tabular";
 
 export const MA_DEFAULT_TABULAR_PARAMS = {

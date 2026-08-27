@@ -27,11 +27,8 @@ import type {
   MATimeDrillDownData,
   MATimeDrillDownItem,
 } from "@/types/ma-drilldown";
-import type { MAApiFilterParams } from "@/types/ma-api";
-import {
-  useMAKPI6DrilldownData,
-  useMAKPI7DrilldownData,
-} from "@/hooks/useMAApi";
+import type { MAApiAverageDrilldownRow, MAApiFilterParams, MAApiMedianDrilldownRow, MAReportProduct } from "@/types/ma-api";
+import { useMAProductTimeDrilldownData } from "@/hooks/useMAApi";
 import {
   buildMAKpi6DrilldownData,
   buildMAKpi7DrilldownData,
@@ -103,6 +100,7 @@ interface MATimeDrillDownModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   data: MATimeDrillDownData;
+  product?: MAReportProduct;
   /** Snapshot of page date filters at open time; fetch runs only while open. */
   filters?: MAApiFilterParams;
 }
@@ -781,6 +779,7 @@ export function MATimeDrillDownModal({
   open,
   onOpenChange,
   data,
+  product = "medicine",
   filters,
 }: MATimeDrillDownModalProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("chart");
@@ -788,26 +787,24 @@ export function MATimeDrillDownModal({
 
   const isMedian = data.kpiId === "MA-KPI-6";
 
-  const { data: kpi6ApiData, loading: kpi6Loading } = useMAKPI6DrilldownData(
+  const { data: timeApiData, loading: timeLoading } = useMAProductTimeDrilldownData(
+    product,
+    isMedian ? "MA-KPI-6" : "MA-KPI-7",
     filters,
-    open && isMedian
-  );
-  const { data: kpi7ApiData, loading: kpi7Loading } = useMAKPI7DrilldownData(
-    filters,
-    open && !isMedian
+    open
   );
 
-  const showLoading = isMedian ? kpi6Loading : kpi7Loading;
+  const showLoading = timeLoading;
 
   const liveData = useMemo(() => {
-    if (isMedian && kpi6ApiData?.data?.length) {
-      return buildMAKpi6DrilldownData(kpi6ApiData.data, data);
+    if (isMedian && timeApiData?.data?.length) {
+      return buildMAKpi6DrilldownData(timeApiData.data as MAApiMedianDrilldownRow[], data);
     }
-    if (!isMedian && kpi7ApiData?.data?.length) {
-      return buildMAKpi7DrilldownData(kpi7ApiData.data, data);
+    if (!isMedian && timeApiData?.data?.length) {
+      return buildMAKpi7DrilldownData(timeApiData.data as MAApiAverageDrilldownRow[], data);
     }
     return null;
-  }, [isMedian, kpi6ApiData, kpi7ApiData, data]);
+  }, [isMedian, timeApiData, data]);
 
   const resolvedData = liveData ?? data;
   const categoryViews = resolvedData.categoryViews;
