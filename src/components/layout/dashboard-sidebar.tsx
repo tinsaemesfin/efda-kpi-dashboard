@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3,
   Home,
   Shield,
   FlaskConical,
@@ -73,9 +73,14 @@ export function DashboardSidebar() {
     <Sidebar collapsible="offcanvas" className="border-r">
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm dark:bg-slate-50 dark:text-slate-950">
-            <BarChart3 className="h-5 w-5" aria-hidden="true" />
-          </div>
+          <Image
+            src="/efda-logo.png"
+            alt="EFDA logo"
+            width={40}
+            height={40}
+            priority
+            className="h-10 w-10 shrink-0 rounded-xl object-contain shadow-sm"
+          />
           <div className="flex min-w-0 flex-col">
             <span className="text-sm font-semibold tracking-tight">EFDA KPI</span>
             <span className="text-xs text-muted-foreground">Dashboard</span>
