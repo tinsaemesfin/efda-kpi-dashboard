@@ -1,0 +1,26 @@
+# Production values — kpi.efda.gov.et (onboarded 2026-09-02)
+image:
+  repository: harbor.efda.gov.et/apps/kpi
+  tag: main-latest # placeholder — Image Updater writes the real main-<sha> back
+  pullPolicy: Always
+namespace: prod
+host: kpi.efda.gov.et
+port: 3000
+# NEXT_PUBLIC_* config is baked at image build time (CI --build-arg per branch —
+# see .gitlab-ci.yml). Runtime env here only controls the Node server itself.
+env:
+  PORT: "3000"
+secrets: []
+resources:
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+replicas: 1
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  cpuUtilization: 80

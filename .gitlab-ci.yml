@@ -23,8 +23,24 @@ build:
   image:
     name: gcr.io/kaniko-project/executor:v1.23.0-debug
     entrypoint: [""]
-  only:
-    - feature/eaii-staging
+  rules:
+    # NEXT_PUBLIC_* is baked into the bundle at build time, so each branch bakes
+    # its own environment's URLs. Staging values match the Dockerfile ARG defaults.
+    - if: '$CI_COMMIT_BRANCH == "feature/eaii-staging"'
+      variables:
+        TAG_PREFIX: ""
+        STS_AUTHORITY: "https://eris-identity.stage.eaii.efda.gov.et"
+        CLIENT_ROOT: "https://kpi.stage.eaii.efda.gov.et"
+        API_ROOT: "https://facilityregistry-be.stage.eaii.efda.gov.et"
+        API_KPI: "https://eris-be.stage.eaii.efda.gov.et"
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      variables:
+        TAG_PREFIX: "main-"
+        STS_AUTHORITY: "https://id.eris.efda.gov.et"
+        CLIENT_ROOT: "https://kpi.efda.gov.et"
+        API_ROOT: "https://ilicense.api.efda.gov.et"
+        API_KPI: "https://api.eris.efda.gov.et"
+    - when: never
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$HARBOR_REGISTRY\":{\"username\":\"$HARBOR_USER\",\"password\":\"$HARBOR_PASSWORD\"}}}" > /kaniko/.docker/config.json
@@ -32,8 +48,15 @@ build:
         --context $CI_PROJECT_DIR
         --dockerfile $CI_PROJECT_DIR/Dockerfile
         --target production
-        --destination $IMAGE:$CI_COMMIT_SHORT_SHA
-        --destination $IMAGE:latest
+        --build-arg "NEXT_PUBLIC_STS_AUTHORITY=$STS_AUTHORITY"
+        --build-arg "NEXT_PUBLIC_CLIENT_ROOT=$CLIENT_ROOT/"
+        --build-arg "NEXT_PUBLIC_REDIRECT_URI=$CLIENT_ROOT/auth-callback?to=signin"
+        --build-arg "NEXT_PUBLIC_SILENT_REDIRECT_URI=$CLIENT_ROOT/assets/silent-callback.html"
+        --build-arg "NEXT_PUBLIC_POST_LOGOUT_REDIRECT_URI=$CLIENT_ROOT"
+        --build-arg "NEXT_PUBLIC_API_ROOT=$API_ROOT"
+        --build-arg "NEXT_PUBLIC_API_KPI=$API_KPI"
+        --destination $IMAGE:${TAG_PREFIX}$CI_COMMIT_SHORT_SHA
+        --destination $IMAGE:${TAG_PREFIX}latest
         --snapshotMode=redo
         --registry-map "mcr.microsoft.com=harbor.efda.gov.et/mcr;index.docker.io=harbor.efda.gov.et/dockerhub"
         --compressed-caching=false
