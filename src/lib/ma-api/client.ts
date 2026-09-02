@@ -1,9 +1,4 @@
 import {
-  MA_TABULAR_FACE_REPORT_ID,
-  MA_TABULAR_FOOD_FACE_REPORT_ID,
-  MA_TABULAR_FOOD_NOTIFICATION_FACE_REPORT_ID,
-  MA_TABULAR_MEDICAL_DEVICE_FACE_REPORT_ID,
-  MA_TABULAR_COSMETICS_FACE_REPORT_ID,
   MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID,
   MA_TABULAR_FOOD_KPI1_DRILLDOWN_REPORT_ID,
   MA_TABULAR_KPI2_DRILLDOWN_REPORT_ID,
@@ -23,9 +18,10 @@ import {
   MA_TABULAR_MEDICAL_DEVICE_PAR_FACE_REPORT_ID,
   MA_TABULAR_FOOD_PAR_FACE_REPORT_ID,
   MA_TABULAR_COSMETICS_PAR_FACE_REPORT_ID,
-  MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS,
-  MA_PRODUCT_TIME_REPORT_IDS,
-  MA_PRODUCT_PAR_REPORT_IDS,
+  MA_PRODUCT_STANDARD_FACE_REPORT_IDS_BY_DATE,
+  MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS_BY_DATE,
+  MA_PRODUCT_TIME_REPORT_IDS_BY_DATE,
+  MA_PRODUCT_PAR_REPORT_IDS_BY_DATE,
   buildMAFaceRequestBody,
   buildMATabularUrl,
   getApiBaseUrl,
@@ -58,7 +54,7 @@ import {
   maMedicalDeviceKpi3DrilldownCacheKey,
   maMedicalDeviceKpi4DrilldownCacheKey,
 } from "@/lib/ma-api/cache";
-import type { MAApiDataRow, MAApiDrilldownRow, MAApiFilterParams, MAApiMedianAverageDataRow, MAApiMedianDrilldownRow, MAApiAverageDrilldownRow, MAApiResponse, MAKPIId, MAKPITimeId, MAReportProduct } from "@/types/ma-api";
+import type { MAApiDataRow, MAApiDrilldownRow, MAApiFilterParams, MADateBasis, MAApiMedianAverageDataRow, MAApiMedianDrilldownRow, MAApiAverageDrilldownRow, MAApiResponse, MAKPIId, MAKPITimeId, MAReportProduct } from "@/types/ma-api";
 
 export type MAApiFetchOptions = { force?: boolean };
 
@@ -114,21 +110,34 @@ export async function fetchMAReportTabularData<T>(
 
 export function getMAStandardDrilldownReportId(
   product: MAReportProduct,
-  kpiId: MAKPIId
+  kpiId: MAKPIId,
+  basis: MADateBasis = "submission"
 ): number | null {
-  return MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS[product][kpiId] ?? null;
+  return MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS_BY_DATE[basis][product][kpiId] ?? null;
+}
+
+export function getMAStandardFaceReportId(
+  product: MAReportProduct,
+  basis: MADateBasis = "submission"
+): number {
+  return MA_PRODUCT_STANDARD_FACE_REPORT_IDS_BY_DATE[basis][product];
 }
 
 export function getMATimeReportId(
   product: MAReportProduct,
-  kpiId: MAKPITimeId | "face"
+  kpiId: MAKPITimeId | "face",
+  basis: MADateBasis = "submission"
 ): number {
-  const reports = MA_PRODUCT_TIME_REPORT_IDS[product];
+  const reports = MA_PRODUCT_TIME_REPORT_IDS_BY_DATE[basis][product];
   return kpiId === "MA-KPI-6" ? reports.median : kpiId === "MA-KPI-7" ? reports.average : reports.face;
 }
 
-export function getMAParReportId(product: MAReportProduct, kind: "face" | "drilldown"): number {
-  return MA_PRODUCT_PAR_REPORT_IDS[product][kind];
+export function getMAParReportId(product: MAReportProduct, kind: "face" | "drilldown", basis: MADateBasis = "submission"): number {
+  return MA_PRODUCT_PAR_REPORT_IDS_BY_DATE[basis][product][kind];
+}
+
+function getDateBasis(filters?: MAApiFilterParams): MADateBasis {
+  return filters?.dateBasis ?? "submission";
 }
 
 export async function fetchMAFaceTabularData(
@@ -138,7 +147,7 @@ export async function fetchMAFaceTabularData(
 ): Promise<MAApiResponse<MAApiDataRow>> {
   const key = maFaceDataCacheKey(filters);
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
-    fetchMATabularData<MAApiDataRow>(accessToken, MA_TABULAR_FACE_REPORT_ID, filters)
+    fetchMATabularData<MAApiDataRow>(accessToken, getMAStandardFaceReportId("medicine", getDateBasis(filters)), filters)
   );
 }
 
@@ -149,7 +158,7 @@ export async function fetchMAFoodFaceTabularData(
 ): Promise<MAApiResponse<MAApiDataRow>> {
   const key = maFoodFaceDataCacheKey(filters);
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
-    fetchMATabularData<MAApiDataRow>(accessToken, MA_TABULAR_FOOD_FACE_REPORT_ID, filters)
+    fetchMATabularData<MAApiDataRow>(accessToken, getMAStandardFaceReportId("food", getDateBasis(filters)), filters)
   );
 }
 
@@ -160,7 +169,7 @@ export async function fetchMAFoodNotificationFaceTabularData(
 ): Promise<MAApiResponse<MAApiDataRow>> {
   const key = maFoodNotificationFaceDataCacheKey(filters);
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
-    fetchMATabularData<MAApiDataRow>(accessToken, MA_TABULAR_FOOD_NOTIFICATION_FACE_REPORT_ID, filters)
+    fetchMATabularData<MAApiDataRow>(accessToken, getMAStandardFaceReportId("foodNotification", getDateBasis(filters)), filters)
   );
 }
 
@@ -171,7 +180,7 @@ export async function fetchMAMedicalDeviceFaceTabularData(
 ): Promise<MAApiResponse<MAApiDataRow>> {
   const key = maMedicalDeviceFaceDataCacheKey(filters);
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
-    fetchMATabularData<MAApiDataRow>(accessToken, MA_TABULAR_MEDICAL_DEVICE_FACE_REPORT_ID, filters)
+    fetchMATabularData<MAApiDataRow>(accessToken, getMAStandardFaceReportId("medicalDevice", getDateBasis(filters)), filters)
   );
 }
 
@@ -182,7 +191,7 @@ export async function fetchMACosmeticsFaceTabularData(
 ): Promise<MAApiResponse<MAApiDataRow>> {
   const key = maCosmeticsFaceDataCacheKey(filters);
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
-    fetchMATabularData<MAApiDataRow>(accessToken, MA_TABULAR_COSMETICS_FACE_REPORT_ID, filters)
+    fetchMATabularData<MAApiDataRow>(accessToken, getMAStandardFaceReportId("cosmetics", getDateBasis(filters)), filters)
   );
 }
 

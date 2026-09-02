@@ -53,7 +53,12 @@ import {
 } from "lucide-react";
 import type { KPIDrillDownData, MATimeDrillDownData } from "@/types/ma-drilldown";
 import { cn } from "@/lib/utils";
-import type { MAApiFilterParams, MAKPIId } from "@/types/ma-api";
+import type { MAApiFilterParams, MADateBasis, MAKPIId } from "@/types/ma-api";
+import {
+  clampIsoDateToToday,
+  getLocalTodayIso,
+  getMADatePresetRange,
+} from "@/lib/ma-api/date-range";
 
 const productTabs: Array<{ key: MAProductKey; label: string }> = [
   { key: "medicine", label: "Medicine" },
@@ -106,7 +111,8 @@ const productTheme: Record<
 
 const getStatus = (
   value: number,
-  suffix: "%" | " days"
+  suffix: "%" | " days",
+  targetDays = 270
 ): "excellent" | "good" | "warning" | "critical" => {
   if (suffix === "%") {
     if (value >= 90) return "excellent";
@@ -115,15 +121,26 @@ const getStatus = (
     return "critical";
   }
 
-  if (value <= 150) return "excellent";
-  if (value <= 180) return "good";
-  if (value <= 220) return "warning";
+  if (value <= targetDays) return "excellent";
+  if (value <= targetDays * 1.2) return "good";
+  if (value <= targetDays * 1.5) return "warning";
   return "critical";
 };
 
 const API_KPI_IDS = ["MA-KPI-1", "MA-KPI-2", "MA-KPI-3", "MA-KPI-4"] as const;
 const TIME_KPI_IDS = ["MA-KPI-6", "MA-KPI-7"] as const;
 const PAR_KPI_IDS = ["MA-KPI-8"] as const;
+
+const MA_TARGET_DAYS_BY_KPI: Record<string, number> = {
+  "MA-KPI-1": 270,
+  "MA-KPI-2": 90,
+  "MA-KPI-3": 60,
+  "MA-KPI-4": 60,
+  "MA-KPI-5": 60,
+  "MA-KPI-6": 270,
+  "MA-KPI-7": 270,
+  "MA-KPI-8": 60,
+};
 
 /** Face API: Cosmetics only — KPI 1–3 (variation aggregates into MA-KPI-3). */
 const COSMETICS_FACE_KPI_IDS = ["MA-KPI-1", "MA-KPI-2", "MA-KPI-3"] as const;
@@ -147,6 +164,8 @@ function isCosmeticsThreeSlotFaceKpi(drilldownId: string): boolean {
 }
 
 export default function MarketAuthorizationsPage() {
+  const initialDateRange = useMemo(() => getMADatePresetRange("ytd"), []);
+  const todayIso = getLocalTodayIso();
   const [activeProduct, setActiveProduct] = useState<MAProductKey>("medicine");
   const [activeFoodSubTab, setActiveFoodSubTab] =
     useState<MAFoodSubTabKey>(DEFAULT_FOOD_SUB_TAB);
@@ -154,19 +173,19 @@ export default function MarketAuthorizationsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [datePreset, setDatePreset] = useState("ytd");
+  const [dateBasis, setDateBasis] = useState<MADateBasis>("submission");
   /** Draft values bound to the date inputs (may change while spinning month/year). */
-  const [draftDateFrom, setDraftDateFrom] = useState("2026-01-01");
-  const [draftDateTo, setDraftDateTo] = useState("2026-12-31");
+  const [draftDateFrom, setDraftDateFrom] = useState(initialDateRange.from);
+  const [draftDateTo, setDraftDateTo] = useState(initialDateRange.to);
   /** Committed values — drive face APIs; drilldowns snapshot these on open. */
-  const [dateFrom, setDateFrom] = useState("2026-01-01");
-  const [dateTo, setDateTo] = useState("2026-12-31");
+  const [dateFrom, setDateFrom] = useState(initialDateRange.from);
+  const [dateTo, setDateTo] = useState(initialDateRange.to);
   const [drilldownApiFilters, setDrilldownApiFilters] = useState<
     MAApiFilterParams | undefined
   >(undefined);
   const [cardDensity, setCardDensity] = useState<"grid" | "condensed">("grid");
   const dateCommitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const draftDatesRef = useRef({ from: "2026-01-01", to: "2026-12-31" });
+  const draftDatesRef = useRef(initialDateRange);
 
   const clearDateCommitTimer = () => {
     if (dateCommitTimerRef.current != null) {
@@ -198,9 +217,9 @@ export default function MarketAuthorizationsPage() {
   const apiDateFilters = useMemo(
     () =>
       dateFiltersReady
-        ? { startDate: dateFrom, endDate: dateTo }
+        ? { startDate: dateFrom, endDate: dateTo, dateBasis }
         : undefined,
-    [dateFiltersReady, dateFrom, dateTo]
+    [dateFiltersReady, dateFrom, dateTo, dateBasis]
   );
 
   const {
@@ -429,29 +448,17 @@ export default function MarketAuthorizationsPage() {
     );
   }, [mergedCards, searchTerm]);
 
-  const applyDatePreset = (preset: string) => {
-    setDatePreset(preset);
+  const resetFilters = () => {
+    setSearchTerm("");
+    setDateBasis("submission");
     const applyBoth = (from: string, to: string) => {
       setDraftDateFrom(from);
       setDraftDateTo(to);
       draftDatesRef.current = { from, to };
       commitDateFilters(from, to);
     };
-    if (preset === "this-quarter") {
-      applyBoth("2026-01-01", "2026-03-31");
-      return;
-    }
-    if (preset === "last-quarter") {
-      applyBoth("2025-10-01", "2025-12-31");
-      return;
-    }
-    if (preset === "last-30") {
-      applyBoth("2026-02-01", "2026-03-31");
-      return;
-    }
-    if (preset === "ytd") {
-      applyBoth("2026-01-01", "2026-12-31");
-    }
+    const range = getMADatePresetRange("ytd");
+    applyBoth(range.from, range.to);
   };
 
   const isFaceRefreshing =
@@ -543,27 +550,25 @@ export default function MarketAuthorizationsPage() {
             {isFaceRefreshing && <div className="ma-filter-loading absolute inset-x-0 top-0 z-10 h-1 bg-linear-to-r from-violet-500 via-fuchsia-400 to-sky-400" />}
             <div className="grid gap-3 p-3 md:grid-cols-2 xl:grid-cols-[0.85fr_1fr_1fr_1.25fr_auto]">
               <div className="min-w-0">
-                <label htmlFor="ma-date-preset" className="sr-only">Date preset</label>
-                <Select value={datePreset || undefined} onValueChange={applyDatePreset}>
-                  <SelectTrigger id="ma-date-preset" className="h-11 w-full rounded-xl border-violet-200 bg-violet-50/70 py-1 pl-1.5 pr-3 hover:border-violet-300 dark:border-violet-900/70 dark:bg-violet-950/30">
-                    <div className="flex min-w-0 items-center gap-2.5"><span className="grid size-8 shrink-0 place-items-center rounded-lg bg-violet-600 text-white shadow-sm shadow-violet-600/25"><SlidersHorizontalIcon className="size-4 text-white" /></span><SelectValue placeholder="Custom period" /></div>
+                <label htmlFor="ma-date-basis" className="sr-only">Filter records by date type</label>
+                <Select value={dateBasis} onValueChange={(value) => setDateBasis(value as MADateBasis)}>
+                  <SelectTrigger id="ma-date-basis" className="h-11 w-full rounded-xl border-violet-200 bg-violet-50/70 py-1 pl-1.5 pr-3 hover:border-violet-300 dark:border-violet-900/70 dark:bg-violet-950/30">
+                    <div className="flex min-w-0 items-center gap-2.5"><span className="grid size-8 shrink-0 place-items-center rounded-lg bg-violet-600 text-white shadow-sm shadow-violet-600/25"><SlidersHorizontalIcon className="size-4 text-white" /></span><SelectValue /></div>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="this-quarter">This quarter</SelectItem>
-                    <SelectItem value="last-quarter">Last quarter</SelectItem>
-                    <SelectItem value="last-30">Last 30 days</SelectItem>
-                    <SelectItem value="ytd">Year to date</SelectItem>
+                    <SelectItem value="submission">Submission date</SelectItem>
+                    <SelectItem value="decision">Decision date</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="relative min-w-0"><label htmlFor="ma-date-from" className="sr-only">Start date</label><span className="pointer-events-none absolute left-1.5 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-lg bg-sky-500 text-white shadow-sm shadow-sky-500/25"><CalendarDaysIcon className="size-4" /></span><Input id="ma-date-from" type="date" className="h-11 rounded-xl border-sky-200 bg-sky-50/60 pl-11 focus-visible:border-sky-400 focus-visible:ring-sky-300 dark:border-sky-900/70 dark:bg-sky-950/25" value={draftDateFrom} onChange={(e) => { const next = e.target.value; setDatePreset(""); setDraftDateFrom(next); draftDatesRef.current = { ...draftDatesRef.current, from: next }; scheduleDateFilterCommit(); }} onBlur={() => commitDateFilters(draftDatesRef.current.from, draftDatesRef.current.to)} /></div>
-              <div className="relative min-w-0"><label htmlFor="ma-date-to" className="sr-only">End date</label><span className="pointer-events-none absolute left-1.5 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-lg bg-indigo-500 text-white shadow-sm shadow-indigo-500/25"><CalendarDaysIcon className="size-4" /></span><Input id="ma-date-to" type="date" className="h-11 rounded-xl border-indigo-200 bg-indigo-50/60 pl-11 focus-visible:border-indigo-400 focus-visible:ring-indigo-300 dark:border-indigo-900/70 dark:bg-indigo-950/25" value={draftDateTo} onChange={(e) => { const next = e.target.value; setDatePreset(""); setDraftDateTo(next); draftDatesRef.current = { ...draftDatesRef.current, to: next }; scheduleDateFilterCommit(); }} onBlur={() => commitDateFilters(draftDatesRef.current.from, draftDatesRef.current.to)} min={draftDateFrom || undefined} /></div>
+              <div className="relative min-w-0"><label htmlFor="ma-date-from" className="sr-only">Start date</label><span className="pointer-events-none absolute left-1.5 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-lg bg-sky-500 text-white shadow-sm shadow-sky-500/25"><CalendarDaysIcon className="size-4" /></span><Input id="ma-date-from" type="date" max={todayIso} className="h-11 rounded-xl border-sky-200 bg-sky-50/60 pl-11 focus-visible:border-sky-400 focus-visible:ring-sky-300 dark:border-sky-900/70 dark:bg-sky-950/25" value={draftDateFrom} onChange={(e) => { const next = clampIsoDateToToday(e.target.value, todayIso); const nextTo = draftDatesRef.current.to && draftDatesRef.current.to < next ? next : draftDatesRef.current.to; setDraftDateFrom(next); setDraftDateTo(nextTo); draftDatesRef.current = { from: next, to: nextTo }; scheduleDateFilterCommit(); }} onBlur={() => commitDateFilters(draftDatesRef.current.from, draftDatesRef.current.to)} /></div>
+              <div className="relative min-w-0"><label htmlFor="ma-date-to" className="sr-only">End date</label><span className="pointer-events-none absolute left-1.5 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-lg bg-indigo-500 text-white shadow-sm shadow-indigo-500/25"><CalendarDaysIcon className="size-4" /></span><Input id="ma-date-to" type="date" max={todayIso} className="h-11 rounded-xl border-indigo-200 bg-indigo-50/60 pl-11 focus-visible:border-indigo-400 focus-visible:ring-indigo-300 dark:border-indigo-900/70 dark:bg-indigo-950/25" value={draftDateTo} onChange={(e) => { const next = clampIsoDateToToday(e.target.value, todayIso); const nextFrom = draftDatesRef.current.from && draftDatesRef.current.from > next ? next : draftDatesRef.current.from; setDraftDateFrom(nextFrom); setDraftDateTo(next); draftDatesRef.current = { from: nextFrom, to: next }; scheduleDateFilterCommit(); }} onBlur={() => commitDateFilters(draftDatesRef.current.from, draftDatesRef.current.to)} min={draftDateFrom || undefined} /></div>
               <div className="relative min-w-0"><label htmlFor="ma-kpi-search" className="sr-only">Find an indicator</label><span className="pointer-events-none absolute left-1.5 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-lg bg-fuchsia-500 text-white shadow-sm shadow-fuchsia-500/25"><SearchIcon className="size-4" /></span><Input id="ma-kpi-search" type="search" placeholder="Search indicators…" className="h-11 rounded-xl border-fuchsia-200 bg-fuchsia-50/50 pl-11 focus-visible:border-fuchsia-400 focus-visible:ring-fuchsia-300 dark:border-fuchsia-900/70 dark:bg-fuchsia-950/20" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
-              <Button type="button" variant="outline" className="h-11 gap-2 rounded-xl border-rose-200 bg-rose-50/60 px-3 text-rose-700 hover:border-rose-300 hover:bg-rose-100 hover:text-rose-800 dark:border-rose-900/70 dark:bg-rose-950/25 dark:text-rose-300" onClick={() => { setSearchTerm(""); applyDatePreset("ytd"); }}><span className="grid size-7 place-items-center rounded-lg bg-rose-500 text-white"><RotateCcwIcon className="size-3.5" /></span><span className="xl:sr-only">Reset</span></Button>
+              <Button type="button" variant="outline" className="h-11 gap-2 rounded-xl border-rose-200 bg-rose-50/60 px-3 text-rose-700 hover:border-rose-300 hover:bg-rose-100 hover:text-rose-800 dark:border-rose-900/70 dark:bg-rose-950/25 dark:text-rose-300" onClick={resetFilters}><span className="grid size-7 place-items-center rounded-lg bg-rose-500 text-white"><RotateCcwIcon className="size-3.5" /></span><span className="xl:sr-only">Reset</span></Button>
             </div>
             <div className="flex min-h-10 w-full flex-wrap items-center justify-between gap-2 border-t border-violet-100 bg-violet-50/60 px-4 py-2 text-xs dark:border-violet-900/60 dark:bg-violet-950/25">
               <span className="flex items-center gap-2 text-slate-600 dark:text-slate-300"><span className={cn("size-2 rounded-full", isFaceRefreshing ? "animate-pulse bg-amber-500" : "bg-emerald-600")} />{isFaceRefreshing ? "Updating indicators…" : "Filters applied"}</span>
-              <span className="font-semibold text-violet-700 dark:text-violet-300">{formatPeriodDate(dateFrom)} → {formatPeriodDate(dateTo)}{searchTerm && ` · “${searchTerm}”`}</span>
+              <span className="font-semibold text-violet-700 dark:text-violet-300">{dateBasis === "submission" ? "Submission date" : "Decision date"} · {formatPeriodDate(dateFrom)} → {formatPeriodDate(dateTo)}{searchTerm && ` · “${searchTerm}”`}</span>
             </div>
           </section>
 
@@ -767,6 +772,7 @@ export default function MarketAuthorizationsPage() {
                   : showsLiveFaceMetric
                     ? "Values from the reporting API for this product line."
                     : `${activeProductLabel} view (sample data)`;
+              const targetDays = card.targetDays ?? MA_TARGET_DAYS_BY_KPI[card.drilldownId];
               return (
                 <MAKPICard
                   key={card.id}
@@ -778,12 +784,14 @@ export default function MarketAuthorizationsPage() {
                   numerator={card.numerator}
                   denominator={card.denominator}
                   helperText={helperText}
+                  targetPercentage={card.targetPercentage ?? 90}
+                  targetDays={targetDays}
                   moduleBreakdown={card.moduleBreakdown}
                   dataAttribution={
                     showsLiveFaceMetric ? "live" : showsSampleMetric ? "sample" : "none"
                   }
                   strictLiveSlotEmpty={strictLiveSlotEmpty}
-                  status={getStatus(card.value, card.suffix)}
+                  status={getStatus(card.value, card.suffix, targetDays)}
                   active={false}
                   compact={cardDensity === "condensed"}
                   animationDelayMs={index * 45}

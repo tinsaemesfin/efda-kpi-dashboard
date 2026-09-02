@@ -1,4 +1,4 @@
-import type { MAApiFilterParams, MAKPIId, MAModuleToKpiMapping, MAKPITimeId, MAReportProduct } from "@/types/ma-api";
+import type { MAApiFilterParams, MADateBasis, MAKPIId, MAModuleToKpiMapping, MAKPITimeId, MAReportProduct } from "@/types/ma-api";
 
 /** Cosmetics — face KPIs MA-KPI-1..3 only; all variation rows map to MA-KPI-3 (no KPI 4). */
 export const MA_COSMETICS_FACE_MODULE_TO_KPI_MAPPING: MAModuleToKpiMapping = {
@@ -84,6 +84,56 @@ export const MA_PRODUCT_PAR_REPORT_IDS: Record<
   foodNotification: { face: 108, drilldown: 111 },
   medicalDevice: { face: 116, drilldown: 112 },
   cosmetics: { face: 117, drilldown: 113 },
+};
+
+export const MA_PRODUCT_STANDARD_FACE_REPORT_IDS_BY_DATE: Record<
+  MADateBasis,
+  Record<MAReportProduct, number>
+> = {
+  submission: { medicine: 8, food: 14, foodNotification: 15, medicalDevice: 16, cosmetics: 17 },
+  decision: { medicine: 155, food: 156, foodNotification: 157, medicalDevice: 158, cosmetics: 159 },
+};
+
+export const MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS_BY_DATE: Record<
+  MADateBasis,
+  Record<MAReportProduct, Partial<Record<MAKPIId, number>>>
+> = {
+  submission: MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS,
+  decision: {
+    medicine: { "MA-KPI-1": 160, "MA-KPI-2": 161, "MA-KPI-3": 162, "MA-KPI-4": 163 },
+    food: { "MA-KPI-1": 164, "MA-KPI-2": 165, "MA-KPI-3": 166, "MA-KPI-4": 167 },
+    foodNotification: { "MA-KPI-1": 168, "MA-KPI-2": 169, "MA-KPI-3": 170, "MA-KPI-4": 171 },
+    medicalDevice: { "MA-KPI-1": 172, "MA-KPI-2": 173, "MA-KPI-3": 174, "MA-KPI-4": 175 },
+    cosmetics: { "MA-KPI-1": 176, "MA-KPI-2": 177, "MA-KPI-3": 178 },
+  },
+};
+
+export const MA_PRODUCT_TIME_REPORT_IDS_BY_DATE: Record<
+  MADateBasis,
+  Record<MAReportProduct, { face: number; median: number; average: number }>
+> = {
+  submission: {
+    medicine: { face: 179, median: 180, average: 181 },
+    food: { face: 182, median: 183, average: 184 },
+    foodNotification: { face: 185, median: 186, average: 187 },
+    medicalDevice: { face: 188, median: 189, average: 190 },
+    cosmetics: { face: 191, median: 192, average: 193 },
+  },
+  decision: MA_PRODUCT_TIME_REPORT_IDS,
+};
+
+export const MA_PRODUCT_PAR_REPORT_IDS_BY_DATE: Record<
+  MADateBasis,
+  Record<MAReportProduct, { face: number; drilldown: number }>
+> = {
+  submission: {
+    medicine: { face: 194, drilldown: 195 },
+    food: { face: 196, drilldown: 197 },
+    foodNotification: { face: 198, drilldown: 199 },
+    medicalDevice: { face: 200, drilldown: 201 },
+    cosmetics: { face: 202, drilldown: 203 },
+  },
+  decision: MA_PRODUCT_PAR_REPORT_IDS,
 };
 export const MA_TABULAR_ENDPOINT_PREFIX = "/api/kpi/tabular";
 

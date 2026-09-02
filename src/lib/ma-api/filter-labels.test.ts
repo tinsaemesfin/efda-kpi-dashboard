@@ -12,7 +12,7 @@ describe("getMAApiFilterChipLabels", () => {
         startDate: "2026-01-01",
         endDate: "2026-12-31",
       })
-    ).toEqual(["01 Jan 2026 – 31 Dec 2026"]);
+    ).toEqual(["Filtered by submission date", "01 Jan 2026 – 31 Dec 2026"]);
   });
 
   it("includes quarter/year when present", () => {
@@ -23,6 +23,12 @@ describe("getMAApiFilterChipLabels", () => {
         quarter: "Q4",
         year: 2025,
       })
-    ).toEqual(["01 Oct 2025 – 31 Dec 2025", "Q4 2025"]);
+    ).toEqual(["Filtered by submission date", "01 Oct 2025 – 31 Dec 2025", "Q4 2025"]);
+  });
+
+  it("labels the decision-date cohort explicitly", () => {
+    expect(getMAApiFilterChipLabels({ dateBasis: "decision" })).toEqual([
+      "Filtered by decision date",
+    ]);
   });
 });

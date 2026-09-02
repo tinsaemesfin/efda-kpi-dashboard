@@ -25,6 +25,18 @@ Completed on 2026-08-27 for Medicine, Food, Food Notification, Medical Device, a
 
 ## Verification result
 
-All new definitions executed successfully against the live 2026 data range. TypeScript, ESLint, Vitest, and production-build checks passed. The database sequence is synchronized at 120, and none of the new report queries contains FIR logic.
+All new definitions executed successfully against the live 2026 data range. TypeScript, ESLint, Vitest, and production-build checks passed. None of the new report queries contains FIR logic.
 
 Important data note: 2026 Food, Food Notification, Medical Device, and Cosmetics records currently have no qualifying PSA/SPC/LBL/PIL publication uploads, so their KPI 8 feeds correctly return 0% and their drilldowns show `Not published`. This should be reconciled with any external PAR publication system before treating it as a definitive operational performance conclusion.
+
+## September 2026 MA review
+
+- Applied the 90-day reliance SLA to SRA, WHO-prequalified, regional-reliance, and continental-reliance category rows in all active KPI 1-4 and KPI 6/7 drilldowns.
+- Updated the KPI 1-4 face calculations so reliance NMR cases are assessed against 90 days while ordinary NMR cases retain 270 days. The face response retains the ordinary KPI target so one KPI card is not split into duplicate target rows.
+- Kept KPI 8 PAR reports on their independent 60-day publication SLA.
+- Replaced the date-preset selector with an explicit `Submission date` / `Decision date` selector. Submission date is the dashboard default.
+- Changed all active KPI 1-4 reports from `created_date` to the actual `submission_date` field and added paired Decision-date definitions.
+- Added paired Submission-date definitions for KPI 6/7 and KPI 8, which previously only supported `decision_date`. Database report IDs 155-203 cover all front and drilldown variants, and the sequence is synchronized at 203.
+- Kept the From/To inputs independent of the date basis and capped their maximum at the user's local current date.
+- Updated MA cards and drilldowns to display the 90% performance target together with the applicable day SLA. Time-chart colors and reference lines now use each category's returned `target_days`, including 90 days for reliance pathways and 60 days for PAR.
+- Added visible explanations of each chart's percentage, numerator/denominator, SLA, and selected date cohort.

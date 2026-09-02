@@ -304,6 +304,10 @@ export interface MAProductKpiSeedItem {
   suffix: "%" | " days";
   decimals: number;
   drilldownId: string;
+  /** Percentage performance threshold used for on-time KPI cards. */
+  targetPercentage?: number;
+  /** Regulatory service-level target returned by the report, in days. */
+  targetDays?: number;
   /** Strict face APIs: KPI had no usable row (show empty state). */
   faceDataMissing?: boolean;
   /** Product policy: KPI not tracked (show N/A empty state instead of dummy metrics). */

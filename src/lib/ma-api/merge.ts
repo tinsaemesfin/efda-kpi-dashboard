@@ -51,6 +51,7 @@ export function mergeFoodCardsWithStrictFaceData(
       value: apiRow.percentage,
       numerator: apiRow.numerator,
       denominator: apiRow.denominator,
+      targetDays: apiRow.targetDays ?? card.targetDays,
       decimals: 1,
     };
   });
@@ -85,6 +86,7 @@ function mergeStrictFaceSlots(
       value: apiRow.percentage,
       numerator: apiRow.numerator,
       denominator: apiRow.denominator,
+      targetDays: apiRow.targetDays ?? card.targetDays,
       decimals: 1,
     };
   });
@@ -166,6 +168,7 @@ export function mergeMedicineTimeCardsWithStrictFaceData(
         value: apiRow.median,
         numerator: apiRow.numerator ?? 0,
         denominator: apiRow.denominator ?? 0,
+        targetDays: apiRow.targetDays ?? card.targetDays,
         decimals: 1,
       };
     }
@@ -187,6 +190,7 @@ export function mergeMedicineTimeCardsWithStrictFaceData(
       value: apiRow.average,
       numerator: apiRow.numerator ?? 0,
       denominator: apiRow.denominator ?? 0,
+      targetDays: apiRow.targetDays ?? card.targetDays,
       decimals: 1,
     };
   });
@@ -234,6 +238,7 @@ export function mergeParCardsWithStrictFaceData(
       denominator: parData.denominator,
       decimals: 1,
       moduleBreakdown: parData.modules,
+      targetDays: parData.targetDays ?? card.targetDays,
     };
   });
 }

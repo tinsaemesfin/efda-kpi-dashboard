@@ -47,18 +47,6 @@ import type { KPIDrillDownData, KPIDimensionView } from "@/types/ma-drilldown";
 import type { MAApiFilterParams } from "@/types/ma-api";
 import { getMAApiFilterChipLabels } from "@/lib/ma-api/filter-labels";
 import {
-  useMAKPI1DrilldownData,
-  useMAFoodKPI1DrilldownData,
-  useMAKPI2DrilldownData,
-  useMAFoodKPI2DrilldownData,
-  useMAKPI3DrilldownData,
-  useMAFoodKPI3DrilldownData,
-  useMAKPI4DrilldownData,
-  useMAFoodKPI4DrilldownData,
-  useMAMedicalDeviceKPI1DrilldownData,
-  useMAMedicalDeviceKPI2DrilldownData,
-  useMAMedicalDeviceKPI3DrilldownData,
-  useMAMedicalDeviceKPI4DrilldownData,
   useMAProductStandardDrilldownData,
   useMAProductParDrilldownData,
 } from "@/hooks/useMAApi";
@@ -130,6 +118,7 @@ function CategoryChartCard({ view, defaultChartType }: CategoryChartCardProps) {
         percentage: item.percentage ?? (item.total > 0 ? (item.count / item.total) * 100 : 0),
         onTime: item.count,
         total: item.total,
+        targetDays: item.targetDays,
       })),
     [view.data]
   );
@@ -142,6 +131,15 @@ function CategoryChartCard({ view, defaultChartType }: CategoryChartCardProps) {
   const totalOnTime = useMemo(() => chartData.reduce((s, d) => s + d.onTime, 0), [chartData]);
   const totalAll = useMemo(() => chartData.reduce((s, d) => s + d.total, 0), [chartData]);
   const overallPct = totalAll > 0 ? (totalOnTime / totalAll) * 100 : 0;
+  const targetDays = useMemo(
+    () => [...new Set(chartData.map((item) => item.targetDays).filter((value): value is number => value != null))],
+    [chartData]
+  );
+  const targetDaysLabel = targetDays.length === 1
+    ? ` · SLA ${targetDays[0]} days`
+    : targetDays.length > 1
+      ? " · mixed SLAs"
+      : "";
 
   const renderChart = useCallback(() => {
     if (!chartData.length) {
@@ -181,11 +179,11 @@ function CategoryChartCard({ view, defaultChartType }: CategoryChartCardProps) {
             <Tooltip
               formatter={(_value, _name, entry) => {
                 const payload = entry?.payload as
-                  | { name?: string; percentage?: number; onTime?: number; total?: number }
+                  | { name?: string; percentage?: number; onTime?: number; total?: number; targetDays?: number }
                   | undefined;
                 if (!payload) return ["No data", "Value"];
                 return [
-                  `${payload.onTime ?? 0}/${payload.total ?? 0} (${(payload.percentage ?? 0).toFixed(1)}%)`,
+                  `${payload.onTime ?? 0}/${payload.total ?? 0} (${(payload.percentage ?? 0).toFixed(1)}%)${payload.targetDays != null ? ` · SLA ${payload.targetDays} days` : ""}`,
                   payload.name ?? "Category",
                 ];
               }}
@@ -330,7 +328,7 @@ function CategoryChartCard({ view, defaultChartType }: CategoryChartCardProps) {
             {chartData.length} categories &middot; {totalAll.toLocaleString()} total applications
           </p>
         </div>
-        <Badge className="border-0 bg-violet-100 text-[10px] text-violet-700 shadow-none dark:bg-violet-950 dark:text-violet-300">90% target</Badge>
+        <Badge className="border-0 bg-violet-100 text-[10px] text-violet-700 shadow-none dark:bg-violet-950 dark:text-violet-300">90% target{targetDaysLabel}</Badge>
         </div>
         <div className="flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white/80 p-1 dark:border-slate-800 dark:bg-slate-950/70" aria-label={`Chart type for ${view.label}`}>
           {CHART_OPTIONS.map((opt) => (
@@ -419,17 +417,7 @@ export function MADrillDownModal({
   const isKpi3 = data.kpiId === "MA-KPI-3";
   const isKpi4 = data.kpiId === "MA-KPI-4";
   const isKpi8 = data.kpiId === "MA-KPI-8";
-  const isFoodKpi1 = isKpi1 && drilldownSource === "food";
-  const isFoodKpi2 = isKpi2 && drilldownSource === "food";
-  const isFoodKpi3 = isKpi3 && drilldownSource === "food";
-  const isFoodKpi4 = isKpi4 && drilldownSource === "food";
-  const isMedicalDeviceKpi1 = isKpi1 && drilldownSource === "medicalDevice";
-  const isMedicalDeviceKpi2 = isKpi2 && drilldownSource === "medicalDevice";
-  const isMedicalDeviceKpi3 = isKpi3 && drilldownSource === "medicalDevice";
-  const isMedicalDeviceKpi4 = isKpi4 && drilldownSource === "medicalDevice";
-  const usesGenericStandardDrilldown =
-    (drilldownSource === "foodNotification" || drilldownSource === "cosmetics") &&
-    (isKpi1 || isKpi2 || isKpi3 || isKpi4);
+  const usesStandardDrilldown = isKpi1 || isKpi2 || isKpi3 || isKpi4;
   const genericStandardKpiId = (isKpi1 || isKpi2 || isKpi3 || isKpi4
     ? data.kpiId
     : "MA-KPI-1") as MAKPIId;
@@ -438,7 +426,7 @@ export function MADrillDownModal({
       drilldownSource,
       genericStandardKpiId,
       filters,
-      open && usesGenericStandardDrilldown
+      open && usesStandardDrilldown
     );
   const { data: parApiData, loading: parLoading } = useMAProductParDrilldownData(
     drilldownSource,
@@ -446,140 +434,30 @@ export function MADrillDownModal({
     open && isKpi8
   );
 
-  const { data: kpi1ApiData, loading: kpi1Loading } = useMAKPI1DrilldownData(
-    filters,
-    open && isKpi1 && !isFoodKpi1 && !isMedicalDeviceKpi1 && !usesGenericStandardDrilldown
-  );
-  const { data: foodKpi1ApiData, loading: foodKpi1Loading } = useMAFoodKPI1DrilldownData(
-    filters,
-    open && isFoodKpi1
-  );
-  const { data: medicalDeviceKpi1ApiData, loading: medicalDeviceKpi1Loading } =
-    useMAMedicalDeviceKPI1DrilldownData(filters, open && isMedicalDeviceKpi1);
-  const { data: kpi2ApiData, loading: kpi2Loading } = useMAKPI2DrilldownData(
-    filters,
-    open && isKpi2 && !isFoodKpi2 && !isMedicalDeviceKpi2 && !usesGenericStandardDrilldown
-  );
-  const { data: foodKpi2ApiData, loading: foodKpi2Loading } = useMAFoodKPI2DrilldownData(
-    filters,
-    open && isFoodKpi2
-  );
-  const { data: medicalDeviceKpi2ApiData, loading: medicalDeviceKpi2Loading } =
-    useMAMedicalDeviceKPI2DrilldownData(filters, open && isMedicalDeviceKpi2);
-  const { data: kpi3ApiData, loading: kpi3Loading } = useMAKPI3DrilldownData(
-    filters,
-    open && isKpi3 && !isFoodKpi3 && !isMedicalDeviceKpi3 && !usesGenericStandardDrilldown
-  );
-  const { data: foodKpi3ApiData, loading: foodKpi3Loading } = useMAFoodKPI3DrilldownData(
-    filters,
-    open && isFoodKpi3
-  );
-  const { data: medicalDeviceKpi3ApiData, loading: medicalDeviceKpi3Loading } =
-    useMAMedicalDeviceKPI3DrilldownData(filters, open && isMedicalDeviceKpi3);
-  const { data: kpi4ApiData, loading: kpi4Loading } = useMAKPI4DrilldownData(
-    filters,
-    open && isKpi4 && !isFoodKpi4 && !isMedicalDeviceKpi4 && !usesGenericStandardDrilldown
-  );
-  const { data: foodKpi4ApiData, loading: foodKpi4Loading } = useMAFoodKPI4DrilldownData(
-    filters,
-    open && isFoodKpi4
-  );
-  const { data: medicalDeviceKpi4ApiData, loading: medicalDeviceKpi4Loading } =
-    useMAMedicalDeviceKPI4DrilldownData(filters, open && isMedicalDeviceKpi4);
-
   const isLiveApiKpi = isKpi1 || isKpi2 || isKpi3 || isKpi4 || isKpi8;
   const kpiApiLoading =
-    (usesGenericStandardDrilldown && genericStandardLoading) ||
-    (isKpi8 && parLoading) ||
-    (isFoodKpi1 && foodKpi1Loading) ||
-    (isMedicalDeviceKpi1 && medicalDeviceKpi1Loading) ||
-    (isKpi1 && !isFoodKpi1 && !isMedicalDeviceKpi1 && kpi1Loading) ||
-    (isFoodKpi2 && foodKpi2Loading) ||
-    (isMedicalDeviceKpi2 && medicalDeviceKpi2Loading) ||
-    (isKpi2 && !isFoodKpi2 && !isMedicalDeviceKpi2 && kpi2Loading) ||
-    (isFoodKpi3 && foodKpi3Loading) ||
-    (isMedicalDeviceKpi3 && medicalDeviceKpi3Loading) ||
-    (isKpi3 && !isFoodKpi3 && !isMedicalDeviceKpi3 && kpi3Loading) ||
-    (isFoodKpi4 && foodKpi4Loading) ||
-    (isMedicalDeviceKpi4 && medicalDeviceKpi4Loading) ||
-    (isKpi4 && !isFoodKpi4 && !isMedicalDeviceKpi4 && kpi4Loading);
+    (usesStandardDrilldown && genericStandardLoading) || (isKpi8 && parLoading);
 
   const liveData = useMemo(() => {
     if (isKpi8 && parApiData?.data?.length) {
       return buildMAKpi8DrilldownData(parApiData.data, data);
     }
-    if (usesGenericStandardDrilldown && genericStandardApiData?.data?.length) {
+    if (usesStandardDrilldown && genericStandardApiData?.data?.length) {
       if (isKpi1) return buildMAKpi1DrilldownData(genericStandardApiData.data, data);
       if (isKpi2) return buildMAKpi2DrilldownData(genericStandardApiData.data, data);
       if (isKpi3) return buildMAKpi3DrilldownData(genericStandardApiData.data, data);
       if (isKpi4) return buildMAKpi4DrilldownData(genericStandardApiData.data, data);
     }
-    if (isFoodKpi1 && foodKpi1ApiData?.data?.length) {
-      return buildMAKpi1DrilldownData(foodKpi1ApiData.data, data);
-    }
-    if (isMedicalDeviceKpi1 && medicalDeviceKpi1ApiData?.data?.length) {
-      return buildMAKpi1DrilldownData(medicalDeviceKpi1ApiData.data, data);
-    }
-    if (isKpi1 && !isFoodKpi1 && !isMedicalDeviceKpi1 && kpi1ApiData?.data?.length) {
-      return buildMAKpi1DrilldownData(kpi1ApiData.data, data);
-    }
-    if (isFoodKpi2 && foodKpi2ApiData?.data?.length) {
-      return buildMAKpi2DrilldownData(foodKpi2ApiData.data, data);
-    }
-    if (isMedicalDeviceKpi2 && medicalDeviceKpi2ApiData?.data?.length) {
-      return buildMAKpi2DrilldownData(medicalDeviceKpi2ApiData.data, data);
-    }
-    if (isKpi2 && !isFoodKpi2 && !isMedicalDeviceKpi2 && kpi2ApiData?.data?.length) {
-      return buildMAKpi2DrilldownData(kpi2ApiData.data, data);
-    }
-    if (isFoodKpi3 && foodKpi3ApiData?.data?.length) {
-      return buildMAKpi3DrilldownData(foodKpi3ApiData.data, data);
-    }
-    if (isMedicalDeviceKpi3 && medicalDeviceKpi3ApiData?.data?.length) {
-      return buildMAKpi3DrilldownData(medicalDeviceKpi3ApiData.data, data);
-    }
-    if (isKpi3 && !isFoodKpi3 && !isMedicalDeviceKpi3 && kpi3ApiData?.data?.length) {
-      return buildMAKpi3DrilldownData(kpi3ApiData.data, data);
-    }
-    if (isFoodKpi4 && foodKpi4ApiData?.data?.length) {
-      return buildMAKpi4DrilldownData(foodKpi4ApiData.data, data);
-    }
-    if (isMedicalDeviceKpi4 && medicalDeviceKpi4ApiData?.data?.length) {
-      return buildMAKpi4DrilldownData(medicalDeviceKpi4ApiData.data, data);
-    }
-    if (isKpi4 && !isFoodKpi4 && !isMedicalDeviceKpi4 && kpi4ApiData?.data?.length) {
-      return buildMAKpi4DrilldownData(kpi4ApiData.data, data);
-    }
     return null;
   }, [
-    isFoodKpi1,
-    isFoodKpi2,
-    isFoodKpi3,
-    isFoodKpi4,
-    isMedicalDeviceKpi1,
-    isMedicalDeviceKpi2,
-    isMedicalDeviceKpi3,
-    isMedicalDeviceKpi4,
     isKpi1,
     isKpi2,
     isKpi3,
     isKpi4,
-    foodKpi1ApiData,
-    foodKpi2ApiData,
-    foodKpi3ApiData,
-    foodKpi4ApiData,
-    medicalDeviceKpi1ApiData,
-    medicalDeviceKpi2ApiData,
-    medicalDeviceKpi3ApiData,
-    medicalDeviceKpi4ApiData,
     genericStandardApiData,
     parApiData,
-    usesGenericStandardDrilldown,
+    usesStandardDrilldown,
     isKpi8,
-    kpi1ApiData,
-    kpi2ApiData,
-    kpi3ApiData,
-    kpi4ApiData,
     data,
   ]);
 
@@ -600,6 +478,7 @@ export function MADrillDownModal({
   }, [resolvedData]);
 
   const meetsTarget = (resolvedData?.currentValue.percentage ?? 0) >= 90;
+  const headlineTargetDays = resolvedData?.currentValue.targetDays;
 
   const categoryChartDefaults = useMemo(
     () =>
@@ -632,7 +511,7 @@ export function MADrillDownModal({
                     )}
                   </div>
                   <DialogDescription className="mt-2 max-w-3xl text-sm">
-                    Compare the same regulatory performance data across multiple visualizations and classification dimensions.
+                    Percentage means on-time cases divided by all completed cases. The day SLA is supplied by the report and may vary by pathway; the selected date basis defines which cases enter the period.
                   </DialogDescription>
                 </div>
                 {showLoading && (
@@ -669,7 +548,7 @@ export function MADrillDownModal({
                 </div>
                 <div className="flex items-center gap-3 rounded-xl border border-violet-200 bg-white/75 px-3 py-3 text-violet-700 shadow-sm dark:border-violet-900/70 dark:bg-slate-950/50 dark:text-violet-300">
                   <TargetIcon className="size-5" />
-                  <div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">SLA target</p><p className="text-lg font-bold">90%</p></div>
+                  <div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Performance / day target</p><p className="text-lg font-bold">90%{headlineTargetDays != null ? ` · ${headlineTargetDays} days` : ""}</p></div>
                 </div>
                 <div className="flex items-center gap-3 rounded-xl border border-sky-200 bg-white/75 px-3 py-3 text-sky-700 shadow-sm dark:border-sky-900/70 dark:bg-slate-950/50 dark:text-sky-300">
                   <ActivityIcon className="size-5" />

@@ -13,6 +13,7 @@ export type MAKPITimeId = 'MA-KPI-6' | 'MA-KPI-7';
 /** PAR face KPI from tabular reports /29–/32. */
 export type MAKPIParId = 'MA-KPI-8';
 export type MAReportProduct = 'medicine' | 'food' | 'foodNotification' | 'medicalDevice' | 'cosmetics';
+export type MADateBasis = 'submission' | 'decision';
 export type MAParModuleCode = 'NMR' | 'REN' | 'VMIN' | 'VMAJ';
 export const MA_PAR_MODULE_ORDER: readonly MAParModuleCode[] = [
   'NMR',
@@ -104,6 +105,8 @@ export interface MAApiResponse<T = MAApiDataRow> {
 export interface MAApiFilterParams {
   startDate?: string;
   endDate?: string;
+  /** Selects the paired database report; this is not posted as an API field. */
+  dateBasis?: MADateBasis;
   quarter?: string;
   year?: number;
 }
@@ -125,6 +128,7 @@ export interface MAKPITimeTransformedRow {
   average?: number;
   numerator?: number;
   denominator?: number;
+  targetDays?: number;
 }
 
 export type MAKPITimeTransformedData = Partial<Record<MAKPITimeId, MAKPITimeTransformedRow>>;

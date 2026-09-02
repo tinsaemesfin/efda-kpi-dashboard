@@ -3,7 +3,6 @@
 import {
   ArrowUpRightIcon,
   Clock3Icon,
-  FileCheck2Icon,
   GaugeIcon,
   Layers3Icon,
 } from "lucide-react";
@@ -22,7 +21,18 @@ export interface MAKPICardModuleBreakdownItem {
   percentage: number;
 }
 
+export interface MAKPICardSideMetric {
+  id: string;
+  label: string;
+  value?: number;
+  suffix?: string;
+  numerator?: number;
+  denominator?: number;
+  isEmpty?: boolean;
+}
+
 interface MAKPICardProps {
+  className?: string;
   kpiCode?: string;
   title: string;
   value: string | number;
@@ -44,6 +54,9 @@ interface MAKPICardProps {
   dataAttribution?: MAKPICardDataAttribution;
   strictLiveSlotEmpty?: boolean;
   moduleBreakdown?: MAKPICardModuleBreakdownItem[];
+  sideBySideMetrics?: MAKPICardSideMetric[];
+  targetPercentage?: number;
+  targetDays?: number;
   onClick?: () => void;
 }
 
@@ -125,6 +138,7 @@ function CardHeader({
 }
 
 export function MAKPICard({
+  className,
   kpiCode,
   title,
   value,
@@ -145,6 +159,9 @@ export function MAKPICard({
   dataAttribution = "none",
   strictLiveSlotEmpty = false,
   moduleBreakdown,
+  sideBySideMetrics,
+  targetPercentage = 90,
+  targetDays,
   onClick,
 }: MAKPICardProps) {
   const clickable = Boolean(onClick) && !isLoading;
@@ -152,8 +169,9 @@ export function MAKPICard({
   const safeValue = Number.isFinite(numericValue) ? numericValue : 0;
   const isTimeMetric = suffix?.trim().toLowerCase() === "days";
   const isTransparencyMetric = kpiCode === "MA-KPI-8" || Boolean(moduleBreakdown?.length);
+  const hasSideBySideMetrics = Boolean(sideBySideMetrics?.length);
   const metricKind = isTimeMetric ? "time" : isTransparencyMetric ? "transparency" : "sla";
-  const targetValue = isTimeMetric ? 150 : 90;
+  const targetValue = isTimeMetric ? (targetDays ?? 270) : targetPercentage;
   const progressValue = isTimeMetric
     ? Math.max(0, Math.min(100, (targetValue / Math.max(safeValue, 1)) * 100))
     : Math.max(0, Math.min(100, safeValue));
@@ -173,7 +191,8 @@ export function MAKPICard({
     compact ? "min-h-[178px]" : "min-h-[270px]",
     "animate-in fade-in slide-in-from-bottom-2",
     clickable && "cursor-pointer hover:-translate-y-1 hover:border-violet-300 hover:shadow-[0_20px_45px_-25px_rgba(91,33,182,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2",
-    active && "border-violet-400 ring-2 ring-violet-200 dark:ring-violet-900"
+    active && "border-violet-400 ring-2 ring-violet-200 dark:ring-violet-900",
+    className
   );
 
   if (isLoading) {
@@ -242,7 +261,17 @@ export function MAKPICard({
       <div className="flex h-full flex-col p-5">
         <CardHeader kpiCode={kpiCode} title={title} compact={compact} dataAttribution={dataAttribution} metricKind={metricKind} />
 
-        <div className={cn("mt-5 flex items-end justify-between gap-4", compact && "mt-4")}>
+        {hasSideBySideMetrics ? (
+          <div className={cn("mt-5 grid gap-2", compact ? "grid-cols-1" : "grid-cols-2", !compact && (sideBySideMetrics?.length ?? 0) > 4 && "sm:grid-cols-3")}>
+            {sideBySideMetrics?.map((item) => (
+              <div key={item.id} className={cn("rounded-xl border px-3 py-3", item.isEmpty ? "border-dashed border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/40" : "border-violet-100 bg-violet-50/60 dark:border-violet-900/60 dark:bg-violet-950/25")}>
+                <p className="line-clamp-2 min-h-7 text-[9px] font-bold uppercase leading-3.5 tracking-[0.08em] text-slate-500 dark:text-slate-400">{item.label}</p>
+                {item.isEmpty ? <p className="mt-2 text-xs font-semibold text-slate-500">Work in progress</p> : <p className="mt-1 text-2xl font-bold tracking-[-0.04em] text-slate-950 dark:text-white">{item.value?.toFixed(1)}<span className="ml-1 text-xs font-semibold tracking-normal text-slate-500">{item.suffix}</span></p>}
+                {!compact && !item.isEmpty && item.numerator !== undefined && item.denominator !== undefined && <p className="mt-1 text-[10px] tabular-nums text-slate-500">{item.numerator.toLocaleString()} of {item.denominator.toLocaleString()}</p>}
+              </div>
+            ))}
+          </div>
+        ) : <div className={cn("mt-5 flex items-end justify-between gap-4", compact && "mt-4")}>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
               {isTimeMetric ? "Processing time" : isTransparencyMetric ? "Publication rate" : "On-time completion"}
@@ -266,17 +295,21 @@ export function MAKPICard({
               <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">Lower is better</p>
             </div>
           )}
-        </div>
+        </div>}
 
-        <div className={cn("mt-4 space-y-2", compact && "mt-3")}>
+        {!hasSideBySideMetrics && <div className={cn("mt-4 space-y-2", compact && "mt-3")}>
           <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-            <span>Performance</span><span>Target {targetValue}{isTimeMetric ? " days" : "%"}</span>
+            <span>Performance</span>
+            <span>
+              Target {targetValue}{isTimeMetric ? " days" : "%"}
+              {!isTimeMetric && targetDays != null ? ` · SLA ${targetDays} days` : ""}
+            </span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
             <div className={cn("h-full rounded-full transition-[width] duration-700", theme.accent)} style={{ width: `${progressValue}%` }} />
           </div>
           {!compact && <p className={cn("text-xs font-medium", theme.text)}>{comparisonText}</p>}
-        </div>
+        </div>}
 
         {!compact && moduleBreakdown && moduleBreakdown.length > 0 && (
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -295,7 +328,7 @@ export function MAKPICard({
 
         <div className="mt-auto flex items-center justify-between gap-3 pt-4">
           <div className="flex min-w-0 items-center gap-2">
-            <Badge className={cn("border-0 text-[10px] font-semibold shadow-none", theme.soft)}>{theme.label}</Badge>
+            <Badge className={cn("border-0 text-[10px] font-semibold shadow-none", theme.soft)}>{hasSideBySideMetrics ? `${sideBySideMetrics?.length} views` : theme.label}</Badge>
             {numerator !== undefined && denominator !== undefined && denominator > 0 && !compact && (
               <span className="truncate text-[11px] tabular-nums text-slate-500"><strong className="text-slate-700 dark:text-slate-300">{numerator}</strong> of {denominator}</span>
             )}
