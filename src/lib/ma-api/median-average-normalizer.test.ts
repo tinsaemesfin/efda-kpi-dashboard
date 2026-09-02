@@ -28,11 +28,13 @@ describe("normalizeMAMedicineMedianAverageFaceData", () => {
       median: 34.68,
       numerator: 0,
       denominator: 3869,
+      targetDays: 270,
     });
     expect(result.kpiTimeDataById["MA-KPI-7"]).toEqual({
       average: 143.5,
       numerator: 143.5 * 3869,
       denominator: 3869,
+      targetDays: 270,
     });
     expect(result.totals.acceptedRows).toBe(2);
     expect(result.warnings).toHaveLength(0);

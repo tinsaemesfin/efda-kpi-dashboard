@@ -195,6 +195,7 @@ function buildMAKpiDrilldownData(
             count: item.count,
             total: item.total,
             percentage,
+            targetDays: item.targetDays,
           };
         })
         .sort((a, b) => (b.total || 0) - (a.total || 0));
@@ -218,6 +219,7 @@ function buildMAKpiDrilldownData(
   const numerator = anchorView?.data.reduce((sum, item) => sum + (item.count ?? 0), 0) ?? 0;
   const denominator = anchorView?.data.reduce((sum, item) => sum + (item.total ?? 0), 0) ?? 0;
   const percentage = denominator > 0 ? (numerator / denominator) * 100 : 0;
+  const targetDays = anchorView?.data.find((item) => item.targetDays != null)?.targetDays;
 
   return {
     ...(fallback ?? {}),
@@ -228,6 +230,7 @@ function buildMAKpiDrilldownData(
       numerator,
       denominator,
       percentage,
+      targetDays,
     },
     level1: anchorView
       ? {

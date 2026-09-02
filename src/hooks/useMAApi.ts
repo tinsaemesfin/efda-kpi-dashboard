@@ -197,7 +197,7 @@ export function useMAProductStandardDrilldownData(
   enabled = true
 ): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
   return useMAReportData<MAApiDrilldownRow>(
-    getMAStandardDrilldownReportId(product, kpiId),
+    getMAStandardDrilldownReportId(product, kpiId, filters?.dateBasis),
     filters,
     enabled
   );
@@ -210,7 +210,7 @@ export function useMAProductTimeDrilldownData(
   enabled = true
 ): UseMAApiState<MAApiResponse<MAApiMedianDrilldownRow | MAApiAverageDrilldownRow>> {
   return useMAReportData<MAApiMedianDrilldownRow | MAApiAverageDrilldownRow>(
-    getMATimeReportId(product, kpiId),
+    getMATimeReportId(product, kpiId, filters?.dateBasis),
     filters,
     enabled
   );
@@ -221,7 +221,7 @@ export function useMAProductParDrilldownData(
   filters?: MAApiFilterParams,
   enabled = true
 ): UseMAApiState<MAApiResponse<MAApiDrilldownRow>> {
-  return useMAReportData<MAApiDrilldownRow>(getMAParReportId(product, "drilldown"), filters, enabled);
+  return useMAReportData<MAApiDrilldownRow>(getMAParReportId(product, "drilldown", filters?.dateBasis), filters, enabled);
 }
 
 /**
@@ -670,7 +670,7 @@ export function useMAProductMedianAverageFaceFacade(
   filters?: MAApiFilterParams,
   enabled = true
 ): MAKPIDataTimeFacade {
-  const reportId = getMATimeReportId(product, "face");
+  const reportId = getMATimeReportId(product, "face", filters?.dateBasis);
   const { data: rawData, loading, error, refetch } = useMAReportData<MAApiMedianAverageDataRow>(
     reportId,
     filters,
@@ -804,7 +804,7 @@ export function useMAProductParFaceFacade(
   filters?: MAApiFilterParams,
   enabled = true
 ): MAKPIParFaceFacade {
-  const reportId = getMAParReportId(product, "face");
+  const reportId = getMAParReportId(product, "face", filters?.dateBasis);
   const { data: rawData, loading, error, refetch } = useMAReportData<MAApiDataRow>(
     reportId,
     filters,

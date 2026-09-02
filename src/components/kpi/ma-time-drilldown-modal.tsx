@@ -201,6 +201,7 @@ function buildTimeChartTooltip(
         <p>
           {metricLabel}: <span className="font-medium">{formatDays(row.decisionDays)} days</span>
         </p>
+        <p>Row SLA: {formatDays(row.targetDays)} days</p>
         <p>
           On-time: {row.onTime}/{row.total} ({formatPct(row.percentage)})
         </p>
@@ -229,11 +230,9 @@ function buildTimeChartTooltip(
 function TimeCategoryTableCard({
   view,
   metricType,
-  targetDays,
 }: {
   view: MATimeDrillDownCategoryView;
   metricType: "median" | "average";
-  targetDays: number;
 }) {
   const metricLabel = metricType === "median" ? "Median Days" : "Avg Days";
   const totalApps = view.items.reduce((sum, item) => sum + item.totalCount, 0);
@@ -307,7 +306,6 @@ function TimeCategoryTableCard({
                 key={item.category}
                 item={item}
                 metricType={metricType}
-                targetDays={targetDays}
               />
             ))}
           </TableBody>
@@ -371,14 +369,20 @@ function TimeCategoryChartCard({
   const totalOnTime = useMemo(() => chartData.reduce((s, d) => s + d.onTime, 0), [chartData]);
   const totalAll = useMemo(() => chartData.reduce((s, d) => s + d.total, 0), [chartData]);
   const overallPct = totalAll > 0 ? (totalOnTime / totalAll) * 100 : 0;
+  const viewTargetDays = useMemo(
+    () => [...new Set(chartData.map((item) => item.targetDays).filter((value) => value > 0))],
+    [chartData]
+  );
+  const chartTargetDays = viewTargetDays.length === 1 ? viewTargetDays[0] : targetDays;
+  const targetLabel = viewTargetDays.length === 1 ? `Target ${chartTargetDays} days` : "Mixed SLA targets";
 
   const daysDomainMax = useMemo(() => {
     const maxDays = Math.max(
-      targetDays * 1.2,
+      chartTargetDays * 1.2,
       ...chartData.map((d) => d.decisionDays || 0)
     );
     return Math.ceil(maxDays / 50) * 50;
-  }, [chartData, targetDays]);
+  }, [chartData, chartTargetDays]);
 
   const renderChart = useCallback(() => {
     if (!chartData.length) {
@@ -446,10 +450,10 @@ function TimeCategoryChartCard({
             <RechartsTooltip content={<ChartTooltip />} />
             <Bar dataKey="decisionDays" radius={[0, 4, 4, 0]}>
               {sorted.map((entry, i) => (
-                <Cell key={i} fill={daysBarColor(entry.decisionDays, targetDays)} />
+                <Cell key={i} fill={daysBarColor(entry.decisionDays, entry.targetDays)} />
               ))}
             </Bar>
-            <ReferenceLine x={targetDays} stroke="#6366f1" strokeDasharray="4 4" strokeWidth={1.5} />
+            <ReferenceLine x={chartTargetDays} stroke="#6366f1" strokeDasharray="4 4" strokeWidth={1.5} />
           </BarChart>
         </ResponsiveContainer>
       );
@@ -472,7 +476,7 @@ function TimeCategoryChartCard({
               activeDot={{ r: 6 }}
             />
             <ReferenceLine
-              y={targetDays}
+              y={chartTargetDays}
               stroke="#22c55e"
               strokeDasharray="4 4"
               label={{ value: "Target", position: "right", fontSize: 11 }}
@@ -503,7 +507,7 @@ function TimeCategoryChartCard({
               strokeWidth={2}
               fill={`url(#grad-${view.id})`}
             />
-            <ReferenceLine y={targetDays} stroke="#22c55e" strokeDasharray="4 4" />
+            <ReferenceLine y={chartTargetDays} stroke="#22c55e" strokeDasharray="4 4" />
           </AreaChart>
         </ResponsiveContainer>
       );
@@ -518,14 +522,14 @@ function TimeCategoryChartCard({
           <RechartsTooltip content={<ChartTooltip />} />
           <Bar dataKey="decisionDays" radius={[4, 4, 0, 0]}>
             {sorted.map((entry, i) => (
-              <Cell key={i} fill={daysBarColor(entry.decisionDays, targetDays)} />
+              <Cell key={i} fill={daysBarColor(entry.decisionDays, entry.targetDays)} />
             ))}
           </Bar>
-          <ReferenceLine y={targetDays} stroke="#6366f1" strokeDasharray="4 4" strokeWidth={1.5} />
+          <ReferenceLine y={chartTargetDays} stroke="#6366f1" strokeDasharray="4 4" strokeWidth={1.5} />
         </BarChart>
       </ResponsiveContainer>
     );
-  }, [chartData, chartType, view.id, targetDays, daysDomainMax, ChartTooltip]);
+  }, [chartData, chartType, view.id, chartTargetDays, daysDomainMax, ChartTooltip]);
 
   return (
     <section className="group overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_16px_40px_-32px_rgba(15,23,42,.65)] transition-shadow duration-300 hover:shadow-[0_22px_52px_-34px_rgba(91,33,182,.45)] dark:border-slate-800 dark:bg-slate-950/70">
@@ -538,7 +542,7 @@ function TimeCategoryChartCard({
             {chartData.length} categories &middot; {totalAll.toLocaleString()} total applications
           </p>
         </div>
-        <Badge className="border-0 bg-violet-100 text-[10px] text-violet-700 shadow-none dark:bg-violet-950 dark:text-violet-300">Target {targetDays} days</Badge>
+        <Badge className="border-0 bg-violet-100 text-[10px] text-violet-700 shadow-none dark:bg-violet-950 dark:text-violet-300">{targetLabel} · 90% performance target</Badge>
         </div>
         <div className="flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white/80 p-1 dark:border-slate-800 dark:bg-slate-950/70" aria-label={`Chart type for ${view.label}`}>
           {CHART_OPTIONS.map((opt) => (
@@ -636,7 +640,6 @@ function TimeCategoryChartCard({
                       key={item.category}
                       item={item}
                       metricType={metricType}
-                      targetDays={targetDays}
                     />
                   ))}
                 </TableBody>
@@ -652,11 +655,9 @@ function TimeCategoryChartCard({
 function TimeDetailsRow({
   item,
   metricType,
-  targetDays,
 }: {
   item: MATimeDrillDownItem;
   metricType: "median" | "average";
-  targetDays: number;
 }) {
   const pctTone =
     item.percentage >= 90
@@ -668,9 +669,9 @@ function TimeDetailsRow({
   const daysTone =
     item.decisionDays == null
       ? "text-muted-foreground"
-      : item.decisionDays <= targetDays
+      : item.decisionDays <= item.targetDays
         ? "text-emerald-600 dark:text-emerald-400"
-        : item.decisionDays <= targetDays * 1.5
+        : item.decisionDays <= item.targetDays * 1.5
           ? "text-amber-600 dark:text-amber-400"
           : "text-red-600 dark:text-red-400";
 
@@ -825,6 +826,9 @@ export function MATimeDrillDownModal({
     () => anchorView?.items.reduce((sum, item) => sum + item.totalCount, 0) ?? 0,
     [anchorView]
   );
+  const onTimePercentage = onTimeDenominator > 0
+    ? (onTimeNumerator / onTimeDenominator) * 100
+    : 0;
 
   const headlineDays =
     resolvedData.currentValue.median ??
@@ -869,7 +873,7 @@ export function MATimeDrillDownModal({
                     )}
                   </div>
                   <DialogDescription className="mt-2 max-w-3xl text-sm">
-                    Explore processing duration across several chart types, detailed categories, and statistical distributions.
+                    Processing days are compared with each row&apos;s regulatory SLA. On-time percentage is on-time cases divided by all completed cases; the selected date basis defines which cases enter the period.
                   </DialogDescription>
                 </div>
                 {showLoading && (
@@ -910,7 +914,7 @@ export function MATimeDrillDownModal({
                   <TargetIcon className="size-5" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Target</p><p className="text-lg font-bold">{targetDays} days</p></div>
                 </div>
                 <div className="flex items-center gap-3 rounded-xl border border-sky-200 bg-white/75 px-3 py-3 text-sky-700 shadow-sm dark:border-sky-900/70 dark:bg-slate-950/50 dark:text-sky-300">
-                  <ActivityIcon className="size-5" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">On time</p><p className="text-lg font-bold">{onTimeNumerator.toLocaleString()} <span className="text-xs font-medium opacity-60">/ {onTimeDenominator.toLocaleString()}</span></p></div>
+                  <ActivityIcon className="size-5" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">On-time performance</p><p className="text-lg font-bold">{onTimePercentage.toFixed(1)}% <span className="text-xs font-medium opacity-60">({onTimeNumerator.toLocaleString()} / {onTimeDenominator.toLocaleString()})</span></p></div>
                 </div>
                 <div className="flex items-center gap-3 rounded-xl border border-fuchsia-200 bg-white/75 px-3 py-3 text-fuchsia-700 shadow-sm dark:border-fuchsia-900/70 dark:bg-slate-950/50 dark:text-fuchsia-300">
                   <BarChart3Icon className="size-5" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Dimensions</p><p className="text-lg font-bold">{categoryViews.length}</p></div>
@@ -1003,7 +1007,6 @@ export function MATimeDrillDownModal({
                   key={view.id}
                   view={view}
                   metricType={resolvedData.metricType}
-                  targetDays={targetDays}
                 />
               ))}
             </div>

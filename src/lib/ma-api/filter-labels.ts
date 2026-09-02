@@ -16,6 +16,8 @@ export function getMAApiFilterChipLabels(filters?: MAApiFilterParams): string[] 
 
   const labels: string[] = [];
 
+  labels.push(filters.dateBasis === "decision" ? "Filtered by decision date" : "Filtered by submission date");
+
   if (filters.startDate && filters.endDate) {
     labels.push(`${formatIsoDate(filters.startDate)} – ${formatIsoDate(filters.endDate)}`);
   } else if (filters.startDate) {

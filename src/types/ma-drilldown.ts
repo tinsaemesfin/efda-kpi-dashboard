@@ -10,6 +10,7 @@ export interface DrillDownItem {
   count: number;
   total: number;
   percentage?: number;
+  targetDays?: number;
 }
 
 // Level 1: By Submodule Type
@@ -155,6 +156,7 @@ export interface KPIDrillDownData {
     percentage?: number;
     median?: number;
     average?: number;
+    targetDays?: number;
   };
   level1?: {
     dimension: string;

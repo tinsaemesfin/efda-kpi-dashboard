@@ -10,6 +10,7 @@
  *   node scripts/complete-ma-kpi-reports.js --validate
  *   node scripts/complete-ma-kpi-reports.js --apply
  */
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { Client } = require("pg");
 const { loadDatabaseUrl } = require("./load-database-url");
 
@@ -155,7 +156,8 @@ classified AS (
 categorized AS (
   SELECT
     c.module_code,
-    c.target_days,
+    /* Reliance SLA: 90 days */
+    CASE WHEN x.category_name = 'Reliance pathway' THEN 90 ELSE c.target_days END AS target_days,
     c.processing_time_in_day,
     x.category_name,
     x.category_value
@@ -320,7 +322,12 @@ overall AS (
   WHERE decision_time_in_days >= 0
 ),
 categorized AS (
-  SELECT c.target_days, c.decision_time_in_days, x.category_name, x.category_value
+  SELECT
+    /* Reliance SLA: 90 days */
+    CASE WHEN x.category_name = 'Reliance pathway' THEN 90 ELSE c.target_days END AS target_days,
+    c.decision_time_in_days,
+    x.category_name,
+    x.category_value
   FROM classified c
   CROSS JOIN LATERAL (
     VALUES

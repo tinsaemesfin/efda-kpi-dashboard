@@ -22,6 +22,11 @@ import {
   MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS,
   MA_PRODUCT_TIME_REPORT_IDS,
   MA_PRODUCT_PAR_REPORT_IDS,
+  MA_PRODUCT_STANDARD_FACE_REPORT_IDS_BY_DATE,
+  MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS_BY_DATE,
+  MA_PRODUCT_TIME_REPORT_IDS_BY_DATE,
+  MA_PRODUCT_PAR_REPORT_IDS_BY_DATE,
+  buildMAFaceRequestBody,
   buildMATabularUrl,
 } from "@/lib/ma-api/constants";
 
@@ -103,5 +108,25 @@ describe("MA tabular report ids", () => {
     expect(MA_PRODUCT_PAR_REPORT_IDS.food).toEqual({ face: 115, drilldown: 110 });
     expect(MA_PRODUCT_PAR_REPORT_IDS.medicalDevice).toEqual({ face: 116, drilldown: 112 });
     expect(MA_PRODUCT_PAR_REPORT_IDS.cosmetics).toEqual({ face: 117, drilldown: 113 });
+  });
+
+  it("maps Submission date by default and Decision date to paired MA reports", () => {
+    expect(MA_PRODUCT_STANDARD_FACE_REPORT_IDS_BY_DATE.submission.medicine).toBe(8);
+    expect(MA_PRODUCT_STANDARD_FACE_REPORT_IDS_BY_DATE.decision.medicine).toBe(155);
+    expect(MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS_BY_DATE.decision.medicalDevice["MA-KPI-4"]).toBe(175);
+    expect(MA_PRODUCT_TIME_REPORT_IDS_BY_DATE.submission.foodNotification).toEqual({ face: 185, median: 186, average: 187 });
+    expect(MA_PRODUCT_TIME_REPORT_IDS_BY_DATE.decision.medicine).toEqual({ face: 118, median: 119, average: 120 });
+    expect(MA_PRODUCT_PAR_REPORT_IDS_BY_DATE.submission.cosmetics).toEqual({ face: 202, drilldown: 203 });
+  });
+
+  it("uses dateBasis only for report routing, not as an API form field", () => {
+    const body = buildMAFaceRequestBody({
+      startDate: "2026-01-01",
+      endDate: "2026-09-02",
+      dateBasis: "decision",
+    });
+    expect(body.get("startDate")).toBe("2026-01-01");
+    expect(body.get("endDate")).toBe("2026-09-02");
+    expect(body.has("dateBasis")).toBe(false);
   });
 });

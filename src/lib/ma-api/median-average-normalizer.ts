@@ -35,6 +35,7 @@ function buildTimeRow(row: MAApiMedianAverageDataRow, kpiId: MAKPITimeId): MAKPI
       median: row.decision_time_in_days,
       numerator: 0,
       denominator,
+      targetDays: row.target_days,
     };
   }
 
@@ -42,6 +43,7 @@ function buildTimeRow(row: MAApiMedianAverageDataRow, kpiId: MAKPITimeId): MAKPI
     average: row.decision_time_in_days,
     numerator: row.decision_time_in_days * denominator,
     denominator,
+    targetDays: row.target_days,
   };
 }
 
