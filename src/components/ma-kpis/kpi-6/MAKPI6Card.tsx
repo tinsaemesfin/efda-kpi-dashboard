@@ -1,31 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ClockIcon } from "lucide-react";
 import { KPICardBase } from "../shared/components/KPICardBase";
 import { useKPI6Data } from "./hooks/useKPI6Data";
-import { MATimeDrillDownModal } from "@/components/kpi/ma-time-drilldown-modal";
-import { maDrillDownData } from "@/data/ma-drilldown-data";
-import type { MATimeDrillDownData } from "@/types/ma-drilldown";
 
 export function MAKPI6Card() {
   const { value, status, loading, numerator, denominator, dataSource, disaggregations } = useKPI6Data();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const router = useRouter();
 
-  const timeDrilldownFallback = useMemo((): MATimeDrillDownData => {
-    const seed = maDrillDownData["MA-KPI-6"];
-    return {
-      kpiId: "MA-KPI-6",
-      kpiName: seed?.kpiName ?? "Median Time for New MA Applications",
-      metricType: "median",
-      currentValue: {
-        value: seed?.currentValue.median ?? seed?.currentValue.value ?? 0,
-        median: seed?.currentValue.median ?? seed?.currentValue.value,
-        targetDays: 270,
-      },
-      categoryViews: [],
-    };
-  }, []);
 
   return (
     <>
@@ -42,15 +25,8 @@ export function MAKPI6Card() {
         dataSource={dataSource}
         disaggregations={disaggregations}
         loading={loading}
-        onClick={() => setIsModalOpen(true)}
+        onClick={() => router.push("/market-authorizations/drilldown/MA-KPI-6?product=medicine")}
       />
-      {isModalOpen && (
-        <MATimeDrillDownModal
-          open={isModalOpen}
-          onOpenChange={setIsModalOpen}
-          data={timeDrilldownFallback}
-        />
-      )}
     </>
   );
 }

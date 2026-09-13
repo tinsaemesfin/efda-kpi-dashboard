@@ -91,6 +91,8 @@ describe("buildMAKpi7DrilldownData", () => {
 
     expect(result.kpiId).toBe("MA-KPI-7");
     expect(result.metricType).toBe("average");
+    expect(result.currentValue.average).toBe(143.5);
+    expect(result.currentValue.value).toBe(143.5);
     expect(result.categoryViews.map((view) => view.label)).toEqual([
       "Application type",
       "Decision time band",
@@ -126,6 +128,8 @@ describe("buildMAKpi6DrilldownData", () => {
 
     expect(result.kpiId).toBe("MA-KPI-6");
     expect(result.metricType).toBe("median");
+    expect(result.currentValue.median).toBe(34.68);
+    expect(result.currentValue.value).toBe(34.68);
     expect(result.categoryViews).toHaveLength(1);
     expect(result.categoryViews[0].label).toBe("Application type");
     expect(result.categoryViews[0].items[0]).toMatchObject({
@@ -145,5 +149,13 @@ describe("buildMAKpi6DrilldownData", () => {
 
     expect(serialized).not.toContain("overall_median_days");
     expect(serialized).not.toContain("overallMedianDays");
+  });
+
+  it("does not convert missing overall values to zero or use a subgroup median", () => {
+    const result = buildMAKpi6DrilldownData([
+      {...medianSampleRows[0], overall_median_days: null},
+      {...medianSampleRows[0], category_value: 'Another type', overall_median_days: 42},
+    ]);
+    expect(result.currentValue.median).toBe(42);
   });
 });

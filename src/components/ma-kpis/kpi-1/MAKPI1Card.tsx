@@ -1,15 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ClipboardCheckIcon } from "lucide-react";
 import { KPICardBase } from "../shared/components/KPICardBase";
 import { useKPI1Data } from "./hooks/useKPI1Data";
-import { MAKPI1Modal } from "./MAKPI1Modal";
 
 export function MAKPI1Card() {
   const { value, status, loading, numerator, denominator, dataSource, disaggregations, errorMessage } =
     useKPI1Data();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const router = useRouter();
 
   return (
     <>
@@ -27,9 +26,8 @@ export function MAKPI1Card() {
         disaggregations={disaggregations}
         loading={loading}
         errorMessage={errorMessage}
-        onClick={() => setIsModalOpen(true)}
+        onClick={() => router.push("/market-authorizations/drilldown/MA-KPI-1?product=medicine")}
       />
-      <MAKPI1Modal open={isModalOpen} onOpenChange={setIsModalOpen} />
     </>
   );
 }

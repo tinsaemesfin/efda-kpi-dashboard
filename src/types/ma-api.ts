@@ -14,7 +14,7 @@ export type MAKPITimeId = 'MA-KPI-6' | 'MA-KPI-7';
 export type MAKPIParId = 'MA-KPI-8';
 export type MAReportProduct = 'medicine' | 'food' | 'foodNotification' | 'medicalDevice' | 'cosmetics';
 export type MADateBasis = 'submission' | 'decision';
-export type MAParModuleCode = 'NMR' | 'REN' | 'VMIN' | 'VMAJ';
+export type MAParModuleCode = 'NMR' | 'REN' | 'VMIN' | 'VMAJ' | 'VAR';
 export const MA_PAR_MODULE_ORDER: readonly MAParModuleCode[] = [
   'NMR',
   'REN',
@@ -61,6 +61,12 @@ export interface MAApiDrilldownRow {
 
 /** Shared base fields for tabular reports /27 (median) and /28 (average) drilldowns. */
 export interface MAApiTimeDrilldownRowBase {
+  distribution_min_days?: number | null;
+  distribution_q1_days?: number | null;
+  distribution_median_days?: number | null;
+  distribution_q3_days?: number | null;
+  distribution_max_days?: number | null;
+  distribution_mean_days?: number | null;
   rowNumber?: number;
   category_name: string;
   category_value: string;

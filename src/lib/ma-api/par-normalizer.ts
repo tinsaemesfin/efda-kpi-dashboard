@@ -15,6 +15,7 @@ const MODULE_LABELS: Record<MAParModuleCode, string> = {
   REN: "Renewal",
   VMIN: "Minor",
   VMAJ: "Major",
+  VAR: "Variation",
 };
 
 function toFiniteNumber(value: unknown): number | null {
@@ -72,7 +73,7 @@ export function normalizeMAPARFaceData(rows: MAApiDataRow[]): MANormalizeParResu
     }
 
     const canonical = resolveMAModuleCode(String(row.module_code), MA_MODULE_CODE_ALIASES);
-    if (!MA_PAR_MODULE_ORDER.includes(canonical as MAParModuleCode)) {
+    if (canonical !== 'VAR' && !MA_PAR_MODULE_ORDER.includes(canonical as MAParModuleCode)) {
       warnings.push({
         code: "UNKNOWN_MODULE_CODE",
         message: `No PAR module slot for module code: ${canonical}.`,
@@ -113,7 +114,10 @@ export function normalizeMAPARFaceData(rows: MAApiDataRow[]): MANormalizeParResu
 
   let totalNumerator = 0;
   let totalDenominator = 0;
-  const modules = MA_PAR_MODULE_ORDER.map((code) => {
+  const moduleOrder: readonly MAParModuleCode[] = byModule.has('VAR')
+    ? [...MA_PAR_MODULE_ORDER, 'VAR']
+    : MA_PAR_MODULE_ORDER;
+  const modules = moduleOrder.map((code) => {
     const agg = byModule.get(code);
     if (!agg || agg.denominator <= 0) {
       return emptyModule(code);

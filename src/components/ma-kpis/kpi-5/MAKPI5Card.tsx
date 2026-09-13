@@ -1,15 +1,13 @@
 "use client";
 
-import { useState } from "react";
+
 import { AlertCircleIcon } from "lucide-react";
 import { KPICardBase } from "../shared/components/KPICardBase";
 import { useKPI5Data } from "./hooks/useKPI5Data";
-import { MADrillDownModal } from "@/components/kpi/ma-drilldown-modal";
-import { maDrillDownData } from "@/data/ma-drilldown-data";
 
 export function MAKPI5Card() {
   const { value, status, loading, numerator, denominator, dataSource, disaggregations } = useKPI5Data();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+
 
   return (
     <>
@@ -26,15 +24,8 @@ export function MAKPI5Card() {
         dataSource={dataSource}
         disaggregations={disaggregations}
         loading={loading}
-        onClick={() => setIsModalOpen(true)}
+        onClick={undefined}
       />
-      {isModalOpen && maDrillDownData["MA-KPI-5"] && (
-        <MADrillDownModal
-          open={isModalOpen}
-          onOpenChange={setIsModalOpen}
-          data={maDrillDownData["MA-KPI-5"]}
-        />
-      )}
     </>
   );
 }

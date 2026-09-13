@@ -1,6 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { drilldownQuery, readDrilldownFilters } from "@/lib/drilldown-navigation";
+import { KPI_DEFINITIONS } from "@/data/gmp-kpi-definitions";
+
+import { Suspense, useMemo, useState } from "react";
 import {
   ActivityIcon,
   CalendarDaysIcon,
@@ -18,26 +22,16 @@ import {
 } from "lucide-react";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { DashboardLayout } from "@/components/layout";
-import { GMPApiDrilldownModal } from "@/components/kpi/gmp-api-drilldown-modal";
 import { MAKPICard } from "@/components/kpi/ma-kpi-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useGMPDrilldown, useGMPFaceMetrics } from "@/hooks/useGMPReports";
+import { useGMPFaceMetrics } from "@/hooks/useGMPReports";
 import { cn } from "@/lib/utils";
 import type { GMPApiFilterParams, GMPKPIId } from "@/types/gmp-api";
 
-const KPI_DEFINITIONS: Array<{ id: GMPKPIId; title: string; description: string }> = [
-  { id: "GMP-KPI-1", title: "Facilities inspected as per plan", description: "Pharmaceutical manufacturing facilities inspected against the approved plan." },
-  { id: "GMP-KPI-2", title: "Facilities compliant with GMP", description: "Local and abroad facilities certified following GMP inspection." },
-  { id: "GMP-KPI-3", title: "Abroad on-site inspections waived", description: "Abroad GMP inspection waiver activity." },
-  { id: "GMP-KPI-5", title: "CAPA decisions within timeline", description: "Timeliness of final decisions on corrective and preventive action responses." },
-  { id: "GMP-KPI-6", title: "Applications completed within timeline", description: "End-to-end completion of GMP inspection applications within the set timeline." },
-  { id: "GMP-KPI-7", title: "Average turnaround time", description: "Average regulator processing time for completed GMP applications." },
-  { id: "GMP-KPI-8", title: "Median turnaround time", description: "Median regulator processing time for completed GMP applications." },
-  { id: "GMP-KPI-9", title: "Inspection reports published on time", description: "Timely publication of GMP inspection outcomes." },
-];
+
 
 const pad = (value: number) => String(value).padStart(2, "0");
 const isoDate = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -84,19 +78,21 @@ const focusAreas = [
 ];
 
 export default function GMPInspectionsPage() {
-  const initialPeriod = useMemo(() => periodForPreset("all-time"), []);
-  const [datePreset, setDatePreset] = useState("all-time");
+  return <Suspense fallback={<div className="p-8">Loading dashboard…</div>}><GMPInspectionsContent /></Suspense>;
+}
+function GMPInspectionsContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const restored = readDrilldownFilters(searchParams);
+  const [initialPeriod] = useState(() => [restored.startDate ?? "", restored.endDate ?? ""]);
+  const [datePreset, setDatePreset] = useState(restored.startDate || restored.endDate ? "custom" : "all-time");
   const [dateFrom, setDateFrom] = useState(initialPeriod[0]);
   const [dateTo, setDateTo] = useState(initialPeriod[1]);
   const [searchTerm, setSearchTerm] = useState("");
   const [cardDensity, setCardDensity] = useState<"grid" | "condensed">("grid");
-  const [selectedKpiId, setSelectedKpiId] = useState<GMPKPIId | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const filters = useMemo<GMPApiFilterParams>(() => ({ startDate: dateFrom, endDate: dateTo }), [dateFrom, dateTo]);
   const { metrics, loading, error } = useGMPFaceMetrics(filters, true);
-  const drilldown = useGMPDrilldown(selectedKpiId, filters, isModalOpen);
-  const selectedDefinition = KPI_DEFINITIONS.find((kpi) => kpi.id === selectedKpiId);
   const visibleKpis = KPI_DEFINITIONS.filter((kpi) => `${kpi.id} ${kpi.title} ${kpi.description}`.toLowerCase().includes(searchTerm.trim().toLowerCase()));
 
   const applyPreset = (preset: string) => {
@@ -164,13 +160,12 @@ export default function GMPInspectionsPage() {
               const numericValue = metric?.value;
               const displayValue = numericValue !== undefined ? numericValue.toFixed(1) : "0";
               const sideBySideMetrics = metric && metric.segments.length > 1 ? metric.segments.map((segment) => ({ id: segment.id, label: segment.label, value: segment.value, suffix: segment.unit === "days" ? "days" : "%", numerator: segment.numerator, denominator: segment.denominator, isEmpty: segment.state === "work-in-progress" })) : undefined;
-              return <MAKPICard key={definition.id} className={definition.id === "GMP-KPI-6" ? "xl:col-span-2 2xl:col-span-2" : undefined} kpiCode={definition.id} title={definition.title} description={definition.description} value={displayValue} suffix={metric?.unit === "days" ? "days" : "%"} numerator={metric?.numerator} denominator={metric?.denominator} sideBySideMetrics={sideBySideMetrics} dataAttribution={metric?.state === "live" ? "live" : "none"} status={statusFor(definition.id, numericValue)} compact={cardDensity === "condensed"} animationDelayMs={index * 45} isLoading={loading && !metric} isEmpty={isEmpty} emptyMessage="No data found" onClick={() => { setSelectedKpiId(definition.id); setIsModalOpen(true); }} />;
+              return <MAKPICard key={definition.id} className={definition.id === "GMP-KPI-6" ? "xl:col-span-2 2xl:col-span-2" : undefined} kpiCode={definition.id} title={definition.title} description={definition.description} value={displayValue} suffix={metric?.unit === "days" ? "days" : "%"} numerator={metric?.numerator} denominator={metric?.denominator} sideBySideMetrics={sideBySideMetrics} dataAttribution={metric?.state === "live" ? "live" : "none"} status={statusFor(definition.id, numericValue)} compact={cardDensity === "condensed"} animationDelayMs={index * 45} isLoading={loading && !metric} isEmpty={isEmpty} emptyMessage="No data found" onClick={() => { router.push(`/gmp-inspections/drilldown/${definition.id}?${drilldownQuery(filters)}`); }} />;
             })}
           </div>
 
           {visibleKpis.length === 0 && <Card className="border-dashed"><CardContent className="pt-6 text-sm text-muted-foreground">No KPI cards match this search.</CardContent></Card>}
 
-          {selectedKpiId && selectedDefinition && <GMPApiDrilldownModal open={isModalOpen} onOpenChange={setIsModalOpen} kpiId={selectedKpiId} title={selectedDefinition.title} metric={metrics[selectedKpiId]} reports={drilldown.reports} supported={drilldown.supported} loading={drilldown.loading} error={drilldown.error} periodLabel={datePreset === "all-time" ? "All available data" : `${formatPeriodDate(dateFrom)} – ${formatPeriodDate(dateTo)}`} />}
         </div>
       </DashboardLayout>
     </AuthGuard>

@@ -156,6 +156,10 @@ export const MA_MODULE_CODE_ALIASES: Record<string, keyof typeof MA_DEFAULT_MODU
   IMR: "NMR",
   IEN: "REN",
   IAR: "VMIN",
+  VFMIN: "VMIN",
+  VFMAJ: "VMAJ",
+  MDVMIN: "VMIN",
+  MDVMAJ: "VMAJ",
 };
 
 export const MA_FACE_KPI_IDS: readonly MAKPIId[] = [

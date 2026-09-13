@@ -77,4 +77,24 @@ describe("normalizeMAPARFaceData", () => {
     expect(result.parData).toBeNull();
     expect(result.warnings.some((w) => w.code === "EMPTY_RESULT")).toBe(true);
   });
+
+  it("includes unsplit variation applications in the PAR total", () => {
+    const result = normalizeMAPARFaceData([
+      { module_code: 'NMR', submoduletype_code: 'CO', on_time_count: 3, total_count: 5, percentage: 60 },
+      { module_code: 'VAR', submoduletype_code: 'CO', on_time_count: 2, total_count: 4, percentage: 50 },
+    ]);
+    expect(result.parData?.numerator).toBe(5);
+    expect(result.parData?.denominator).toBe(9);
+    expect(result.parData?.modules.find(m => m.code === 'VAR')?.denominator).toBe(4);
+  });
+
+  it("keeps food and device variation codes in the PAR denominator", () => {
+    const result = normalizeMAPARFaceData([
+      { module_code: 'VFMIN', submoduletype_code: 'FD', on_time_count: 1, total_count: 2, percentage: 50 },
+      { module_code: 'MDVMAJ', submoduletype_code: 'MD', on_time_count: 3, total_count: 4, percentage: 75 },
+    ]);
+    expect(result.parData?.denominator).toBe(6);
+    expect(result.parData?.numerator).toBe(4);
+    expect(result.warnings).toHaveLength(0);
+  });
 });

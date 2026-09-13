@@ -103,6 +103,9 @@ export interface KPIDimensionView {
 
 /** Row in MA-KPI-6 / MA-KPI-7 time drilldown category tables. */
 export interface MATimeDrillDownItem {
+  minDecisionDays?: number | null;
+  medianDays?: number | null;
+  meanDays?: number | null;
   category: string;
   targetDays: number;
   onTimeCount: number;

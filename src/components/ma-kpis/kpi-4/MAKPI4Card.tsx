@@ -1,15 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { FileSearchIcon } from "lucide-react";
 import { KPICardBase } from "../shared/components/KPICardBase";
 import { useKPI4Data } from "./hooks/useKPI4Data";
-import { MADrillDownModal } from "@/components/kpi/ma-drilldown-modal";
-import { maDrillDownData } from "@/data/ma-drilldown-data";
 
 export function MAKPI4Card() {
   const { value, status, loading, numerator, denominator, dataSource, disaggregations } = useKPI4Data();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const router = useRouter();
 
   return (
     <>
@@ -26,15 +24,8 @@ export function MAKPI4Card() {
         dataSource={dataSource}
         disaggregations={disaggregations}
         loading={loading}
-        onClick={() => setIsModalOpen(true)}
+        onClick={() => router.push("/market-authorizations/drilldown/MA-KPI-4?product=medicine")}
       />
-      {isModalOpen && maDrillDownData["MA-KPI-4"] && (
-        <MADrillDownModal
-          open={isModalOpen}
-          onOpenChange={setIsModalOpen}
-          data={maDrillDownData["MA-KPI-4"]}
-        />
-      )}
     </>
   );
 }

@@ -71,6 +71,7 @@ function toViewId(label: string): string {
 }
 
 function toFiniteNumber(value: unknown): number | null {
+  if (value == null || (typeof value === 'string' && !value.trim())) return null;
   const num = Number(value);
   return Number.isFinite(num) ? num : null;
 }
@@ -196,6 +197,13 @@ export function buildMAKpi6DrilldownData(
     const skew = toFiniteNumber(row.mean_median_skew_days);
     if (skew != null) existing.meanMedianSkewDays = skew;
 
+    // New reports supply the same distribution fields for mean and median views.
+    existing.minDecisionDays = toFiniteNumber(row.distribution_min_days);
+    existing.medianDays = toFiniteNumber(row.distribution_median_days);
+    existing.meanDays = toFiniteNumber(row.distribution_mean_days);
+    existing.p25Days = toFiniteNumber(row.distribution_q1_days) ?? existing.p25Days;
+    existing.p75Days = toFiniteNumber(row.distribution_q3_days) ?? existing.p75Days;
+    existing.maxDecisionDays = toFiniteNumber(row.distribution_max_days) ?? existing.maxDecisionDays;
     valueMap.set(categoryValue, existing);
   });
 
@@ -205,7 +213,8 @@ export function buildMAKpi6DrilldownData(
     categoryViews[0];
 
   const medianValue =
-    anchorView?.items.find((item) => item.decisionDays != null)?.decisionDays ??
+    rows.filter(row => resolveMAModuleCode(String(row.module_code)) === 'NMR')
+      .map(row => toFiniteNumber(row.overall_median_days)).find(value => value !== null) ??
     fallback?.currentValue.median ??
     fallback?.currentValue.value ??
     0;
@@ -283,6 +292,13 @@ export function buildMAKpi7DrilldownData(
     const outlierPct = toFiniteNumber(row.extreme_outlier_pct);
     if (outlierPct != null) existing.extremeOutlierPct = outlierPct;
 
+    // New reports supply the same distribution fields for mean and median views.
+    existing.minDecisionDays = toFiniteNumber(row.distribution_min_days);
+    existing.medianDays = toFiniteNumber(row.distribution_median_days);
+    existing.meanDays = toFiniteNumber(row.distribution_mean_days);
+    existing.p25Days = toFiniteNumber(row.distribution_q1_days) ?? existing.p25Days;
+    existing.p75Days = toFiniteNumber(row.distribution_q3_days) ?? existing.p75Days;
+    existing.maxDecisionDays = toFiniteNumber(row.distribution_max_days) ?? existing.maxDecisionDays;
     valueMap.set(categoryValue, existing);
   });
 
@@ -292,7 +308,8 @@ export function buildMAKpi7DrilldownData(
     categoryViews[0];
 
   const averageValue =
-    anchorView?.items.find((item) => item.decisionDays != null)?.decisionDays ??
+    rows.filter(row => resolveMAModuleCode(String(row.module_code)) === 'NMR')
+      .map(row => toFiniteNumber(row.overall_avg_days)).find(value => value !== null) ??
     fallback?.currentValue.average ??
     fallback?.currentValue.value ??
     0;
