@@ -31,7 +31,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
         setSession(session);
         setIsAuthenticated(true);
       } else {
-        router.push(`/auth?return=${encodeURIComponent(pathname)}`);
+        router.push(`/auth?return=${encodeURIComponent(pathname + window.location.search)}`);
       }
       
       setIsLoading(false);

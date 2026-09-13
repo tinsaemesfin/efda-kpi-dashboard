@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import {
   fetchMAFaceTabularData,
@@ -106,67 +106,59 @@ function useMATabularReportData<T>(
   getCacheKey: (filters?: MAApiFilterParams) => string
 ): UseMAApiState<MAApiResponse<T>> {
   const { isAuthenticated, loading: authLoading, accessToken } = useAuth();
-  const [data, setData] = useState<MAApiResponse<T> | null>(null);
-  const [loading, setLoading] = useState(enabled);
-  const [error, setError] = useState<Error | null>(null);
+  const [result, setResult] = useState<{
+    key: string;
+    data: MAApiResponse<T> | null;
+    loading: boolean;
+    error: Error | null;
+  } | null>(null);
+  const requestVersion = useRef(0);
 
   const cacheKey = useMemo(() => getCacheKey(filters), [filters, getCacheKey]);
 
   const fetchData = useCallback(
     async (force = false) => {
-      if (!enabled) {
-        setLoading(false);
-        return;
-      }
-      if (authLoading) return;
-      if (!isAuthenticated || !accessToken) {
-        setLoading(false);
-        return;
-      }
+      const version = ++requestVersion.current;
+      if (!enabled || authLoading || !isAuthenticated || !accessToken) return;
 
       if (!force) {
         const cached = peekMaApiCache<MAApiResponse<T>>(cacheKey);
         if (cached) {
-          setData(cached);
-          setLoading(false);
-          setError(null);
+          setResult({ key: cacheKey, data: cached, loading: false, error: null });
           return;
         }
       }
 
-      setLoading(true);
-      setError(null);
+      setResult({ key: cacheKey, data: null, loading: true, error: null });
 
       try {
         const json = await fetcher(accessToken, filters, { force });
-        setData(json);
+        if (version === requestVersion.current) {
+          setResult({ key: cacheKey, data: json, loading: false, error: null });
+        }
       } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch MA KPI data'));
-      } finally {
-        setLoading(false);
+        if (version === requestVersion.current) {
+          setResult({ key: cacheKey, data: null, loading: false, error: err instanceof Error ? err : new Error('Failed to fetch MA KPI data') });
+        }
       }
     },
     [enabled, isAuthenticated, authLoading, accessToken, filters, fetcher, cacheKey]
   );
 
   useEffect(() => {
-    if (!enabled) {
-      setLoading(false);
-      return;
-    }
-    if (!authLoading && isAuthenticated && accessToken) {
-      void fetchData(false);
-    } else if (!authLoading && !isAuthenticated) {
-      setLoading(false);
-    }
+    let cancelled = false;
+    queueMicrotask(() => { if (!cancelled) void fetchData(false); });
+    return () => { cancelled = true; requestVersion.current += 1; };
   }, [enabled, authLoading, isAuthenticated, accessToken, fetchData]);
 
   const refetch = useCallback(() => fetchData(true), [fetchData]);
 
+  const current = result?.key === cacheKey ? result : null;
+  const active = enabled && isAuthenticated && Boolean(accessToken);
   return {
-    data,
-    loading: loading || authLoading,
-    error,
+    data: active ? current?.data ?? null : null,
+    loading: enabled && (authLoading || (active && (current?.loading ?? true))),
+    error: active ? current?.error ?? null : null,
     refetch,
   };
 }

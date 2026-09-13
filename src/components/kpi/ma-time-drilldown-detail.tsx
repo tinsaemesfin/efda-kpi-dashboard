@@ -1,13 +1,11 @@
 "use client";
 
+import { downloadCsv } from "@/lib/export-csv";
+
+import { TimeDistributionChart } from "./time-distribution-chart";
+import { combineTimeDistributions, timeComparison, timeDistribution } from "@/lib/ma-api/distribution";
+
 import { useMemo, useState, useCallback } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,8 +35,6 @@ import { getMAApiFilterChipLabels } from "@/lib/ma-api/filter-labels";
 import {
   BarChart3Icon,
   PieChartIcon,
-  TrendingUpIcon,
-  AreaChartIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   DownloadIcon,
@@ -60,17 +56,13 @@ import {
   XAxis,
   YAxis,
   Tooltip as RechartsTooltip,
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
   PieChart,
   Pie,
   Cell,
   ReferenceLine,
 } from "recharts";
 
-type ChartType = "bar" | "column" | "horizontalBar" | "line" | "area" | "pie" | "doughnut";
+type ChartType = "box" | "comparison" | "volume" | "bar" | "horizontalBar" | "doughnut";
 type ViewMode = "chart" | "table";
 
 interface ChartOption {
@@ -80,12 +72,12 @@ interface ChartOption {
 }
 
 const CHART_OPTIONS: ChartOption[] = [
+  { id: "box", label: "Box plot", icon: <BarChart3Icon className="h-3.5 w-3.5" /> },
+  { id: "comparison", label: "Mean / median", icon: <ActivityIcon className="h-3.5 w-3.5" /> },
+  { id: "volume", label: "Volume", icon: <BarChart3Icon className="h-3.5 w-3.5" /> },
   { id: "bar", label: "Bar", icon: <BarChart3Icon className="h-3.5 w-3.5" /> },
   { id: "horizontalBar", label: "H-Bar", icon: <BarChart3Icon className="h-3.5 w-3.5 rotate-90" /> },
-  { id: "line", label: "Line", icon: <TrendingUpIcon className="h-3.5 w-3.5" /> },
-  { id: "area", label: "Area", icon: <AreaChartIcon className="h-3.5 w-3.5" /> },
-  { id: "pie", label: "Pie", icon: <PieChartIcon className="h-3.5 w-3.5" /> },
-  { id: "doughnut", label: "Donut", icon: <PieChartIcon className="h-3.5 w-3.5" /> },
+  { id: "doughnut", label: "Volume share", icon: <PieChartIcon className="h-3.5 w-3.5" /> },
 ];
 
 const PALETTE = [
@@ -96,9 +88,7 @@ const PALETTE = [
 const EXTREME_OUTLIER_TOOLTIP =
   "Cases where decision time exceeds 200% of the target days (2× target) are classified as extreme outliers.";
 
-interface MATimeDrillDownModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface MATimeDrillDownDetailProps {
   data: MATimeDrillDownData;
   product?: MAReportProduct;
   /** Snapshot of page date filters at open time; fetch runs only while open. */
@@ -107,7 +97,7 @@ interface MATimeDrillDownModalProps {
 
 interface TimeChartRow {
   name: string;
-  decisionDays: number;
+  decisionDays: number | null;
   percentage: number;
   onTime: number;
   total: number;
@@ -139,17 +129,11 @@ function daysBarColor(days: number, targetDays: number): string {
   return "#ef4444";
 }
 
-function pickBestFitChart(view: MATimeDrillDownCategoryView): ChartType {
-  const count = view.items.length;
-  const label = view.label.toLowerCase();
-
-  if (label.includes("internal regulatory pathway")) return "bar";
-  if (label.includes("decision time band")) return "pie";
-  if (label.includes("regulatory outcome")) return "line";
-  if (label.includes("reliance pathway")) return "bar";
-  if (count <= 4) return "doughnut";
-  if (count <= 6) return "bar";
-  return "horizontalBar";
+function pickBestFitChart(view: MATimeDrillDownCategoryView, metric: "median" | "average"): ChartType {
+  if (view.items.some(item => timeDistribution(item, metric))) return "box";
+  if (view.items.some(item => timeComparison(item, metric))) return "comparison";
+  if (!view.items.some(item => item.decisionDays != null && Number.isFinite(item.decisionDays))) return "volume";
+  return view.items.length > 5 ? "horizontalBar" : "bar";
 }
 
 function ColumnHeaderWithTooltip({
@@ -251,7 +235,7 @@ function TimeCategoryTableCard({
     <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
       <div className="border-b bg-muted/30 px-5 py-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
+          <div className="min-w-0 w-full">
             <h3 className="text-sm font-semibold tracking-tight">{view.label}</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {view.items.length} values &middot; {totalApps.toLocaleString()} applications
@@ -328,7 +312,9 @@ function TimeCategoryChartCard({
   metricType,
   targetDays,
 }: TimeCategoryChartCardProps) {
-  const [chartType, setChartType] = useState<ChartType>(defaultChartType);
+  const [selectedChartType, setChartType] = useState<ChartType | null>(null);
+  const requestedChartType = selectedChartType ?? defaultChartType;
+  const chartType = requestedChartType;
   const [detailsExpanded, setDetailsExpanded] = useState(false);
 
   const metricLabel = metricType === "median" ? "Median" : "Average";
@@ -341,7 +327,7 @@ function TimeCategoryChartCard({
     () =>
       view.items.map((item) => ({
         name: item.category,
-        decisionDays: item.decisionDays ?? 0,
+        decisionDays: item.decisionDays,
         percentage: item.percentage,
         onTime: item.onTimeCount,
         total: item.totalCount,
@@ -361,8 +347,8 @@ function TimeCategoryChartCard({
   const fastestPerformer = useMemo(
     () =>
       [...chartData]
-        .filter((item) => item.decisionDays > 0)
-        .sort((a, b) => a.decisionDays - b.decisionDays)[0],
+        .filter((item) => item.decisionDays != null && Number.isFinite(item.decisionDays))
+        .sort((a, b) => (a.decisionDays ?? Infinity) - (b.decisionDays ?? Infinity))[0],
     [chartData]
   );
 
@@ -393,11 +379,14 @@ function TimeCategoryChartCard({
       );
     }
 
-    const sorted = [...chartData].sort((a, b) => b.total - a.total).slice(0, 10);
+    if (chartType === "box" || chartType === "comparison") return <TimeDistributionChart items={view.items} metric={metricType} comparison={chartType === "comparison"} />;
+    if (chartType === "volume") return <div><p className="mb-3 text-xs text-muted-foreground">Application counts by category. Time bands retain their report order.</p><ResponsiveContainer key={chartType} minWidth={0} width="100%" height={300}><BarChart data={chartData} margin={{ bottom: 65, left: 0, right: 12 }}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" interval={0} angle={-30} textAnchor="end" tick={{ fontSize: 10 }} /><YAxis allowDecimals={false} /><RechartsTooltip /><Bar dataKey="total" name="Applications" fill="#7c3aed" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div>;
+    const sorted = [...chartData].filter(row => chartType === "doughnut" || (row.decisionDays != null && Number.isFinite(row.decisionDays))).sort((a, b) => b.total - a.total);
+    if (!sorted.length) return <p className="py-12 text-center text-sm text-muted-foreground">No processing times are reported for this view. Select Volume to see application counts.</p>;
 
-    if (chartType === "pie" || chartType === "doughnut") {
+    if (chartType === "doughnut") {
       return (
-        <ResponsiveContainer width="100%" height={260}>
+        <ResponsiveContainer key={chartType} minWidth={0} width="100%" height={260}>
           <PieChart>
             <Pie
               data={sorted}
@@ -405,7 +394,7 @@ function TimeCategoryChartCard({
               nameKey="name"
               cx="50%"
               cy="50%"
-              innerRadius={chartType === "doughnut" ? 55 : 0}
+              innerRadius={55}
               outerRadius={95}
               paddingAngle={2}
               label={({ name, percent }) => {
@@ -436,7 +425,7 @@ function TimeCategoryChartCard({
 
     if (chartType === "horizontalBar") {
       return (
-        <ResponsiveContainer width="100%" height={Math.max(200, sorted.length * 38)}>
+        <ResponsiveContainer key={chartType} minWidth={0} width="100%" height={Math.max(200, sorted.length * 38)}>
           <BarChart data={sorted} layout="vertical" margin={{ left: 8, right: 16 }}>
             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
             <XAxis type="number" domain={[0, daysDomainMax]} tickFormatter={(v) => `${v}d`} />
@@ -450,7 +439,7 @@ function TimeCategoryChartCard({
             <RechartsTooltip content={<ChartTooltip />} />
             <Bar dataKey="decisionDays" radius={[0, 4, 4, 0]}>
               {sorted.map((entry, i) => (
-                <Cell key={i} fill={daysBarColor(entry.decisionDays, entry.targetDays)} />
+                <Cell key={i} fill={daysBarColor(entry.decisionDays!, entry.targetDays)} />
               ))}
             </Bar>
             <ReferenceLine x={chartTargetDays} stroke="#6366f1" strokeDasharray="4 4" strokeWidth={1.5} />
@@ -459,62 +448,9 @@ function TimeCategoryChartCard({
       );
     }
 
-    if (chartType === "line") {
-      return (
-        <ResponsiveContainer width="100%" height={260}>
-          <LineChart data={sorted} margin={{ left: 8, right: 16, bottom: 40 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-30} textAnchor="end" height={60} />
-            <YAxis domain={[0, daysDomainMax]} tickFormatter={(v) => `${v}d`} />
-            <RechartsTooltip content={<ChartTooltip />} />
-            <Line
-              type="monotone"
-              dataKey="decisionDays"
-              stroke="#6366f1"
-              strokeWidth={2.5}
-              dot={{ r: 4, fill: "#6366f1" }}
-              activeDot={{ r: 6 }}
-            />
-            <ReferenceLine
-              y={chartTargetDays}
-              stroke="#22c55e"
-              strokeDasharray="4 4"
-              label={{ value: "Target", position: "right", fontSize: 11 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      );
-    }
-
-    if (chartType === "area") {
-      return (
-        <ResponsiveContainer width="100%" height={260}>
-          <AreaChart data={sorted} margin={{ left: 8, right: 16, bottom: 40 }}>
-            <defs>
-              <linearGradient id={`grad-${view.id}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#6366f1" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="#6366f1" stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-30} textAnchor="end" height={60} />
-            <YAxis domain={[0, daysDomainMax]} tickFormatter={(v) => `${v}d`} />
-            <RechartsTooltip content={<ChartTooltip />} />
-            <Area
-              type="monotone"
-              dataKey="decisionDays"
-              stroke="#6366f1"
-              strokeWidth={2}
-              fill={`url(#grad-${view.id})`}
-            />
-            <ReferenceLine y={chartTargetDays} stroke="#22c55e" strokeDasharray="4 4" />
-          </AreaChart>
-        </ResponsiveContainer>
-      );
-    }
 
     return (
-      <ResponsiveContainer width="100%" height={260}>
+      <ResponsiveContainer key={chartType} minWidth={0} width="100%" height={260}>
         <BarChart data={sorted} margin={{ left: 8, right: 16, bottom: 40 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-30} textAnchor="end" height={60} />
@@ -522,22 +458,22 @@ function TimeCategoryChartCard({
           <RechartsTooltip content={<ChartTooltip />} />
           <Bar dataKey="decisionDays" radius={[4, 4, 0, 0]}>
             {sorted.map((entry, i) => (
-              <Cell key={i} fill={daysBarColor(entry.decisionDays, entry.targetDays)} />
+              <Cell key={i} fill={daysBarColor(entry.decisionDays!, entry.targetDays)} />
             ))}
           </Bar>
           <ReferenceLine y={chartTargetDays} stroke="#6366f1" strokeDasharray="4 4" strokeWidth={1.5} />
         </BarChart>
       </ResponsiveContainer>
     );
-  }, [chartData, chartType, view.id, chartTargetDays, daysDomainMax, ChartTooltip]);
+  }, [chartData, chartType, view.items, metricType, chartTargetDays, daysDomainMax, ChartTooltip]);
 
   return (
-    <section className="group overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_16px_40px_-32px_rgba(15,23,42,.65)] transition-shadow duration-300 hover:shadow-[0_22px_52px_-34px_rgba(91,33,182,.45)] dark:border-slate-800 dark:bg-slate-950/70">
+    <section className="group min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_16px_40px_-32px_rgba(15,23,42,.65)] transition-shadow duration-300 hover:shadow-[0_22px_52px_-34px_rgba(91,33,182,.45)] dark:border-slate-800 dark:bg-slate-950/70">
       <div className="flex flex-col gap-4 border-b border-violet-100 bg-linear-to-r from-violet-50/90 via-white to-sky-50/40 px-5 py-4 dark:border-violet-900/50 dark:from-violet-950/35 dark:via-slate-950 dark:to-sky-950/20">
-        <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 w-full">
           <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-violet-600 dark:text-violet-300">Cycle-time view</p>
-          <h3 className="truncate text-base font-bold tracking-tight text-slate-900 dark:text-white">{view.label}</h3>
+          <h3 className="break-words text-base font-bold tracking-tight text-slate-900 dark:text-white">{view.label}</h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {chartData.length} categories &middot; {totalAll.toLocaleString()} total applications
           </p>
@@ -551,7 +487,7 @@ function TimeCategoryChartCard({
               type="button"
               onClick={() => setChartType(opt.id)}
               className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold transition-all duration-200",
+                "flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold transition-all duration-200",
                 chartType === opt.id
                   ? "bg-violet-600 text-white shadow-sm shadow-violet-600/20"
                   : "text-slate-500 hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-950/40 dark:hover:text-violet-300"
@@ -754,7 +690,7 @@ function SkeletonTableCard() {
 function SkeletonChartCard() {
   return (
     <div className="rounded-xl border bg-card shadow-sm overflow-hidden animate-pulse">
-      <div className="flex items-start justify-between gap-3 border-b bg-muted/30 px-5 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b bg-muted/30 px-5 py-4">
         <div className="space-y-2 flex-1">
           <Skeleton className="h-4 w-36" />
           <Skeleton className="h-3 w-48" />
@@ -776,37 +712,53 @@ function SkeletonChartCard() {
   );
 }
 
-export function MATimeDrillDownModal({
-  open,
-  onOpenChange,
+export function MATimeDrillDownDetail({
   data,
   product = "medicine",
   filters,
-}: MATimeDrillDownModalProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>("chart");
-  const filterChipLabels = useMemo(() => getMAApiFilterChipLabels(filters), [filters]);
+}: MATimeDrillDownDetailProps) {
 
   const isMedian = data.kpiId === "MA-KPI-6";
 
-  const { data: timeApiData, loading: timeLoading } = useMAProductTimeDrilldownData(
+  const { data: timeApiData, loading: timeLoading, error: timeError } = useMAProductTimeDrilldownData(
     product,
     isMedian ? "MA-KPI-6" : "MA-KPI-7",
     filters,
-    open
+    true
   );
 
-  const showLoading = timeLoading;
-
+  // Both reports describe the same population. Legacy average responses lack
+  // quartiles, so obtain them from the paired median report using identical filters.
+  const companion = useMAProductTimeDrilldownData(
+    product, isMedian ? "MA-KPI-7" : "MA-KPI-6", filters, true
+  );
+  const showLoading = timeLoading || companion.loading;
   const liveData = useMemo(() => {
-    if (isMedian && timeApiData?.data?.length) {
-      return buildMAKpi6DrilldownData(timeApiData.data as MAApiMedianDrilldownRow[], data);
-    }
-    if (!isMedian && timeApiData?.data?.length) {
-      return buildMAKpi7DrilldownData(timeApiData.data as MAApiAverageDrilldownRow[], data);
-    }
-    return null;
-  }, [isMedian, timeApiData, data]);
+    if (!timeApiData?.data?.length) return null;
+    const primary = isMedian
+      ? buildMAKpi6DrilldownData(timeApiData.data as MAApiMedianDrilldownRow[], data)
+      : buildMAKpi7DrilldownData(timeApiData.data as MAApiAverageDrilldownRow[], data);
+    if (!companion.data?.data?.length) return primary;
+    const paired = isMedian
+      ? buildMAKpi7DrilldownData(companion.data.data as MAApiAverageDrilldownRow[])
+      : buildMAKpi6DrilldownData(companion.data.data as MAApiMedianDrilldownRow[]);
+    return combineTimeDistributions(primary, paired);
+  }, [isMedian, timeApiData, companion.data, data]);
 
+  return <MATimeDrillDownView data={data} liveData={liveData} showLoading={showLoading} timeError={timeError ?? companion.error} filters={filters} />;
+}
+
+/** Presentational view; the route's data container owns authentication and fetching. */
+export function MATimeDrillDownView({ data, liveData, showLoading, timeError, filters }: {
+  data: MATimeDrillDownData;
+  liveData: MATimeDrillDownData | null;
+  showLoading: boolean;
+  timeError: Error | null;
+  filters?: MAApiFilterParams;
+}) {
+  const [viewMode, setViewMode] = useState<ViewMode>("chart");
+  const filterChipLabels = useMemo(() => getMAApiFilterChipLabels(filters), [filters]);
+  const isMedian = data.kpiId === "MA-KPI-6";
   const resolvedData = liveData ?? data;
   const categoryViews = resolvedData.categoryViews;
   const targetDays = resolvedData.currentValue.targetDays ?? 270;
@@ -842,39 +794,32 @@ export function MATimeDrillDownModal({
   const categoryChartDefaults = useMemo(
     () =>
       Object.fromEntries(
-        categoryViews.map((v) => [v.id, pickBestFitChart(v)])
+        categoryViews.map((v) => [v.id, pickBestFitChart(v, resolvedData.metricType)])
       ) as Record<string, ChartType>,
-    [categoryViews]
+    [categoryViews, resolvedData.metricType]
   );
 
-  const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) {
-      setViewMode("chart");
-    }
-    onOpenChange(isOpen);
-  };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex max-h-[94vh] w-[96vw] max-w-[1400px] flex-col gap-0 overflow-hidden rounded-3xl border border-violet-200/70 bg-slate-50 p-0 shadow-[0_35px_100px_-30px_rgba(15,23,42,.65)] dark:border-violet-900/60 dark:bg-slate-950">
+      <article className="min-w-0 overflow-hidden rounded-2xl border border-violet-200/70 bg-slate-50 shadow-sm dark:border-violet-900/60 dark:bg-slate-950">
         <div className="relative shrink-0 overflow-hidden border-b border-violet-200/60 bg-[linear-gradient(135deg,#ffffff_0%,#faf8ff_58%,#f0ebff_100%)] dark:border-violet-900/60 dark:bg-[linear-gradient(135deg,#0f172a_0%,#15112a_58%,#1c1235_100%)]">
           <div className="pointer-events-none absolute -right-20 -top-28 size-72 rounded-full border border-violet-300/30" />
-          <div className="relative px-6 pb-5 pt-6">
-            <DialogHeader className="mb-0">
+          <div className="relative px-4 pb-5 pt-6 sm:px-6">
+            <header className="mb-0">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   <div className="mb-2 flex flex-wrap items-center gap-2"><span className="rounded-md bg-slate-950 px-2 py-1 text-[10px] font-bold tracking-[.1em] text-white dark:bg-white dark:text-slate-950">{data.kpiId}</span><span className="text-[10px] font-bold uppercase tracking-[.14em] text-violet-600 dark:text-violet-300">Cycle-time explorer</span></div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <DialogTitle className="max-w-4xl text-xl font-bold leading-tight tracking-[-.025em] sm:text-2xl">
+                    <h1 className="max-w-4xl text-xl font-bold leading-tight tracking-[-.025em] sm:text-2xl">
                       {data.kpiName}
-                    </DialogTitle>
+                    </h1>
                     {!showLoading && liveData && (
                       <MALiveIndicator variant="live" className="text-[10px]" />
                     )}
                   </div>
-                  <DialogDescription className="mt-2 max-w-3xl text-sm">
+                  <p className="mt-2 max-w-3xl text-sm">
                     Processing days are compared with each row&apos;s regulatory SLA. On-time percentage is on-time cases divided by all completed cases; the selected date basis defines which cases enter the period.
-                  </DialogDescription>
+                  </p>
                 </div>
                 {showLoading && (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
@@ -883,7 +828,7 @@ export function MATimeDrillDownModal({
                   </div>
                 )}
               </div>
-            </DialogHeader>
+            </header>
 
             {showLoading ? (
               <div className="mt-4 flex flex-wrap gap-2 animate-pulse">
@@ -893,8 +838,8 @@ export function MATimeDrillDownModal({
                 <Skeleton className="h-8 w-28 rounded-full" />
                 <Skeleton className="h-8 w-32 rounded-full" />
               </div>
-            ) : (
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            ) : liveData ? (
+              <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
                 <div
                   className={cn(
                     "flex items-center gap-3 rounded-xl border bg-white/75 px-3 py-3 shadow-sm backdrop-blur dark:bg-slate-950/50",
@@ -936,7 +881,7 @@ export function MATimeDrillDownModal({
                   </div>
                 )}
               </div>
-            )}
+            ) : <p className="mt-5 text-sm text-muted-foreground">No live processing-time summary is available for this period.</p>}
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1 rounded-xl border border-violet-200 bg-white/70 p-1 dark:border-violet-900/60 dark:bg-slate-950/50">
@@ -977,7 +922,8 @@ export function MATimeDrillDownModal({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/80 px-6 py-6 dark:bg-slate-950">
+        {timeError && <p role="alert" className="m-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">The reporting service could not load processing times. Please refresh to try again.</p>}
+        <div className="min-w-0 bg-slate-50/80 px-3 py-5 sm:px-6 sm:py-6 dark:bg-slate-950">
           {showLoading ? (
             viewMode === "chart" ? (
               <div className="grid gap-5 lg:grid-cols-2">
@@ -1025,19 +971,18 @@ export function MATimeDrillDownModal({
           )}
 
           {categoryViews.length > 0 && (
-            <div className="mt-6 flex items-center justify-between rounded-xl border bg-muted/20 px-5 py-3">
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/20 px-5 py-3">
               <p className="text-xs text-muted-foreground">
                 Showing all {categoryViews.length} categories with{" "}
                 {categoryViews.reduce((s, v) => s + v.items.length, 0)} total breakdown items
               </p>
-              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+              <Button variant="outline" size="sm" className="min-h-10 gap-1.5 text-xs" onClick={() => downloadCsv(data.kpiId + "-processing-time.csv", categoryViews.flatMap(view => view.items.map(row => ({ dimension: view.label, metric: resolvedData.metricType, ...row }))))}>
                 <DownloadIcon className="h-3.5 w-3.5" />
                 Export
               </Button>
             </div>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </article>
   );
 }

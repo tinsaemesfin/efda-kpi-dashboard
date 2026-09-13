@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { drilldownQuery, readDrilldownFilters, readMAProduct } from "@/lib/drilldown-navigation";
+
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { DashboardLayout } from "@/components/layout";
 import { MAKPICard } from "@/components/kpi/ma-kpi-card";
-import { MADrillDownModal } from "@/components/kpi/ma-drilldown-modal";
-import { MATimeDrillDownModal } from "@/components/kpi/ma-time-drilldown-modal";
 import {
   DEFAULT_FOOD_SUB_TAB,
   getMAProductKpiSeedForView,
@@ -51,9 +52,8 @@ import {
   SlidersHorizontalIcon,
   SparklesIcon,
 } from "lucide-react";
-import type { KPIDrillDownData, MATimeDrillDownData } from "@/types/ma-drilldown";
 import { cn } from "@/lib/utils";
-import type { MAApiFilterParams, MADateBasis, MAKPIId } from "@/types/ma-api";
+import type { MADateBasis, MAKPIId } from "@/types/ma-api";
 import {
   clampIsoDateToToday,
   getLocalTodayIso,
@@ -164,25 +164,27 @@ function isCosmeticsThreeSlotFaceKpi(drilldownId: string): boolean {
 }
 
 export default function MarketAuthorizationsPage() {
-  const initialDateRange = useMemo(() => getMADatePresetRange("ytd"), []);
+  return <Suspense fallback={<div className="p-8">Loading dashboard…</div>}><MarketAuthorizationsContent /></Suspense>;
+}
+function MarketAuthorizationsContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const restored = readDrilldownFilters(searchParams);
+  const restoredProduct = readMAProduct(searchParams.get("product"));
+  const [initialDateRange] = useState(() => { const range = getMADatePresetRange("ytd"); return { from: restored.startDate ?? range.from, to: restored.endDate ?? range.to }; });
   const todayIso = getLocalTodayIso();
-  const [activeProduct, setActiveProduct] = useState<MAProductKey>("medicine");
+  const [activeProduct, setActiveProduct] = useState<MAProductKey>(restoredProduct === "foodNotification" ? "food" : restoredProduct);
   const [activeFoodSubTab, setActiveFoodSubTab] =
-    useState<MAFoodSubTabKey>(DEFAULT_FOOD_SUB_TAB);
-  const [selectedKpiId, setSelectedKpiId] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+    useState<MAFoodSubTabKey>(restoredProduct === "foodNotification" ? "foodNotification" : DEFAULT_FOOD_SUB_TAB);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateBasis, setDateBasis] = useState<MADateBasis>("submission");
+  const [dateBasis, setDateBasis] = useState<MADateBasis>(restored.dateBasis ?? "submission");
   /** Draft values bound to the date inputs (may change while spinning month/year). */
   const [draftDateFrom, setDraftDateFrom] = useState(initialDateRange.from);
   const [draftDateTo, setDraftDateTo] = useState(initialDateRange.to);
   /** Committed values — drive face APIs; drilldowns snapshot these on open. */
   const [dateFrom, setDateFrom] = useState(initialDateRange.from);
   const [dateTo, setDateTo] = useState(initialDateRange.to);
-  const [drilldownApiFilters, setDrilldownApiFilters] = useState<
-    MAApiFilterParams | undefined
-  >(undefined);
   const [cardDensity, setCardDensity] = useState<"grid" | "condensed">("grid");
   const dateCommitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftDatesRef = useRef(initialDateRange);
@@ -382,62 +384,15 @@ export default function MarketAuthorizationsPage() {
   ]);
 
   const handleCardClick = (kpiId: string) => {
+    if (kpiId === "MA-KPI-5") return;
     if (!maDrillDownData[kpiId]) {
       setWarningMessage(`No drilldown data found for ${kpiId}.`);
       return;
     }
     setWarningMessage(null);
-    // Snapshot dates at open so face date changes do not refetch an open drilldown.
-    setDrilldownApiFilters(apiDateFilters);
-    setSelectedKpiId(kpiId);
-    setIsModalOpen(true);
+    const product = activeProduct === "food" ? activeFoodSubTab : activeProduct;
+    router.push(`/market-authorizations/drilldown/${kpiId}?${drilldownQuery(apiDateFilters, product)}`);
   };
-
-  const handleModalClose = (open?: boolean) => {
-    if (open) return;
-    setIsModalOpen(false);
-    setSelectedKpiId(null);
-    setDrilldownApiFilters(undefined);
-  };
-
-  const selectedDrilldown: KPIDrillDownData | null = useMemo(() => {
-    if (!selectedKpiId) return null;
-    return maDrillDownData[selectedKpiId] ?? null;
-  }, [selectedKpiId]);
-
-  const selectedTimeDrilldown: MATimeDrillDownData | null = useMemo(() => {
-    if (!selectedKpiId || !isTimeKpiId(selectedKpiId)) return null;
-    const seed = maDrillDownData[selectedKpiId];
-    if (selectedKpiId === "MA-KPI-6") {
-      return {
-        kpiId: "MA-KPI-6",
-        kpiName: seed?.kpiName ?? "Median Time for New MA Applications",
-        metricType: "median",
-        currentValue: {
-          value: seed?.currentValue.median ?? seed?.currentValue.value ?? 0,
-          median: seed?.currentValue.median ?? seed?.currentValue.value,
-          targetDays: 270,
-        },
-        categoryViews: [],
-      };
-    }
-    return {
-      kpiId: "MA-KPI-7",
-      kpiName: seed?.kpiName ?? "Average Time for New MA Applications",
-      metricType: "average",
-      currentValue: {
-        value: seed?.currentValue.average ?? seed?.currentValue.value ?? 0,
-        average: seed?.currentValue.average ?? seed?.currentValue.value,
-        targetDays: 270,
-      },
-      categoryViews: [],
-    };
-  }, [selectedKpiId]);
-
-  const selectedDrilldownSource =
-    activeProduct === "food"
-      ? activeFoodSubTab
-      : activeProduct;
 
   const visibleCards = useMemo(() => {
     if (!searchTerm.trim()) return mergedCards;
@@ -732,6 +687,7 @@ export default function MarketAuthorizationsPage() {
                 isCosmeticsThreeSlotFaceKpi(card.drilldownId) &&
                 Boolean(card.faceDataMissing);
               const cardIsEmpty =
+                card.drilldownId === "MA-KPI-5" ||
                 apiKpi14StrictEmpty ||
                 strictTimeFaceEmpty ||
                 strictParFaceEmpty ||
@@ -798,8 +754,8 @@ export default function MarketAuthorizationsPage() {
                   isLoading={maFacePending}
                   isEmpty={cardIsEmpty}
                   isNotApplicable={Boolean(card.notApplicableReason)}
-                  emptyMessage={card.notApplicableReason ?? "No data found"}
-                  onClick={() => handleCardClick(card.drilldownId)}
+                  emptyMessage={card.drilldownId === "MA-KPI-5" ? "FIR reporting is not connected yet" : card.notApplicableReason ?? "No data found"}
+                  onClick={card.drilldownId === "MA-KPI-5" ? undefined : () => handleCardClick(card.drilldownId)}
                 />
               );
             })}
@@ -813,25 +769,6 @@ export default function MarketAuthorizationsPage() {
             </Card>
           )}
 
-          {selectedTimeDrilldown && (
-            <MATimeDrillDownModal
-              open={isModalOpen}
-              onOpenChange={handleModalClose}
-              data={selectedTimeDrilldown}
-              product={selectedDrilldownSource}
-              filters={drilldownApiFilters}
-            />
-          )}
-
-          {selectedDrilldown && !selectedTimeDrilldown && (
-            <MADrillDownModal
-              open={isModalOpen}
-              onOpenChange={handleModalClose}
-              data={selectedDrilldown}
-              drilldownSource={selectedDrilldownSource}
-              filters={drilldownApiFilters}
-            />
-          )}
         </div>
       </DashboardLayout>
     </AuthGuard>

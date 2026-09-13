@@ -1,23 +1,4 @@
 import {
-  MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID,
-  MA_TABULAR_FOOD_KPI1_DRILLDOWN_REPORT_ID,
-  MA_TABULAR_KPI2_DRILLDOWN_REPORT_ID,
-  MA_TABULAR_FOOD_KPI2_DRILLDOWN_REPORT_ID,
-  MA_TABULAR_KPI3_DRILLDOWN_REPORT_ID,
-  MA_TABULAR_FOOD_KPI3_DRILLDOWN_REPORT_ID,
-  MA_TABULAR_KPI4_DRILLDOWN_REPORT_ID,
-  MA_TABULAR_FOOD_KPI4_DRILLDOWN_REPORT_ID,
-  MA_TABULAR_MEDICAL_DEVICE_KPI1_DRILLDOWN_REPORT_ID,
-  MA_TABULAR_MEDICAL_DEVICE_KPI2_DRILLDOWN_REPORT_ID,
-  MA_TABULAR_MEDICAL_DEVICE_KPI3_DRILLDOWN_REPORT_ID,
-  MA_TABULAR_MEDICAL_DEVICE_KPI4_DRILLDOWN_REPORT_ID,
-  MA_TABULAR_MEDICINE_MEDIAN_AVERAGE_FACE_REPORT_ID,
-  MA_TABULAR_MEDICINE_MEDIAN_DRILLDOWN_REPORT_ID,
-  MA_TABULAR_MEDICINE_AVERAGE_DRILLDOWN_REPORT_ID,
-  MA_TABULAR_MEDICINE_PAR_FACE_REPORT_ID,
-  MA_TABULAR_MEDICAL_DEVICE_PAR_FACE_REPORT_ID,
-  MA_TABULAR_FOOD_PAR_FACE_REPORT_ID,
-  MA_TABULAR_COSMETICS_PAR_FACE_REPORT_ID,
   MA_PRODUCT_STANDARD_FACE_REPORT_IDS_BY_DATE,
   MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS_BY_DATE,
   MA_PRODUCT_TIME_REPORT_IDS_BY_DATE,
@@ -195,7 +176,7 @@ export async function fetchMACosmeticsFaceTabularData(
   );
 }
 
-/** Medicine MA-KPI-8 PAR face data from tabular report /29. */
+/** Medicine PAR face, selected by submission or decision date. */
 export async function fetchMAMedicineParFaceTabularData(
   accessToken: string,
   filters?: MAApiFilterParams,
@@ -203,11 +184,11 @@ export async function fetchMAMedicineParFaceTabularData(
 ): Promise<MAApiResponse<MAApiDataRow>> {
   const key = maMedicineParFaceDataCacheKey(filters);
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
-    fetchMATabularData<MAApiDataRow>(accessToken, MA_TABULAR_MEDICINE_PAR_FACE_REPORT_ID, filters)
+    fetchMATabularData<MAApiDataRow>(accessToken, getMAParReportId("medicine", "face", getDateBasis(filters)), filters)
   );
 }
 
-/** Medical Device MA-KPI-8 PAR face data from tabular report /30. */
+/** Medical Device PAR face, selected by submission or decision date. */
 export async function fetchMAMedicalDeviceParFaceTabularData(
   accessToken: string,
   filters?: MAApiFilterParams,
@@ -217,13 +198,13 @@ export async function fetchMAMedicalDeviceParFaceTabularData(
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiDataRow>(
       accessToken,
-      MA_TABULAR_MEDICAL_DEVICE_PAR_FACE_REPORT_ID,
+      getMAParReportId("medicalDevice", "face", getDateBasis(filters)),
       filters
     )
   );
 }
 
-/** Food MA-KPI-8 PAR face data from tabular report /31. */
+/** Food PAR face, selected by submission or decision date. */
 export async function fetchMAFoodParFaceTabularData(
   accessToken: string,
   filters?: MAApiFilterParams,
@@ -231,11 +212,11 @@ export async function fetchMAFoodParFaceTabularData(
 ): Promise<MAApiResponse<MAApiDataRow>> {
   const key = maFoodParFaceDataCacheKey(filters);
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
-    fetchMATabularData<MAApiDataRow>(accessToken, MA_TABULAR_FOOD_PAR_FACE_REPORT_ID, filters)
+    fetchMATabularData<MAApiDataRow>(accessToken, getMAParReportId("food", "face", getDateBasis(filters)), filters)
   );
 }
 
-/** Cosmetics MA-KPI-8 PAR face data from tabular report /32. */
+/** Cosmetics PAR face, selected by submission or decision date. */
 export async function fetchMACosmeticsParFaceTabularData(
   accessToken: string,
   filters?: MAApiFilterParams,
@@ -243,11 +224,11 @@ export async function fetchMACosmeticsParFaceTabularData(
 ): Promise<MAApiResponse<MAApiDataRow>> {
   const key = maCosmeticsParFaceDataCacheKey(filters);
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
-    fetchMATabularData<MAApiDataRow>(accessToken, MA_TABULAR_COSMETICS_PAR_FACE_REPORT_ID, filters)
+    fetchMATabularData<MAApiDataRow>(accessToken, getMAParReportId("cosmetics", "face", getDateBasis(filters)), filters)
   );
 }
 
-/** Medicine MA-KPI-6 (median) & MA-KPI-7 (average) face data from tabular report /26. */
+/** Medicine regulatory completion-time face for the selected date basis. */
 export async function fetchMAMedicineMedianAverageFaceTabularData(
   accessToken: string,
   filters?: MAApiFilterParams,
@@ -257,13 +238,13 @@ export async function fetchMAMedicineMedianAverageFaceTabularData(
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiMedianAverageDataRow>(
       accessToken,
-      MA_TABULAR_MEDICINE_MEDIAN_AVERAGE_FACE_REPORT_ID,
+      getMATimeReportId("medicine", "face", getDateBasis(filters)),
       filters
     )
   );
 }
 
-/** Medicine MA-KPI-6 median decision time drilldown from tabular report /27. */
+/** Medicine median completion-time drilldown for the selected date basis. */
 export async function fetchMAMedicineMedianDrilldownTabularData(
   accessToken: string,
   filters?: MAApiFilterParams,
@@ -273,14 +254,14 @@ export async function fetchMAMedicineMedianDrilldownTabularData(
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiMedianDrilldownRow>(
       accessToken,
-      MA_TABULAR_MEDICINE_MEDIAN_DRILLDOWN_REPORT_ID,
+      getMATimeReportId("medicine", "MA-KPI-6", getDateBasis(filters)),
       filters,
       "500"
     )
   );
 }
 
-/** Medicine MA-KPI-7 average decision time drilldown from tabular report /28. */
+/** Medicine average completion-time drilldown for the selected date basis. */
 export async function fetchMAMedicineAverageDrilldownTabularData(
   accessToken: string,
   filters?: MAApiFilterParams,
@@ -290,7 +271,7 @@ export async function fetchMAMedicineAverageDrilldownTabularData(
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiAverageDrilldownRow>(
       accessToken,
-      MA_TABULAR_MEDICINE_AVERAGE_DRILLDOWN_REPORT_ID,
+      getMATimeReportId("medicine", "MA-KPI-7", getDateBasis(filters)),
       filters,
       "500"
     )
@@ -306,7 +287,7 @@ export async function fetchMAKpi1DrilldownTabularData(
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiDrilldownRow>(
       accessToken,
-      MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID,
+      getMAStandardDrilldownReportId("medicine", "MA-KPI-1", getDateBasis(filters))!,
       filters,
       "500"
     )
@@ -322,7 +303,7 @@ export async function fetchMAFoodKpi1DrilldownTabularData(
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiDrilldownRow>(
       accessToken,
-      MA_TABULAR_FOOD_KPI1_DRILLDOWN_REPORT_ID,
+      getMAStandardDrilldownReportId("food", "MA-KPI-1", getDateBasis(filters))!,
       filters,
       "500"
     )
@@ -338,7 +319,7 @@ export async function fetchMAKpi2DrilldownTabularData(
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiDrilldownRow>(
       accessToken,
-      MA_TABULAR_KPI2_DRILLDOWN_REPORT_ID,
+      getMAStandardDrilldownReportId("medicine", "MA-KPI-2", getDateBasis(filters))!,
       filters,
       "500"
     )
@@ -354,7 +335,7 @@ export async function fetchMAFoodKpi2DrilldownTabularData(
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiDrilldownRow>(
       accessToken,
-      MA_TABULAR_FOOD_KPI2_DRILLDOWN_REPORT_ID,
+      getMAStandardDrilldownReportId("food", "MA-KPI-2", getDateBasis(filters))!,
       filters,
       "500"
     )
@@ -370,7 +351,7 @@ export async function fetchMAKpi3DrilldownTabularData(
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiDrilldownRow>(
       accessToken,
-      MA_TABULAR_KPI3_DRILLDOWN_REPORT_ID,
+      getMAStandardDrilldownReportId("medicine", "MA-KPI-3", getDateBasis(filters))!,
       filters,
       "500"
     )
@@ -386,7 +367,7 @@ export async function fetchMAFoodKpi3DrilldownTabularData(
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiDrilldownRow>(
       accessToken,
-      MA_TABULAR_FOOD_KPI3_DRILLDOWN_REPORT_ID,
+      getMAStandardDrilldownReportId("food", "MA-KPI-3", getDateBasis(filters))!,
       filters,
       "500"
     )
@@ -402,7 +383,7 @@ export async function fetchMAKpi4DrilldownTabularData(
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiDrilldownRow>(
       accessToken,
-      MA_TABULAR_KPI4_DRILLDOWN_REPORT_ID,
+      getMAStandardDrilldownReportId("medicine", "MA-KPI-4", getDateBasis(filters))!,
       filters,
       "500"
     )
@@ -418,7 +399,7 @@ export async function fetchMAFoodKpi4DrilldownTabularData(
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiDrilldownRow>(
       accessToken,
-      MA_TABULAR_FOOD_KPI4_DRILLDOWN_REPORT_ID,
+      getMAStandardDrilldownReportId("food", "MA-KPI-4", getDateBasis(filters))!,
       filters,
       "500"
     )
@@ -434,7 +415,7 @@ export async function fetchMAMedicalDeviceKpi1DrilldownTabularData(
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiDrilldownRow>(
       accessToken,
-      MA_TABULAR_MEDICAL_DEVICE_KPI1_DRILLDOWN_REPORT_ID,
+      getMAStandardDrilldownReportId("medicalDevice", "MA-KPI-1", getDateBasis(filters))!,
       filters,
       "500"
     )
@@ -450,7 +431,7 @@ export async function fetchMAMedicalDeviceKpi2DrilldownTabularData(
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiDrilldownRow>(
       accessToken,
-      MA_TABULAR_MEDICAL_DEVICE_KPI2_DRILLDOWN_REPORT_ID,
+      getMAStandardDrilldownReportId("medicalDevice", "MA-KPI-2", getDateBasis(filters))!,
       filters,
       "500"
     )
@@ -466,7 +447,7 @@ export async function fetchMAMedicalDeviceKpi3DrilldownTabularData(
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiDrilldownRow>(
       accessToken,
-      MA_TABULAR_MEDICAL_DEVICE_KPI3_DRILLDOWN_REPORT_ID,
+      getMAStandardDrilldownReportId("medicalDevice", "MA-KPI-3", getDateBasis(filters))!,
       filters,
       "500"
     )
@@ -482,7 +463,7 @@ export async function fetchMAMedicalDeviceKpi4DrilldownTabularData(
   return getOrFetchMaApiCache(key, options?.force ?? false, () =>
     fetchMATabularData<MAApiDrilldownRow>(
       accessToken,
-      MA_TABULAR_MEDICAL_DEVICE_KPI4_DRILLDOWN_REPORT_ID,
+      getMAStandardDrilldownReportId("medicalDevice", "MA-KPI-4", getDateBasis(filters))!,
       filters,
       "500"
     )
