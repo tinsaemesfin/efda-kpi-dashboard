@@ -1,0 +1,7 @@
+year,date_basis,total_count,card_on_time,drilldown_on_time,card_percent,drilldown_percent,median_stage_days,average_stage_days
+2024,submission,454,36,135,7.93,29.74,314.20,327.99
+2024,decision,374,27,134,7.22,35.83,326.69,438.90
+2025,submission,300,157,250,52.33,83.33,143.57,146.21
+2025,decision,844,91,252,10.78,29.86,359.39,483.00
+2026,submission,11,7,10,63.64,90.91,66.19,68.37
+2026,decision,409,101,219,24.69,53.55,243.25,274.28

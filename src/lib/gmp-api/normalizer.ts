@@ -13,7 +13,9 @@ const displayRows = (report: GMPReportResult): GMPApiRow[] => {
   const overall = report.rows.filter((row) => String(row.category_name ?? "").toLowerCase() === "overall");
   if (overall.length) return overall;
   const stages = report.rows.filter((row) => String(row.category_name ?? "").toLowerCase() === "stage");
-  return stages.length ? stages : report.rows.slice(0, 1);
+  if (stages.length) return stages;
+  // The compliance front report contains both local and abroad results.
+  return report.reportId === 126 ? report.rows : report.rows.slice(0, 1);
 };
 
 const segmentValue = (kpiId: GMPKPIId, row: GMPApiRow): number | undefined => {
@@ -38,12 +40,14 @@ function reportSegments(kpiId: GMPKPIId, report: GMPReportResult): GMPFaceSegmen
   const rows = displayRows(report);
   if (!rows.length) return [{ id: String(report.reportId), label: report.label, unit, state: "work-in-progress" }];
   return rows.map((row, index) => {
-    const value = segmentValue(kpiId, row);
+    const stage = [123, 125, 151].includes(report.reportId);
+    const days = stage ? numberValue(row.avg_actual_days) ?? numberValue(row.average_days) : undefined;
+    const value = days ?? segmentValue(kpiId, row);
     return {
       id: `${report.reportId}-${index}`,
       label: shortLabel(report, row, rows.length > 1 || String(row.category_name ?? "").toLowerCase() === "stage"),
       value,
-      unit,
+      unit: days !== undefined ? "days" : unit,
       numerator: numberValue(row.numerator) ?? numberValue(row.on_time_count) ?? numberValue(row.sum_efda_days),
       denominator: numberValue(row.denominator) ?? numberValue(row.total_count) ?? numberValue(row.completed_count),
       state: value === undefined ? "work-in-progress" : "live",
@@ -65,7 +69,7 @@ export function normalizeGMPFaceMetric(kpiId: GMPKPIId, reports: GMPReportResult
   return {
     kpiId,
     state: "live",
-    unit,
+    unit: single?.unit ?? unit,
     value: single?.value,
     valueLabel: single ? undefined : `${liveSegments.length} results`,
     numerator: single?.numerator,
