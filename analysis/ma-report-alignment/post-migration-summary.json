@@ -1,0 +1,28 @@
+{
+  "verifiedAt": "2026-09-14T06:26:41.268Z",
+  "database": "eris_dev_2026_22_06",
+  "status": "migration committed and verified",
+  "backupArchive": "C:\\Users\\IE\\Downloads\\EFDA-kpi-table-backup-2026-09-14T06-18-38-338Z.zip",
+  "backupArchiveSha256": "0b6d48f7e6f32c058b10ab4828549133f678e622b67ea09b7b8159dae1cf7cff",
+  "backupRows": 147,
+  "updatedReports": 98,
+  "unrelatedDifferences": 0,
+  "years": [
+    {
+      "year": 2025,
+      "groups": 10,
+      "checks": 350,
+      "storedReports": 98,
+      "readOnly": "on"
+    },
+    {
+      "year": 2026,
+      "groups": 10,
+      "checks": 350,
+      "storedReports": 98,
+      "readOnly": "on"
+    }
+  ],
+  "frontendParityTests": 20,
+  "scope": "Internal MA card/drilldown alignment; external report definitions unchanged"
+}

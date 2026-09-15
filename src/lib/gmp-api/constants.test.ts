@@ -2,13 +2,18 @@ import { describe, expect, it } from "vitest";
 import { GMP_DRILLDOWN_REPORTS, GMP_FACE_REPORTS } from "@/lib/gmp-api/constants";
 
 describe("GMP report catalogue", () => {
-  it("maps reports strictly to the KPI number and role in the database title", () => {
-    expect(GMP_FACE_REPORTS["GMP-KPI-2"]).toEqual([126, 127]);
-    expect(GMP_DRILLDOWN_REPORTS["GMP-KPI-2"]).toEqual([128]);
-    expect(GMP_FACE_REPORTS["GMP-KPI-4"]).toEqual([]);
-    expect(GMP_DRILLDOWN_REPORTS["GMP-KPI-4"]).toEqual([]);
-    expect(GMP_FACE_REPORTS["GMP-KPI-6"]).toEqual([123, 125, 131, 133, 136, 151]);
-    expect(GMP_DRILLDOWN_REPORTS["GMP-KPI-6"]).toEqual([132, 134, 137, 152, 153, 154]);
+  it("maps front and drilldown reports to the updated workbook", () => {
+    expect(GMP_FACE_REPORTS).toEqual({
+      "GMP-KPI-1": [121, 122, 151, 123], "GMP-KPI-2": [],
+      "GMP-KPI-3": [124, 125], "GMP-KPI-4": [126], "GMP-KPI-5": [129],
+      "GMP-KPI-6": [131, 133, 136], "GMP-KPI-7": [139, 141],
+      "GMP-KPI-8": [143, 145], "GMP-KPI-9": [147, 148],
+    });
+    expect(GMP_DRILLDOWN_REPORTS).toEqual({
+      "GMP-KPI-1": [152, 153], "GMP-KPI-2": [], "GMP-KPI-3": [154],
+      "GMP-KPI-4": [127, 128], "GMP-KPI-5": [130], "GMP-KPI-6": [132, 134, 137],
+      "GMP-KPI-7": [140, 142], "GMP-KPI-8": [144, 146], "GMP-KPI-9": [149, 150],
+    });
   });
 
   it("wires every existing report from 121 through 154 without inventing missing IDs", () => {

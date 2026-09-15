@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-require-imports -- Standalone Node CommonJS script. */
 /* Generates reviewable SQL locally; --verify executes SELECTs in a read-only session.
  * Usage: node scripts/prepare-ma-report-alignment.js [--verify] [year]
- * No apply mode: the earlier no-database-writes instruction remains in force.
+ * Preparation is read-only. The authorized apply operation has its own backup-first script.
+ * After migration use verify-applied-ma-alignment.js; do not rebuild from aligned SQL.
  */
 const fs=require('fs');const path=require('path');const {Client}=require('pg');
 const {loadDatabaseUrl}=require('./load-database-url');const {buildAlignment,PRODUCTS}=require('./ma-report-alignment');
@@ -60,6 +61,7 @@ async function main(){
  await c.connect();try{
   const mode=(await c.query('SHOW transaction_read_only')).rows[0].transaction_read_only;if(mode!=='on')throw new Error('Read-only required');
   const catalog=(await c.query("SELECT id,title,query,filter_columns FROM kpi.kpi WHERE kpi_group='MA' ORDER BY id")).rows;
+  if(catalog.some(r=>r.query.startsWith('/* MA face/drilldown alignment v1 */')))throw new Error('Catalogue is already aligned. Use verify-applied-ma-alignment.js; preserve the original migration and rollback artifacts.');
   const reports=buildAlignment(catalog);save('proposed-reports.json',reports);
   for(const r of reports)save(`report-${r.id}.sql`,r.query);
   save('apply-reviewed-alignment.sql',migrationSql(reports));
@@ -85,4 +87,4 @@ async function main(){
  }finally{await c.end();}
 }
 if(require.main===module)main().catch(e=>{console.error(e.message);process.exitCode=1});
-module.exports={executable,verifyGroup,migrationSql};
+module.exports={executable,verifyGroup,migrationSql,comparisonBundle};

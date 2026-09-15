@@ -1,0 +1,92 @@
+[
+  {
+    "yr": 2024,
+    "pathway_class": "NREL",
+    "n": 351,
+    "elapsed_avg": "833.70",
+    "attached_net_avg": "485.83",
+    "app_stage_avg": "454.87",
+    "differs_over_one_day": 293,
+    "stage_exceeds_elapsed": 11
+  },
+  {
+    "yr": 2024,
+    "pathway_class": "SRA",
+    "n": 21,
+    "elapsed_avg": "612.95",
+    "attached_net_avg": "250.13",
+    "app_stage_avg": "207.29",
+    "differs_over_one_day": 16,
+    "stage_exceeds_elapsed": 0
+  },
+  {
+    "yr": 2024,
+    "pathway_class": "WHO",
+    "n": 2,
+    "elapsed_avg": "65.00",
+    "attached_net_avg": "65.00",
+    "app_stage_avg": "68.01",
+    "differs_over_one_day": 1,
+    "stage_exceeds_elapsed": 1
+  },
+  {
+    "yr": 2025,
+    "pathway_class": "NREL",
+    "n": 745,
+    "elapsed_avg": "825.91",
+    "attached_net_avg": "513.41",
+    "app_stage_avg": "485.72",
+    "differs_over_one_day": 363,
+    "stage_exceeds_elapsed": 27
+  },
+  {
+    "yr": 2025,
+    "pathway_class": "SRA",
+    "n": 75,
+    "elapsed_avg": "416.17",
+    "attached_net_avg": "227.60",
+    "app_stage_avg": "200.81",
+    "differs_over_one_day": 27,
+    "stage_exceeds_elapsed": 6
+  },
+  {
+    "yr": 2025,
+    "pathway_class": "WHO",
+    "n": 14,
+    "elapsed_avg": "208.57",
+    "attached_net_avg": "140.94",
+    "app_stage_avg": "146.16",
+    "differs_over_one_day": 2,
+    "stage_exceeds_elapsed": 1
+  },
+  {
+    "yr": 2026,
+    "pathway_class": "NREL",
+    "n": 374,
+    "elapsed_avg": "598.16",
+    "attached_net_avg": "347.93",
+    "app_stage_avg": "287.29",
+    "differs_over_one_day": 107,
+    "stage_exceeds_elapsed": 3
+  },
+  {
+    "yr": 2026,
+    "pathway_class": "SRA",
+    "n": 31,
+    "elapsed_avg": "317.06",
+    "attached_net_avg": "123.68",
+    "app_stage_avg": "137.41",
+    "differs_over_one_day": 9,
+    "stage_exceeds_elapsed": 2
+  },
+  {
+    "yr": 2026,
+    "pathway_class": "WHO",
+    "n": 4,
+    "elapsed_avg": "216.50",
+    "attached_net_avg": "117.74",
+    "app_stage_avg": "118.31",
+    "differs_over_one_day": 0,
+    "stage_exceeds_elapsed": 0
+  }
+]

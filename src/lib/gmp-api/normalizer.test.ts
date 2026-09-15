@@ -28,7 +28,7 @@ describe("normalizeGMPFaceMetric", () => {
   });
 
   it("marks a KPI with no database face report as work in progress", () => {
-    const metric = normalizeGMPFaceMetric("GMP-KPI-4", []);
+    const metric = normalizeGMPFaceMetric("GMP-KPI-2", []);
     expect(metric).toMatchObject({ state: "work-in-progress", reports: [], segments: [] });
   });
 
@@ -41,7 +41,7 @@ describe("normalizeGMPFaceMetric", () => {
   });
 
   it("shows each stage row from a face report side by side", () => {
-    const metric = normalizeGMPFaceMetric("GMP-KPI-6", [
+    const metric = normalizeGMPFaceMetric("GMP-KPI-1", [
       report(151, "Stage timeline · Local", [
         { category_name: "Stage", category_value: "Screening", percentage: "20", on_time_count: "2", total_count: "10" },
         { category_name: "Stage", category_value: "Inspection", percentage: "50", on_time_count: "5", total_count: "10" },
@@ -54,3 +54,17 @@ describe("normalizeGMPFaceMetric", () => {
     ]);
   });
 });
+
+ it("preserves local and abroad rows in the shared compliance report", () => {
+   const metric = normalizeGMPFaceMetric("GMP-KPI-4", [report(126, "Compliance", [
+     { category_name: "Location", category_value: "Local", percentage: 80 },
+     { category_name: "Location", category_value: "Abroad", percentage: 70 },
+   ])]);
+   expect(metric.segments.map(s => s.value)).toEqual([80, 70]);
+ });
+ it("displays stage processing days without converting them to percentages", () => {
+   const metric = normalizeGMPFaceMetric("GMP-KPI-1", [report(151, "Local stages", [
+     { category_name: "Stage", category_value: "Screening", avg_actual_days: 12, percentage: 80 },
+   ])]);
+   expect(metric.segments[0]).toMatchObject({ value: 12, unit: "days" });
+ });

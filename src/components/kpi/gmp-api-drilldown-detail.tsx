@@ -1,5 +1,6 @@
 "use client";
 
+import { GMP_KPI_GUIDANCE } from "@/data/gmp-kpi-guidance";
 import { downloadCsv } from "@/lib/export-csv";
 
 import { useMemo, useState } from "react";
@@ -7,16 +8,14 @@ import {
   ActivityIcon,
   BarChart3Icon,
   CalendarDaysIcon,
-  CheckCircle2Icon,
   Clock3Icon,
   ConstructionIcon,
   DownloadIcon,
   Loader2Icon,
   TableIcon,
   TargetIcon,
-  XCircleIcon,
 } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -74,7 +73,7 @@ function BreakdownCard({ report, mode, time }: { report: GMPReportResult; mode: 
   return (
     <section className="group min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_16px_40px_-32px_rgba(15,23,42,.65)] transition-shadow duration-300 hover:shadow-[0_22px_52px_-34px_rgba(91,33,182,.45)] dark:border-slate-800 dark:bg-slate-950/70">
       <div className="border-b border-violet-100 bg-linear-to-r from-violet-50/90 via-white to-fuchsia-50/40 px-5 py-4 dark:border-violet-900/50 dark:from-violet-950/35 dark:via-slate-950 dark:to-fuchsia-950/20">
-        <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0 w-full"><p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-violet-600 dark:text-violet-300">Breakdown view</p><h3 className="text-base font-bold tracking-tight text-slate-900 dark:text-white">{report.label}</h3><p className="mt-0.5 text-xs text-muted-foreground">{rows.length} categories</p></div>{isPercent && <Badge className="border-0 bg-violet-100 text-[10px] text-violet-700 shadow-none dark:bg-violet-950 dark:text-violet-300">90% target</Badge>}</div>
+        <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0 w-full"><p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-violet-600 dark:text-violet-300">Breakdown view</p><h3 className="text-base font-bold tracking-tight text-slate-900 dark:text-white">{report.label}</h3><p className="mt-0.5 text-xs text-muted-foreground">{rows.length} categories</p></div></div>
       </div>
       <div className="px-5 py-4">
         <div className="mb-4 grid grid-cols-3 gap-3">
@@ -88,7 +87,7 @@ function BreakdownCard({ report, mode, time }: { report: GMPReportResult; mode: 
         ) : (chartType === "volume" ? total === 0 : performanceData.length === 0) ? <p className="py-12 text-center text-sm text-muted-foreground">No numeric values available for this chart. Use the table to inspect the returned records.</p> : chartType === "volume" ? (
           <ResponsiveContainer key={chartType} minWidth={0} width="100%" height={280}><PieChart><Pie data={chartData} dataKey="total" nameKey="name" cx="50%" cy="50%" innerRadius={58} outerRadius={98} paddingAngle={3} label={({ name, percent }) => `${String(name).slice(0, 12)} ${((percent ?? 0) * 100).toFixed(0)}%`}>{chartData.map((_, index) => <Cell key={index} fill={PALETTE[index % PALETTE.length]} />)}</Pie><Tooltip formatter={(value) => [Number(value).toLocaleString(), "Applications"]} /></PieChart></ResponsiveContainer>
         ) : (
-          <ResponsiveContainer key={chartType} minWidth={0} width="100%" height={Math.max(280, performanceData.length * 38)}><BarChart data={performanceData} layout="vertical" margin={{ left: 8, right: 18 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" tickFormatter={(value) => `${value}${isPercent ? "%" : ""}`} /><YAxis dataKey="name" type="category" width={150} tick={{ fontSize: 11 }} interval={0} /><Tooltip formatter={(value) => [`${Number(value).toFixed(1)}${isPercent ? "%" : ""}`, "Value"]} /><Bar dataKey="value" radius={[0, 4, 4, 0]}>{performanceData.map((entry, index) => <Cell key={index} fill={isPercent ? entry.value >= 90 ? "#22c55e" : entry.value >= 50 ? "#f59e0b" : "#ef4444" : PALETTE[index % PALETTE.length]} />)}</Bar>{isPercent && <ReferenceLine x={90} stroke="#6366f1" strokeDasharray="4 4" />}</BarChart></ResponsiveContainer>
+          <ResponsiveContainer key={chartType} minWidth={0} width="100%" height={Math.max(280, performanceData.length * 38)}><BarChart data={performanceData} layout="vertical" margin={{ left: 8, right: 18 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" tickFormatter={(value) => `${value}${isPercent ? "%" : ""}`} /><YAxis dataKey="name" type="category" width={150} tick={{ fontSize: 11 }} interval={0} /><Tooltip formatter={(value) => [`${Number(value).toFixed(1)}${isPercent ? "%" : ""}`, "Value"]} /><Bar dataKey="value" radius={[0, 4, 4, 0]}>{performanceData.map((_, index) => <Cell key={index} fill={PALETTE[index % PALETTE.length]} />)}</Bar></BarChart></ResponsiveContainer>
         )}
       </div>
     </section>
@@ -101,7 +100,7 @@ export function GMPApiDrilldownDetail(props: GMPApiDrilldownDetailProps) {
   const isWip = !props.supported;
   const isTime = props.metric?.unit === "days";
   const value = props.metric?.valueLabel ?? (props.metric?.value !== undefined ? `${props.metric.value.toFixed(1)}${isTime ? " days" : "%"}` : "—");
-  const meetsTarget = props.metric?.value !== undefined && (isTime ? props.metric.value <= 60 : props.metric.value >= 90);
+  const guidance = GMP_KPI_GUIDANCE[props.kpiId];
 
   return (
       <article className="min-w-0 overflow-hidden rounded-2xl border border-violet-200/70 bg-slate-50 shadow-sm dark:border-violet-900/60 dark:bg-slate-950">
@@ -113,8 +112,8 @@ export function GMPApiDrilldownDetail(props: GMPApiDrilldownDetailProps) {
             </header>
 
             {props.loading ? <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">{Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-16 rounded-xl" />)}</div> : !isWip && <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <div className={cn("flex items-center gap-3 rounded-xl border bg-white/75 px-3 py-3 shadow-sm backdrop-blur dark:bg-slate-950/50", meetsTarget ? "border-emerald-200 text-emerald-700 dark:border-emerald-900/70 dark:text-emerald-300" : "border-amber-200 text-amber-700 dark:border-amber-900/70 dark:text-amber-300")}>{meetsTarget ? <CheckCircle2Icon className="h-4 w-4" /> : <XCircleIcon className="h-4 w-4" />}<div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Current performance</p><p className="text-lg font-bold">{value}</p></div></div>
-              <div className="flex items-center gap-3 rounded-xl border border-violet-200 bg-white/75 px-3 py-3 text-violet-700 shadow-sm dark:border-violet-900/70 dark:bg-slate-950/50 dark:text-violet-300"><TargetIcon className="size-5" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Target</p><p className="text-lg font-bold">{isTime ? "60 days" : "90%"}</p></div></div>
+              <div className={cn("flex items-center gap-3 rounded-xl border bg-white/75 px-3 py-3 shadow-sm backdrop-blur dark:bg-slate-950/50", "border-violet-200 text-violet-700 dark:border-violet-900/70 dark:text-violet-300")}><ActivityIcon className="h-4 w-4" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Current performance</p><p className="text-lg font-bold">{value}</p></div></div>
+              <div className="flex items-center gap-3 rounded-xl border border-violet-200 bg-white/75 px-3 py-3 text-violet-700 shadow-sm dark:border-violet-900/70 dark:bg-slate-950/50 dark:text-violet-300"><TargetIcon className="size-5" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Reporting frequency</p><p className="text-sm font-bold">{guidance.frequency}</p></div></div>
               <div className="flex items-center gap-3 rounded-xl border border-sky-200 bg-white/75 px-3 py-3 text-sky-700 shadow-sm dark:border-sky-900/70 dark:bg-slate-950/50 dark:text-sky-300"><ActivityIcon className="size-5" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Volume</p><p className="text-lg font-bold">{props.metric?.numerator?.toLocaleString() ?? "—"} <span className="text-xs font-medium opacity-60">/ {props.metric?.denominator?.toLocaleString() ?? "—"}</span></p></div></div>
               <div className="flex items-center gap-3 rounded-xl border border-fuchsia-200 bg-white/75 px-3 py-3 text-fuchsia-700 shadow-sm dark:border-fuchsia-900/70 dark:bg-slate-950/50 dark:text-fuchsia-300"><BarChart3Icon className="size-5" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Dimensions</p><p className="text-lg font-bold">{availableReports.length}</p></div></div>
             </div>}
@@ -126,11 +125,12 @@ export function GMPApiDrilldownDetail(props: GMPApiDrilldownDetailProps) {
           </div>
         </div>
 
+        <section className="space-y-2 border-b bg-white/70 px-6 py-4 dark:bg-slate-950/50" aria-label="KPI calculation"><h2 className="font-semibold">How this indicator is calculated</h2><p className="text-sm">{guidance.calculation}</p><p className="text-sm text-muted-foreground">{guidance.context}</p></section>
         <div className="min-w-0 bg-slate-50/80 px-3 py-5 sm:px-6 sm:py-6 dark:bg-slate-950">
           {isWip ? <div className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/70 px-6 py-20 text-center dark:border-slate-700 dark:bg-slate-900/40"><span className="grid size-14 place-items-center rounded-2xl bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300"><ConstructionIcon className="size-7" /></span><h3 className="mt-5 text-lg font-bold text-slate-900 dark:text-white">Work in progress</h3><p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">Detailed analysis for this indicator is being prepared.</p></div>
           : props.loading ? <div className="grid gap-5 lg:grid-cols-2">{Array.from({ length: 4 }).map((_, index) => <SkeletonCard key={index} />)}</div>
           : availableReports.length === 0 ? <div className="flex min-h-[420px] flex-col items-center justify-center px-6 py-20 text-center text-muted-foreground"><Clock3Icon className="mb-3 size-8 text-violet-400" /><p>No data is available for the selected period.</p></div>
-          : <><div className="grid gap-5 lg:grid-cols-2">{availableReports.map((report) => <BreakdownCard key={report.reportId} report={report} mode={viewMode} time={props.kpiId === "GMP-KPI-7" || props.kpiId === "GMP-KPI-8"} />)}</div><div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/20 px-5 py-3"><p className="text-xs text-muted-foreground">Showing {availableReports.length} breakdown views with {availableReports.reduce((sum, report) => sum + report.rows.length, 0)} detailed items</p><Button variant="outline" size="sm" className="min-h-10 gap-1.5 text-xs" onClick={() => downloadCsv(props.kpiId + "-breakdown.csv", availableReports.flatMap(report => report.rows.map(row => ({ report: report.label, ...row }))))}><DownloadIcon className="h-3.5 w-3.5" /> Export</Button></div></>}
+          : <><div className="grid gap-5 lg:grid-cols-2">{availableReports.map((report) => <BreakdownCard key={report.reportId} report={report} mode={viewMode} time={props.kpiId === "GMP-KPI-7" || props.kpiId === "GMP-KPI-8" || [152, 153, 154, 130].includes(report.reportId)} />)}</div><div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/20 px-5 py-3"><p className="text-xs text-muted-foreground">Showing {availableReports.length} breakdown views with {availableReports.reduce((sum, report) => sum + report.rows.length, 0)} detailed items</p><Button variant="outline" size="sm" className="min-h-10 gap-1.5 text-xs" onClick={() => downloadCsv(props.kpiId + "-breakdown.csv", availableReports.flatMap(report => report.rows.map(row => ({ report: report.label, ...row }))))}><DownloadIcon className="h-3.5 w-3.5" /> Export</Button></div></>}
           {props.error && !props.loading && !isWip && <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-200">Some detail views are temporarily unavailable.</div>}
         </div>
       </article>
