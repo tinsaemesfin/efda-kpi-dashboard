@@ -5,7 +5,6 @@ import { downloadCsv } from "@/lib/export-csv";
 
 import { useMemo, useState } from "react";
 import {
-  ActivityIcon,
   BarChart3Icon,
   CalendarDaysIcon,
   Clock3Icon,
@@ -13,7 +12,6 @@ import {
   DownloadIcon,
   Loader2Icon,
   TableIcon,
-  TargetIcon,
 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Badge } from "@/components/ui/badge";
@@ -98,8 +96,6 @@ export function GMPApiDrilldownDetail(props: GMPApiDrilldownDetailProps) {
   const [viewMode, setViewMode] = useState<"chart" | "table">("chart");
   const availableReports = useMemo(() => props.reports.filter((report) => !report.error), [props.reports]);
   const isWip = !props.supported;
-  const isTime = props.metric?.unit === "days";
-  const value = props.metric?.valueLabel ?? (props.metric?.value !== undefined ? `${props.metric.value.toFixed(1)}${isTime ? " days" : "%"}` : "—");
   const guidance = GMP_KPI_GUIDANCE[props.kpiId];
 
   return (
@@ -110,13 +106,6 @@ export function GMPApiDrilldownDetail(props: GMPApiDrilldownDetailProps) {
             <header className="mb-0">
               <div className="flex items-start justify-between gap-4"><div className="min-w-0 flex-1"><div className="mb-2 flex flex-wrap items-center gap-2"><span className="rounded-md bg-slate-950 px-2 py-1 text-[10px] font-bold tracking-[.1em] text-white dark:bg-white dark:text-slate-950">{props.kpiId}</span><span className="text-[10px] font-bold uppercase tracking-[.14em] text-violet-600 dark:text-violet-300">Performance explorer</span></div><div className="flex flex-wrap items-center gap-2"><h1 className="max-w-4xl text-xl font-bold leading-tight tracking-[-.025em] sm:text-2xl">{props.title}</h1>{!props.loading && !isWip && availableReports.length > 0 && <MALiveIndicator variant="live" className="text-[10px]" />}</div><p className="mt-2 max-w-3xl">Compare performance across available classifications and detailed records.</p></div>{props.loading && <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground"><Loader2Icon className="h-4 w-4 animate-spin" /> Loading data...</div>}</div>
             </header>
-
-            {props.loading ? <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">{Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-16 rounded-xl" />)}</div> : !isWip && <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <div className={cn("flex items-center gap-3 rounded-xl border bg-white/75 px-3 py-3 shadow-sm backdrop-blur dark:bg-slate-950/50", "border-violet-200 text-violet-700 dark:border-violet-900/70 dark:text-violet-300")}><ActivityIcon className="h-4 w-4" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Current performance</p><p className="text-lg font-bold">{value}</p></div></div>
-              <div className="flex items-center gap-3 rounded-xl border border-violet-200 bg-white/75 px-3 py-3 text-violet-700 shadow-sm dark:border-violet-900/70 dark:bg-slate-950/50 dark:text-violet-300"><TargetIcon className="size-5" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Reporting frequency</p><p className="text-sm font-bold">{guidance.frequency}</p></div></div>
-              <div className="flex items-center gap-3 rounded-xl border border-sky-200 bg-white/75 px-3 py-3 text-sky-700 shadow-sm dark:border-sky-900/70 dark:bg-slate-950/50 dark:text-sky-300"><ActivityIcon className="size-5" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Volume</p><p className="text-lg font-bold">{props.metric?.numerator?.toLocaleString() ?? "—"} <span className="text-xs font-medium opacity-60">/ {props.metric?.denominator?.toLocaleString() ?? "—"}</span></p></div></div>
-              <div className="flex items-center gap-3 rounded-xl border border-fuchsia-200 bg-white/75 px-3 py-3 text-fuchsia-700 shadow-sm dark:border-fuchsia-900/70 dark:bg-slate-950/50 dark:text-fuchsia-300"><BarChart3Icon className="size-5" /><div><p className="text-[9px] font-bold uppercase tracking-wider opacity-70">Dimensions</p><p className="text-lg font-bold">{availableReports.length}</p></div></div>
-            </div>}
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               {!isWip && <div className="flex items-center gap-1 rounded-xl border border-violet-200 bg-white/70 p-1 dark:border-violet-900/60 dark:bg-slate-950/50"><button type="button" onClick={() => setViewMode("chart")} className={cn("flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors", viewMode === "chart" ? "bg-violet-600 text-white shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><BarChart3Icon className="h-3.5 w-3.5" /> Chart</button><button type="button" onClick={() => setViewMode("table")} className={cn("flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors", viewMode === "table" ? "bg-violet-600 text-white shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><TableIcon className="h-3.5 w-3.5" /> Table</button></div>}

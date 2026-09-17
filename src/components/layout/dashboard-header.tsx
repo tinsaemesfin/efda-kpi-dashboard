@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { profileUrl } from "@/lib/config/auth.config";
+import { ThemeToggle } from "./theme-toggle";
 
 export function DashboardHeader() {
   const { profile, logout, isAuthenticated } = useAuth();
@@ -44,6 +45,7 @@ export function DashboardHeader() {
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {isAuthenticated && profile ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

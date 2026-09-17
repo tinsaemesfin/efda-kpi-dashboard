@@ -178,6 +178,20 @@
   }
 }
 
+/* Recharts defaults use light surfaces and fixed gray text. */
+.dark .recharts-default-tooltip {
+  background-color: var(--popover) !important;
+  border-color: var(--border) !important;
+  color: var(--popover-foreground) !important;
+}
+.dark .recharts-cartesian-axis-tick-value,
+.dark .recharts-pie-label-text {
+  fill: var(--muted-foreground);
+}
+.dark .recharts-cartesian-grid line {
+  stroke: var(--border);
+}
+
 @keyframes ma-enter {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }

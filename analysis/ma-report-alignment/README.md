@@ -1,5 +1,7 @@
 # MA alignment and full-page drilldowns
 
+**Later update:** The agreed effective-decision rules were applied on 15 September 2026. This directory preserves the 14 September migration and evidence. For the current definitions, backup and verification commands, see [MA effective-decision rollout](../ma-effective-decision/README.md). The older `verify-applied-ma-alignment.js` correctly detects drift after that subsequent migration; use the new rollout verifier.
+
 Prepared and verified on 12 September 2026. **Applied with explicit user authorization on 14 September 2026 at 06:19:13 UTC** to the configured database `eris_dev_2026_22_06`. All 98 report definitions were verified through a fresh connection after commit. The other 49 table rows and all unrelated fields were unchanged.
 
 Before the update, all 147 rows and every column of `kpi.kpi` were backed up to `C:\Users\IE\Downloads\EFDA-kpi-table-backup-2026-09-14T06-18-38-338Z`. This directory contains JSON data, a data-only SQL restore for the existing table, table metadata, the guarded MA-only rollback and a migration receipt. The backup was flushed to disk, read back and validated by converting it to the database table's record type and comparing every row; zero differences were found. Catalogue writes were locked during backup and migration. See `migration-receipt.json` for hashes and the commit record.

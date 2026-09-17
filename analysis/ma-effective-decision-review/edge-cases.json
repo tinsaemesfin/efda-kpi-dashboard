@@ -1,0 +1,121 @@
+[
+  {
+    "id": 6539,
+    "ma_status_code": "CNCL",
+    "old_date": "2022-08-30T12:35:33.871Z",
+    "decision_date": "2025-02-06T04:53:41.063Z",
+    "decision": "APR",
+    "has_logged_approval": false,
+    "first_susp_cncl": "2025-02-06T04:53:41.063Z",
+    "events": [
+      {
+        "from": "SFR",
+        "to": "REJ",
+        "at": "2022-08-30T15:35:33.871897"
+      },
+      {
+        "from": "APR",
+        "to": "CNCL",
+        "at": "2025-02-06T07:53:41.063219"
+      }
+    ]
+  },
+  {
+    "id": 30622,
+    "ma_status_code": "APR",
+    "old_date": "2021-10-24T08:47:29.974Z",
+    "decision_date": "2022-03-04T04:52:37.828Z",
+    "decision": "REJ",
+    "has_logged_approval": true,
+    "first_susp_cncl": null,
+    "events": [
+      {
+        "from": "SFA",
+        "to": "APR",
+        "at": "2021-10-24T11:47:29.974186"
+      },
+      {
+        "from": "APR",
+        "to": "VOID",
+        "at": "2022-01-31T12:07:09.567099"
+      },
+      {
+        "from": "SFR",
+        "to": "REJ",
+        "at": "2022-03-04T07:52:37.828074"
+      }
+    ]
+  },
+  {
+    "id": 29118,
+    "ma_status_code": "APR",
+    "old_date": "2021-10-24T08:42:26.501Z",
+    "decision_date": "2022-03-04T05:12:20.057Z",
+    "decision": "REJ",
+    "has_logged_approval": true,
+    "first_susp_cncl": null,
+    "events": [
+      {
+        "from": "SFA",
+        "to": "APR",
+        "at": "2021-10-24T11:42:26.501307"
+      },
+      {
+        "from": "APR",
+        "to": "VOID",
+        "at": "2022-01-31T12:21:49.376813"
+      },
+      {
+        "from": "SFR",
+        "to": "REJ",
+        "at": "2022-03-04T08:12:20.057525"
+      }
+    ]
+  },
+  {
+    "id": 16280,
+    "ma_status_code": "APR",
+    "old_date": "2023-06-19T10:03:09.346Z",
+    "decision_date": "2024-03-30T03:25:53.282Z",
+    "decision": "REJ",
+    "has_logged_approval": true,
+    "first_susp_cncl": null,
+    "events": [
+      {
+        "from": "SFA",
+        "to": "APR",
+        "at": "2023-06-19T13:03:09.346118"
+      },
+      {
+        "from": "APR",
+        "to": "VOID",
+        "at": "2023-07-10T09:12:16.759188"
+      },
+      {
+        "from": "SFR",
+        "to": "REJ",
+        "at": "2024-03-30T06:25:53.282817"
+      },
+      {
+        "from": "REJ",
+        "to": "REJ",
+        "at": "2024-03-30T06:31:57.457133"
+      },
+      {
+        "from": "REJ",
+        "to": "REJ",
+        "at": "2024-03-30T06:34:03.709464"
+      }
+    ]
+  },
+  {
+    "id": 2181,
+    "ma_status_code": "APR",
+    "old_date": null,
+    "decision_date": null,
+    "decision": null,
+    "has_logged_approval": null,
+    "first_susp_cncl": null,
+    "events": null
+  }
+]

@@ -1,0 +1,328 @@
+{
+  "reportId": 160,
+  "elapsedMs": 10892,
+  "total": 839,
+  "onTime": 246,
+  "rows": [
+    {
+      "category_name": "Application type",
+      "category_value": "New Application - Biosimilar",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "4",
+      "total_count": "4",
+      "percentage": "100.00",
+      "avg_processing_days": "194.42"
+    },
+    {
+      "category_name": "Application type",
+      "category_value": "New Application - Generic Drug",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "184",
+      "total_count": "505",
+      "percentage": "36.44",
+      "avg_processing_days": "312.20"
+    },
+    {
+      "category_name": "Application type",
+      "category_value": "New Application - Generic with Bio-equivalency",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "21",
+      "total_count": "74",
+      "percentage": "28.38",
+      "avg_processing_days": "557.03"
+    },
+    {
+      "category_name": "Application type",
+      "category_value": "New Application - Generic without Bio-equivalency",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "25",
+      "total_count": "230",
+      "percentage": "10.87",
+      "avg_processing_days": "875.29"
+    },
+    {
+      "category_name": "Application type",
+      "category_value": "New Application - New Molecule",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "0",
+      "total_count": "2",
+      "percentage": "0.00",
+      "avg_processing_days": "1774.03"
+    },
+    {
+      "category_name": "Application type",
+      "category_value": "New Application - New Small Molecule",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "4",
+      "total_count": "10",
+      "percentage": "40.00",
+      "avg_processing_days": "205.62"
+    },
+    {
+      "category_name": "Application type",
+      "category_value": "New Application - Radiopharmaceutical",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "5",
+      "total_count": "5",
+      "percentage": "100.00",
+      "avg_processing_days": "86.88"
+    },
+    {
+      "category_name": "Application type",
+      "category_value": "New Application - rDNA Derived Biotherapeutics",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "3",
+      "total_count": "4",
+      "percentage": "75.00",
+      "avg_processing_days": "86.23"
+    },
+    {
+      "category_name": "Application type",
+      "category_value": "New Application - Vaccine",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "0",
+      "total_count": "5",
+      "percentage": "0.00",
+      "avg_processing_days": "186.54"
+    },
+    {
+      "category_name": "Internal regulatory pathway",
+      "category_value": "Fast Track",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "20",
+      "total_count": "49",
+      "percentage": "40.82",
+      "avg_processing_days": "295.12"
+    },
+    {
+      "category_name": "Internal regulatory pathway",
+      "category_value": "Low Risk",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "18",
+      "total_count": "34",
+      "percentage": "52.94",
+      "avg_processing_days": "265.15"
+    },
+    {
+      "category_name": "Internal regulatory pathway",
+      "category_value": "Regular",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "178",
+      "total_count": "662",
+      "percentage": "26.89",
+      "avg_processing_days": "554.45"
+    },
+    {
+      "category_name": "MA type",
+      "category_value": "BIOS",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "4",
+      "total_count": "4",
+      "percentage": "100.00",
+      "avg_processing_days": "194.42"
+    },
+    {
+      "category_name": "MA type",
+      "category_value": "GNRUG",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "184",
+      "total_count": "505",
+      "percentage": "36.44",
+      "avg_processing_days": "312.20"
+    },
+    {
+      "category_name": "MA type",
+      "category_value": "NGWB",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "21",
+      "total_count": "74",
+      "percentage": "28.38",
+      "avg_processing_days": "557.03"
+    },
+    {
+      "category_name": "MA type",
+      "category_value": "NGWOB",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "25",
+      "total_count": "230",
+      "percentage": "10.87",
+      "avg_processing_days": "875.29"
+    },
+    {
+      "category_name": "MA type",
+      "category_value": "NNM",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "0",
+      "total_count": "2",
+      "percentage": "0.00",
+      "avg_processing_days": "1774.03"
+    },
+    {
+      "category_name": "MA type",
+      "category_value": "NSMOL",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "4",
+      "total_count": "10",
+      "percentage": "40.00",
+      "avg_processing_days": "205.62"
+    },
+    {
+      "category_name": "MA type",
+      "category_value": "RADP",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "5",
+      "total_count": "5",
+      "percentage": "100.00",
+      "avg_processing_days": "86.88"
+    },
+    {
+      "category_name": "MA type",
+      "category_value": "RDNBIO",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "3",
+      "total_count": "4",
+      "percentage": "75.00",
+      "avg_processing_days": "86.23"
+    },
+    {
+      "category_name": "MA type",
+      "category_value": "VACC",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "0",
+      "total_count": "5",
+      "percentage": "0.00",
+      "avg_processing_days": "186.54"
+    },
+    {
+      "category_name": "Processing time band",
+      "category_value": "0-30 days",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "2",
+      "total_count": "2",
+      "percentage": "100.00",
+      "avg_processing_days": "15.70"
+    },
+    {
+      "category_name": "Processing time band",
+      "category_value": "181-270 days",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "117",
+      "total_count": "132",
+      "percentage": "88.64",
+      "avg_processing_days": "221.24"
+    },
+    {
+      "category_name": "Processing time band",
+      "category_value": "31-90 days",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "42",
+      "total_count": "42",
+      "percentage": "100.00",
+      "avg_processing_days": "64.56"
+    },
+    {
+      "category_name": "Processing time band",
+      "category_value": "91-180 days",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "85",
+      "total_count": "116",
+      "percentage": "73.28",
+      "avg_processing_days": "134.95"
+    },
+    {
+      "category_name": "Processing time band",
+      "category_value": "Over 270 days",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "0",
+      "total_count": "547",
+      "percentage": "0.00",
+      "avg_processing_days": "659.39"
+    },
+    {
+      "category_name": "Regulatory outcome",
+      "category_value": "Approved",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "216",
+      "total_count": "679",
+      "percentage": "31.81",
+      "avg_processing_days": "378.18"
+    },
+    {
+      "category_name": "Regulatory outcome",
+      "category_value": "Cancelled",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "0",
+      "total_count": "1",
+      "percentage": "0.00",
+      "avg_processing_days": "493.65"
+    },
+    {
+      "category_name": "Regulatory outcome",
+      "category_value": "Rejected",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "26",
+      "total_count": "150",
+      "percentage": "17.33",
+      "avg_processing_days": "987.30"
+    },
+    {
+      "category_name": "Regulatory outcome",
+      "category_value": "Suspended",
+      "module_code": "NMR",
+      "target_days": 270,
+      "on_time_count": "4",
+      "total_count": "9",
+      "percentage": "44.44",
+      "avg_processing_days": "324.17"
+    },
+    {
+      "category_name": "Reliance pathway",
+      "category_value": "SRA's",
+      "module_code": "NMR",
+      "target_days": 90,
+      "on_time_count": "22",
+      "total_count": "80",
+      "percentage": "27.50",
+      "avg_processing_days": "196.55"
+    },
+    {
+      "category_name": "Reliance pathway",
+      "category_value": "WHO Pre Qualified",
+      "module_code": "NMR",
+      "target_days": 90,
+      "on_time_count": "8",
+      "total_count": "14",
+      "percentage": "57.14",
+      "avg_processing_days": "146.16"
+    }
+  ]
+}

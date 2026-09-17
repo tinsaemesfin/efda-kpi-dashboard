@@ -1,0 +1,17 @@
+{
+  "reportCount": 98,
+  "changed": 59,
+  "products": [
+    "medicine",
+    "food",
+    "foodNotification",
+    "medicalDevice",
+    "cosmetics"
+  ],
+  "checks": {
+    "submissionStandardUnchanged": true,
+    "filterMetadataUnchanged": true,
+    "distributionsPreserved": true
+  },
+  "sha256": "3242126d1729241bbd156b0f6ff611646473c22f5773414a6af8cba592ca9c39"
+}

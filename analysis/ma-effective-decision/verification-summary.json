@@ -1,0 +1,19 @@
+{
+  "completedAt": "2026-09-15T14:11:56.613Z",
+  "database": "eris_dev_2026_22_06",
+  "status": "committed",
+  "updatedReports": 59,
+  "coveredDashboardReports": 98,
+  "backupRowCount": 147,
+  "backupDir": "C:\\Users\\IE\\Downloads\\EFDA-kpi-table-backup-2026-09-15T14-05-40-808Z",
+  "preDeployment2025Checks": 350,
+  "postDeployment2026Checks": 350,
+  "frontendParityTests": 20,
+  "reportMappingTests": 9,
+  "standaloneMedicine2025": {
+    "onTime": 246,
+    "total": 839,
+    "percentage": 29.32
+  },
+  "unrelatedDifferences": 0
+}
