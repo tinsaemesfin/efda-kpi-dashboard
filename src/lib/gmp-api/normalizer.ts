@@ -14,8 +14,7 @@ const displayRows = (report: GMPReportResult): GMPApiRow[] => {
   if (overall.length) return overall;
   const stages = report.rows.filter((row) => String(row.category_name ?? "").toLowerCase() === "stage");
   if (stages.length) return stages;
-  // The compliance front report contains both local and abroad results.
-  return report.reportId === 126 ? report.rows : report.rows.slice(0, 1);
+  return report.rows.slice(0, 1);
 };
 
 const segmentValue = (kpiId: GMPKPIId, row: GMPApiRow): number | undefined => {

@@ -6,11 +6,14 @@ export async function fetchGMPReport(
   accessToken: string,
   reportId: number,
   filters?: GMPApiFilterParams,
-  length = "500"
+  length = "500",
+  start = 0
 ): Promise<GMPReportResult> {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) throw new Error("NEXT_PUBLIC_API_KPI or NEXT_PUBLIC_API_ROOT is not set");
 
+  const body = buildMAFaceRequestBody(filters, length);
+  body.set("start", String(start));
   const response = await fetch(buildMATabularUrl(baseUrl, reportId), {
     method: "POST",
     headers: {
@@ -18,7 +21,7 @@ export async function fetchGMPReport(
       "Content-Type": "application/x-www-form-urlencoded",
       Accept: "application/json",
     },
-    body: buildMAFaceRequestBody(filters, length).toString(),
+    body: body.toString(),
   });
 
   if (!response.ok) {
@@ -33,6 +36,7 @@ export async function fetchGMPReport(
     reportId,
     label: GMP_REPORT_LABELS[reportId] ?? `Report ${reportId}`,
     rows: Array.isArray(json.data) ? json.data : [],
+    totalRecords: json.recordsFiltered ?? json.totalRecordsFiltered ?? json.recordsTotal ?? json.totalRecords,
   };
 }
 
