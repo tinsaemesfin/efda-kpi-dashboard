@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchGMPReports } from "@/lib/gmp-api/client";
 import { GMP_DRILLDOWN_REPORTS, GMP_FACE_REPORTS, GMP_KPI_IDS } from "@/lib/gmp-api/constants";
 import { normalizeGMPFaceMetric } from "@/lib/gmp-api/normalizer";
-import type { GMPApiFilterParams, GMPFaceMetric, GMPKPIId, GMPReportResult } from "@/types/gmp-api";
+import type { GMPApiFilterParams, GMPFaceMetric, GMPKPIId } from "@/types/gmp-api";
 
 export function useGMPFaceMetrics(filters: GMPApiFilterParams, enabled = true) {
   const { accessToken, isAuthenticated, loading: authLoading } = useAuth();
@@ -43,29 +44,17 @@ export function useGMPFaceMetrics(filters: GMPApiFilterParams, enabled = true) {
 
 export function useGMPDrilldown(kpiId: GMPKPIId | null, filters: GMPApiFilterParams, enabled: boolean) {
   const { accessToken, isAuthenticated } = useAuth();
-  const [reports, setReports] = useState<GMPReportResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
   const reportIds = useMemo(() => kpiId ? GMP_DRILLDOWN_REPORTS[kpiId] : [], [kpiId]);
-  const load = useCallback(async () => {
-    if (!enabled || !kpiId || !accessToken || !isAuthenticated || !reportIds.length) return;
-    let active = true;
-    setLoading(true);
-    setError(null);
-    try {
-      const next = await fetchGMPReports(accessToken, reportIds, filters);
-      if (!active) return;
-      setReports(next);
-      if (next.some((report) => report.error)) setError(new Error("Some drilldown reports could not be loaded."));
-    } catch (reason) {
-      if (active) setError(reason instanceof Error ? reason : new Error("Unable to load drilldown"));
-    } finally {
-      if (active) setLoading(false);
-    }
-    return () => { active = false; };
-  }, [accessToken, enabled, filters, isAuthenticated, kpiId, reportIds]);
-
-  useEffect(() => { void load(); }, [load]);
-
-  return { reports, loading, error, supported: reportIds.length > 0 };
+  const query = useQuery({
+    queryKey: ["gmp-drilldown", kpiId, filters, accessToken],
+    queryFn: () => fetchGMPReports(accessToken!, reportIds, filters),
+    enabled: enabled && !!kpiId && !!accessToken && isAuthenticated && reportIds.length > 0,
+  });
+  const reports = query.data ?? [];
+  return {
+    reports,
+    loading: query.isFetching,
+    error: query.error ?? (reports.some(report => report.error) ? new Error("Some drilldown reports could not be loaded.") : null),
+    supported: reportIds.length > 0,
+  };
 }

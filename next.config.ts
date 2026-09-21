@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
+const extraAllowedDevOrigins =
+  process.env.ALLOWED_DEV_ORIGINS?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean) ?? [];
+
 const nextConfig: NextConfig = {
+  // Allow Cloudflare quick tunnels (and extra hosts) to load /_next assets in `next dev`.
+  allowedDevOrigins: ["*.trycloudflare.com", ...extraAllowedDevOrigins],
+
   // Standalone server bundle for the Docker image (see Dockerfile)
   output: 'standalone',
 

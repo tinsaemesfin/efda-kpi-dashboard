@@ -1,6 +1,24 @@
-import { UserManager, User, WebStorageStateStore } from 'oidc-client-ts';
-import { authConfig } from '@/lib/config/auth.config';
+import { UserManager, User, UserManagerSettings, WebStorageStateStore } from 'oidc-client-ts';
+import { getAuthConfig } from '@/lib/config/auth.config';
 import { createSessionFromUser, Session } from '@/lib/models/session.model';
+
+function wrapOidcNetworkError(error: unknown, config: UserManagerSettings): Error {
+  const message = error instanceof Error ? error.message : String(error);
+  const isNetworkError =
+    message === 'Failed to fetch' ||
+    message.includes('NetworkError') ||
+    message.includes('Load failed');
+
+  if (!isNetworkError || typeof window === 'undefined') {
+    return error instanceof Error ? error : new Error(message);
+  }
+
+  return new Error(
+    `Cannot reach ${config.authority} from ${window.location.origin}. ` +
+      `Add this origin to the Identity Server client's AllowedCorsOrigins, ` +
+      `and register ${config.redirect_uri} as a RedirectUri.`,
+  );
+}
 
 class AuthService {
   private userManager: UserManager | null = null;
@@ -9,7 +27,7 @@ class AuthService {
   constructor() {
     if (typeof window !== 'undefined') {
       const settings = {
-        ...authConfig,
+        ...getAuthConfig(),
         userStore: new WebStorageStateStore({ store: window.localStorage }),
       };
       
@@ -73,16 +91,24 @@ class AuthService {
 
   async login(): Promise<void> {
     if (typeof window === 'undefined' || !this.userManager) return;
-    await this.userManager.signinRedirect();
+    try {
+      await this.userManager.signinRedirect();
+    } catch (error) {
+      throw wrapOidcNetworkError(error, getAuthConfig());
+    }
   }
 
   async completeAuthentication(): Promise<User> {
     if (typeof window === 'undefined' || !this.userManager) {
       throw new Error('Cannot complete authentication on server');
     }
-    const user = await this.userManager.signinRedirectCallback();
-    this.currentUser = user;
-    return user;
+    try {
+      const user = await this.userManager.signinRedirectCallback();
+      this.currentUser = user;
+      return user;
+    } catch (error) {
+      throw wrapOidcNetworkError(error, getAuthConfig());
+    }
   }
 
   async logout(): Promise<void> {

@@ -30,6 +30,7 @@ export interface GMPReportResult {
   reportId: number;
   label: string;
   rows: GMPApiRow[];
+  totalRecords?: number;
   error?: string;
 }
 

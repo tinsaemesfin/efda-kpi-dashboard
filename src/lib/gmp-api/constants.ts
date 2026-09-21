@@ -1,10 +1,10 @@
 import type { GMPKPIId } from "@/types/gmp-api";
 
 export const GMP_FACE_REPORTS: Record<GMPKPIId, readonly number[]> = {
-  "GMP-KPI-1": [121, 122, 151, 123],
+  "GMP-KPI-1": [121, 122],
   "GMP-KPI-2": [],
-  "GMP-KPI-3": [124, 125],
-  "GMP-KPI-4": [126],
+  "GMP-KPI-3": [124],
+  "GMP-KPI-4": [126, 211],
   "GMP-KPI-5": [129],
   "GMP-KPI-6": [131, 133, 136],
   "GMP-KPI-7": [139, 141],
@@ -13,9 +13,9 @@ export const GMP_FACE_REPORTS: Record<GMPKPIId, readonly number[]> = {
 };
 
 export const GMP_DRILLDOWN_REPORTS: Record<GMPKPIId, readonly number[]> = {
-  "GMP-KPI-1": [152, 153],
+  "GMP-KPI-1": [135, 152, 151, 205, 153, 123],
   "GMP-KPI-2": [],
-  "GMP-KPI-3": [154],
+  "GMP-KPI-3": [208, 154, 125],
   "GMP-KPI-4": [127, 128],
   "GMP-KPI-5": [130],
   "GMP-KPI-6": [132, 134, 137],
@@ -30,9 +30,23 @@ export const GMP_REPORT_LABELS: Record<number, string> = {
   123: "Stage timeline · Abroad",
   124: "Waived · Abroad",
   125: "Stage timeline · Abroad waiver",
-  126: "Facilities compliant with GMP",
+  126: "Compliant · Local",
   127: "Compliant details · Local",
   128: "Compliant details · Abroad",
+  135: "Inspected breakdown · Local",
+  205: "Inspected breakdown · Abroad",
+  208: "Waived breakdown · Abroad",
+  211: "Compliant · Abroad",
+  138: "Inspection records · Local",
+  204: "Inspection records · Abroad",
+  206: "Stage timeline records · Local",
+  207: "Stage timeline records · Abroad",
+  209: "Waiver records · Abroad",
+  210: "Stage timeline records · Abroad waiver",
+  212: "Compliance records · Local",
+  213: "Compliance records · Abroad",
+  214: "Average TAT records · Local",
+  215: "Average TAT records · Abroad",
   129: "CAPA timeline",
   130: "CAPA evaluation details",
   131: "Completed · Local",
@@ -60,3 +74,17 @@ export const GMP_REPORT_LABELS: Record<number, string> = {
 };
 
 export const GMP_KPI_IDS = Object.keys(GMP_FACE_REPORTS) as GMPKPIId[];
+
+// Explicit report chains supplied by the GMP backend team.
+export const GMP_REPORT_CHAINS = [
+  { face: 121, drilldown: 135, detail: 138, location: "Local" },
+  { face: 121, drilldown: 152, detail: 206, location: "Local" },
+  { face: 122, drilldown: 205, detail: 204, location: "Abroad" },
+  { face: 122, drilldown: 153, detail: 207, location: "Abroad" },
+  { face: 124, drilldown: 208, detail: 209, location: "Abroad" },
+  { face: 124, drilldown: 154, detail: 210, location: "Abroad" },
+  { face: 126, drilldown: 127, detail: 212, location: "Local" },
+  { face: 211, drilldown: 128, detail: 213, location: "Abroad" },
+  { face: 139, drilldown: 140, detail: 214, location: "Local" },
+  { face: 141, drilldown: 142, detail: 215, location: "Abroad" },
+] as const;

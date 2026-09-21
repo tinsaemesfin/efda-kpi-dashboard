@@ -55,12 +55,13 @@ describe("normalizeGMPFaceMetric", () => {
   });
 });
 
- it("preserves local and abroad rows in the shared compliance report", () => {
-   const metric = normalizeGMPFaceMetric("GMP-KPI-4", [report(126, "Compliance", [
-     { category_name: "Location", category_value: "Local", percentage: 80 },
-     { category_name: "Location", category_value: "Abroad", percentage: 70 },
-   ])]);
-   expect(metric.segments.map(s => s.value)).toEqual([80, 70]);
+ it("uses separate local and abroad compliance face reports", () => {
+   const metric = normalizeGMPFaceMetric("GMP-KPI-4", [
+     report(126, "Compliant Local", [{ category_name: "Overall", numerator: 2, denominator: 3, percentage: 66.67 }]),
+     report(211, "Compliant Abroad", [{ category_name: "Overall", numerator: 16, denominator: 21, percentage: 76.19 }]),
+   ]);
+   expect(metric.segments.map(s => s.value)).toEqual([66.67, 76.19]);
+   expect(metric.value).toBeUndefined();
  });
  it("displays stage processing days without converting them to percentages", () => {
    const metric = normalizeGMPFaceMetric("GMP-KPI-1", [report(151, "Local stages", [

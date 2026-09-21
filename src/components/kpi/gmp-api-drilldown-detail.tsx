@@ -1,5 +1,9 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { fetchGMPReport } from "@/lib/gmp-api/client";
+import { GMP_REPORT_CHAINS } from "@/lib/gmp-api/constants";
 import { GMP_KPI_GUIDANCE } from "@/data/gmp-kpi-guidance";
 import { downloadCsv } from "@/lib/export-csv";
 
@@ -20,12 +24,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MALiveIndicator } from "@/components/kpi/ma-live-indicator";
 import { cn } from "@/lib/utils";
-import type { GMPApiRow, GMPFaceMetric, GMPKPIId, GMPReportResult } from "@/types/gmp-api";
+import type { GMPApiFilterParams, GMPApiRow, GMPKPIId, GMPReportResult } from "@/types/gmp-api";
 
 interface GMPApiDrilldownDetailProps {
   kpiId: GMPKPIId;
   title: string;
-  metric?: GMPFaceMetric;
+  filters: GMPApiFilterParams;
   reports: GMPReportResult[];
   supported: boolean;
   loading: boolean;
@@ -58,8 +62,9 @@ function SkeletonCard() {
   return <div className="overflow-hidden rounded-2xl border bg-card shadow-sm"><div className="space-y-2 border-b bg-muted/30 px-5 py-4"><Skeleton className="h-4 w-36" /><Skeleton className="h-3 w-48" /></div><div className="space-y-4 px-5 py-4"><div className="grid grid-cols-3 gap-3"><Skeleton className="h-14 rounded-xl" /><Skeleton className="h-14 rounded-xl" /><Skeleton className="h-14 rounded-xl" /></div><Skeleton className="h-[240px] rounded-lg" /></div></div>;
 }
 
-function BreakdownCard({ report, mode, time }: { report: GMPReportResult; mode: "chart" | "table"; time: boolean }) {
+function BreakdownCard({ report, mode, time, filters }: { report: GMPReportResult; mode: "chart" | "table"; time: boolean; filters: GMPApiFilterParams }) {
   const [chartType, setChartType] = useState<"performance" | "volume">("performance");
+  const chain = GMP_REPORT_CHAINS.find(chain => chain.drilldown === report.reportId);
   const rows = report.rows;
   const chartData = rows.map((row, index) => ({ name: rowLabel(row, index), value: rowMetric(row, time), count: numberValue(row.numerator) ?? numberValue(row.on_time_count) ?? numberValue(row.completed_count) ?? 0, total: numberValue(row.denominator) ?? numberValue(row.total_count) ?? numberValue(row.completed_count) ?? 0 }));
   const columns = Array.from(new Set(rows.flatMap((row) => Object.keys(row).filter((key) => key !== "rowNumber"))));
@@ -67,6 +72,7 @@ function BreakdownCard({ report, mode, time }: { report: GMPReportResult; mode: 
   const best = [...performanceData].sort((a, b) => b.value - a.value)[0];
   const total = chartData.reduce((sum, item) => sum + item.total, 0);
   const isPercent = !time;
+  if (report.error) return <section className="rounded-2xl border p-5"><h3 className="font-bold">{report.label}</h3><p role="alert" className="mt-3 text-sm text-muted-foreground">This breakdown could not be loaded. Refresh to retry.</p>{chain && <DetailRecords reportId={chain.detail} filters={filters} />}</section>;
 
   return (
     <section className="group min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_16px_40px_-32px_rgba(15,23,42,.65)] transition-shadow duration-300 hover:shadow-[0_22px_52px_-34px_rgba(91,33,182,.45)] dark:border-slate-800 dark:bg-slate-950/70">
@@ -82,19 +88,48 @@ function BreakdownCard({ report, mode, time }: { report: GMPReportResult; mode: 
         {mode === "chart" && <div className="mb-4 flex flex-wrap gap-2">{(["performance", "volume"] as const).map(type => <button key={type} type="button" aria-pressed={chartType === type} onClick={() => setChartType(type)} className="min-h-10 rounded-lg border px-3 text-xs font-medium aria-pressed:border-violet-600 aria-pressed:bg-violet-50 aria-pressed:text-violet-800 dark:aria-pressed:bg-violet-950 dark:aria-pressed:text-violet-200">{type === "performance" ? time ? "Processing days" : "Performance" : "Application volume"}</button>)}</div>}
         {mode === "table" ? (
           rows.length ? <div className="overflow-x-auto rounded-xl border"><Table><TableHeader><TableRow>{columns.map((column) => <TableHead key={column} className="whitespace-nowrap">{formatHeading(column)}</TableHead>)}</TableRow></TableHeader><TableBody>{rows.map((row, index) => <TableRow key={index}>{columns.map((column) => <TableCell key={column} className="max-w-[320px] whitespace-nowrap">{formatValue(row[column])}</TableCell>)}</TableRow>)}</TableBody></Table></div> : <div className="grid h-64 place-items-center text-sm text-muted-foreground">No data available for this period.</div>
-        ) : (chartType === "volume" ? total === 0 : performanceData.length === 0) ? <p className="py-12 text-center text-sm text-muted-foreground">No numeric values available for this chart. Use the table to inspect the returned records.</p> : chartType === "volume" ? (
+        ) : (chartType === "volume" ? total === 0 : performanceData.length === 0) ? <p className="grid h-[280px] place-items-center text-center text-sm text-muted-foreground">No numeric values available for this chart. Use the table to inspect the returned records.</p> : chartType === "volume" ? (
           <ResponsiveContainer key={chartType} minWidth={0} width="100%" height={280}><PieChart><Pie data={chartData} dataKey="total" nameKey="name" cx="50%" cy="50%" innerRadius={58} outerRadius={98} paddingAngle={3} label={({ name, percent }) => `${String(name).slice(0, 12)} ${((percent ?? 0) * 100).toFixed(0)}%`}>{chartData.map((_, index) => <Cell key={index} fill={PALETTE[index % PALETTE.length]} />)}</Pie><Tooltip formatter={(value) => [Number(value).toLocaleString(), "Applications"]} /></PieChart></ResponsiveContainer>
         ) : (
-          <ResponsiveContainer key={chartType} minWidth={0} width="100%" height={Math.max(280, performanceData.length * 38)}><BarChart data={performanceData} layout="vertical" margin={{ left: 8, right: 18 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" tickFormatter={(value) => `${value}${isPercent ? "%" : ""}`} /><YAxis dataKey="name" type="category" width={150} tick={{ fontSize: 11 }} interval={0} /><Tooltip formatter={(value) => [`${Number(value).toFixed(1)}${isPercent ? "%" : ""}`, "Value"]} /><Bar dataKey="value" radius={[0, 4, 4, 0]}>{performanceData.map((_, index) => <Cell key={index} fill={PALETTE[index % PALETTE.length]} />)}</Bar></BarChart></ResponsiveContainer>
+          <div className="h-[280px] overflow-y-auto"><ResponsiveContainer key={chartType} minWidth={0} width="100%" height={Math.max(280, performanceData.length * 38)}><BarChart data={performanceData} layout="vertical" margin={{ left: 8, right: 18 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" tickFormatter={(value) => `${value}${isPercent ? "%" : ""}`} /><YAxis dataKey="name" type="category" width={150} tick={{ fontSize: 11 }} interval={0} /><Tooltip formatter={(value) => [`${Number(value).toFixed(1)}${isPercent ? "%" : ""}`, "Value"]} /><Bar dataKey="value" radius={[0, 4, 4, 0]}>{performanceData.map((_, index) => <Cell key={index} fill={PALETTE[index % PALETTE.length]} />)}</Bar></BarChart></ResponsiveContainer></div>
         )}
+        {chain && <DetailRecords reportId={chain.detail} filters={filters} />}
       </div>
     </section>
   );
 }
 
+function DetailRecords({ reportId, filters }: { reportId: number; filters: GMPApiFilterParams }) {
+  const { accessToken } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
+  const query = useQuery({
+    queryKey: ["gmp-detail-records", reportId, filters, page, accessToken],
+    queryFn: () => fetchGMPReport(accessToken!, reportId, filters, String(pageSize), page * pageSize),
+    enabled: open && !!accessToken,
+  });
+  const result = query.data;
+  const loading = query.isFetching;
+  const error = query.isError;
+  const columns = Array.from(new Set(result?.rows.flatMap(row => Object.keys(row).filter(key => key !== "rowNumber")) ?? []));
+  return <div className="mt-4 border-t pt-4">
+    <Button variant="outline" aria-expanded={open} onClick={() => setOpen(value => !value)}>{open ? "Hide detailed records" : "View detailed records"}</Button>
+    {open && <div className="mt-3 space-y-3">
+      <p className="text-xs text-muted-foreground">Records for this report and selected dates. No individual breakdown category filter is applied.</p>
+      {loading ? <p role="status">Loading records…</p> : error ? <div role="alert">Detailed records could not be loaded. <Button variant="outline" onClick={() => void query.refetch()}>Retry</Button></div> : result && <>
+        {result.rows.length ? <div className="max-h-[360px] overflow-auto rounded-xl border"><Table><TableHeader><TableRow>{columns.map(column => <TableHead key={column} className="whitespace-nowrap">{formatHeading(column)}</TableHead>)}</TableRow></TableHeader><TableBody>{result.rows.map((row, index) => <TableRow key={index}>{columns.map(column => <TableCell key={column} className="whitespace-nowrap">{formatValue(row[column])}</TableCell>)}</TableRow>)}</TableBody></Table></div> : <p>No records found for this page.</p>}
+        <div className="flex flex-wrap items-center gap-2"><Button variant="outline" disabled={page === 0} onClick={() => setPage(value => value - 1)}>Previous</Button><span className="text-xs">Page {page + 1}{result.totalRecords !== undefined ? ` · ${result.totalRecords} records` : ""}</span><Button variant="outline" disabled={result.totalRecords !== undefined ? (page + 1) * pageSize >= result.totalRecords : result.rows.length < pageSize} onClick={() => setPage(value => value + 1)}>Next</Button><Button variant="outline" disabled={!result.rows.length} onClick={() => downloadCsv(`gmp-${reportId}-page-${page + 1}.csv`, result.rows)}>Export this page</Button></div>
+      </>}
+    </div>}
+  </div>;
+}
+
 export function GMPApiDrilldownDetail(props: GMPApiDrilldownDetailProps) {
   const [viewMode, setViewMode] = useState<"chart" | "table">("chart");
-  const availableReports = useMemo(() => props.reports.filter((report) => !report.error), [props.reports]);
+  const [location, setLocation] = useState("All");
+  const locations = Array.from(new Set(props.reports.map(report => GMP_REPORT_CHAINS.find(chain => chain.drilldown === report.reportId)?.location).filter(Boolean)));
+  const availableReports = useMemo(() => props.reports.filter(report => location === "All" || GMP_REPORT_CHAINS.find(chain => chain.drilldown === report.reportId)?.location === location), [props.reports, location]);
   const isWip = !props.supported;
   const guidance = GMP_KPI_GUIDANCE[props.kpiId];
 
@@ -109,6 +144,7 @@ export function GMPApiDrilldownDetail(props: GMPApiDrilldownDetailProps) {
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               {!isWip && <div className="flex items-center gap-1 rounded-xl border border-violet-200 bg-white/70 p-1 dark:border-violet-900/60 dark:bg-slate-950/50"><button type="button" onClick={() => setViewMode("chart")} className={cn("flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors", viewMode === "chart" ? "bg-violet-600 text-white shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><BarChart3Icon className="h-3.5 w-3.5" /> Chart</button><button type="button" onClick={() => setViewMode("table")} className={cn("flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors", viewMode === "table" ? "bg-violet-600 text-white shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><TableIcon className="h-3.5 w-3.5" /> Table</button></div>}
+              {locations.length > 1 && <div className="flex gap-1" aria-label="Application location">{["All", ...locations].map(value => <Button key={value} variant={location === value ? "default" : "outline"} size="sm" aria-pressed={location === value} onClick={() => setLocation(value!)}>{value === "All" ? "All locations" : value}</Button>)}</div>}
               <Badge variant="secondary" className="gap-1 text-[11px]"><CalendarDaysIcon className="h-3 w-3" />{props.periodLabel}</Badge>
             </div>
           </div>
@@ -119,7 +155,7 @@ export function GMPApiDrilldownDetail(props: GMPApiDrilldownDetailProps) {
           {isWip ? <div className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/70 px-6 py-20 text-center dark:border-slate-700 dark:bg-slate-900/40"><span className="grid size-14 place-items-center rounded-2xl bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300"><ConstructionIcon className="size-7" /></span><h3 className="mt-5 text-lg font-bold text-slate-900 dark:text-white">Work in progress</h3><p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">Detailed analysis for this indicator is being prepared.</p></div>
           : props.loading ? <div className="grid gap-5 lg:grid-cols-2">{Array.from({ length: 4 }).map((_, index) => <SkeletonCard key={index} />)}</div>
           : availableReports.length === 0 ? <div className="flex min-h-[420px] flex-col items-center justify-center px-6 py-20 text-center text-muted-foreground"><Clock3Icon className="mb-3 size-8 text-violet-400" /><p>No data is available for the selected period.</p></div>
-          : <><div className="grid gap-5 lg:grid-cols-2">{availableReports.map((report) => <BreakdownCard key={report.reportId} report={report} mode={viewMode} time={props.kpiId === "GMP-KPI-7" || props.kpiId === "GMP-KPI-8" || [152, 153, 154, 130].includes(report.reportId)} />)}</div><div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/20 px-5 py-3"><p className="text-xs text-muted-foreground">Showing {availableReports.length} breakdown views with {availableReports.reduce((sum, report) => sum + report.rows.length, 0)} detailed items</p><Button variant="outline" size="sm" className="min-h-10 gap-1.5 text-xs" onClick={() => downloadCsv(props.kpiId + "-breakdown.csv", availableReports.flatMap(report => report.rows.map(row => ({ report: report.label, ...row }))))}><DownloadIcon className="h-3.5 w-3.5" /> Export</Button></div></>}
+          : <><div className="grid gap-5 lg:grid-cols-2">{availableReports.map((report) => <BreakdownCard key={report.reportId} report={report} filters={props.filters} mode={viewMode} time={props.kpiId === "GMP-KPI-7" || props.kpiId === "GMP-KPI-8" || [152, 153, 154, 130].includes(report.reportId)} />)}</div><div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/20 px-5 py-3"><p className="text-xs text-muted-foreground">Showing {availableReports.length} breakdown views with {availableReports.reduce((sum, report) => sum + report.rows.length, 0)} detailed items</p><Button variant="outline" size="sm" className="min-h-10 gap-1.5 text-xs" onClick={() => downloadCsv(props.kpiId + "-breakdown.csv", availableReports.flatMap(report => report.rows.map(row => ({ report: report.label, ...row }))))}><DownloadIcon className="h-3.5 w-3.5" /> Export</Button></div></>}
           {props.error && !props.loading && !isWip && <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-200">Some detail views are temporarily unavailable.</div>}
         </div>
       </article>
