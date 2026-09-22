@@ -17,11 +17,13 @@ import {
   Loader2Icon,
   TableIcon,
 } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { DataChart } from "@/components/charts/data-chart";
+import { GMPJointInspectionBanner } from "./gmp-joint-inspection-banner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableFullscreen } from "@/components/ui/table-fullscreen";
 import { MALiveIndicator } from "@/components/kpi/ma-live-indicator";
 import { cn } from "@/lib/utils";
 import type { GMPApiFilterParams, GMPApiRow, GMPKPIId, GMPReportResult } from "@/types/gmp-api";
@@ -37,7 +39,6 @@ interface GMPApiDrilldownDetailProps {
   periodLabel: string;
 }
 
-const PALETTE = ["#6366f1", "#22c55e", "#f59e0b", "#0ea5e9", "#ef4444", "#8b5cf6", "#14b8a6", "#f97316"];
 const numberValue = (value: unknown): number | undefined => {
   if (value === null || value === undefined || value === "") return undefined;
   const parsed = Number(value);
@@ -63,16 +64,45 @@ function SkeletonCard() {
 }
 
 function BreakdownCard({ report, mode, time, filters }: { report: GMPReportResult; mode: "chart" | "table"; time: boolean; filters: GMPApiFilterParams }) {
-  const [chartType, setChartType] = useState<"performance" | "volume">("performance");
   const chain = GMP_REPORT_CHAINS.find(chain => chain.drilldown === report.reportId);
   const rows = report.rows;
   const chartData = rows.map((row, index) => ({ name: rowLabel(row, index), value: rowMetric(row, time), count: numberValue(row.numerator) ?? numberValue(row.on_time_count) ?? numberValue(row.completed_count) ?? 0, total: numberValue(row.denominator) ?? numberValue(row.total_count) ?? numberValue(row.completed_count) ?? 0 }));
   const columns = Array.from(new Set(rows.flatMap((row) => Object.keys(row).filter((key) => key !== "rowNumber"))));
   const performanceData = chartData.filter((row): row is typeof row & {value: number} => row.value !== undefined);
   const best = [...performanceData].sort((a, b) => b.value - a.value)[0];
-  const total = chartData.reduce((sum, item) => sum + item.total, 0);
   const isPercent = !time;
   if (report.error) return <section className="rounded-2xl border p-5"><h3 className="font-bold">{report.label}</h3><p role="alert" className="mt-3 text-sm text-muted-foreground">This breakdown could not be loaded. Refresh to retry.</p>{chain && <DetailRecords reportId={chain.detail} filters={filters} />}</section>;
+
+  const breakdownTable = rows.length ? (
+    <div className="overflow-x-auto rounded-xl border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {columns.map((column) => (
+              <TableHead key={column} className="whitespace-nowrap">
+                {formatHeading(column)}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row, index) => (
+            <TableRow key={index}>
+              {columns.map((column) => (
+                <TableCell key={column} className="max-w-[320px] whitespace-nowrap">
+                  {formatValue(row[column])}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  ) : (
+    <div className="grid h-64 place-items-center text-sm text-muted-foreground">
+      No data available for this period.
+    </div>
+  );
 
   return (
     <section className="group min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_16px_40px_-32px_rgba(15,23,42,.65)] transition-shadow duration-300 hover:shadow-[0_22px_52px_-34px_rgba(91,33,182,.45)] dark:border-slate-800 dark:bg-slate-950/70">
@@ -85,13 +115,22 @@ function BreakdownCard({ report, mode, time, filters }: { report: GMPReportResul
           <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5 dark:border-emerald-900/60 dark:bg-emerald-950/25"><div className="text-[11px] uppercase tracking-wide text-muted-foreground">Categories</div><div className="text-lg font-bold">{rows.length}</div></div>
           <div className="rounded-xl border border-sky-100 bg-sky-50/60 px-3 py-2.5 dark:border-sky-900/60 dark:bg-sky-950/25"><div className="text-[11px] uppercase tracking-wide text-muted-foreground">Highest</div><div className="truncate text-sm font-semibold" title={best?.name}>{best?.name ?? "—"}</div><div className="text-[11px] text-muted-foreground">{best ? `${best.value.toFixed(1)}${isPercent ? "%" : ""}` : ""}</div></div>
         </div>
-        {mode === "chart" && <div className="mb-4 flex flex-wrap gap-2">{(["performance", "volume"] as const).map(type => <button key={type} type="button" aria-pressed={chartType === type} onClick={() => setChartType(type)} className="min-h-10 rounded-lg border px-3 text-xs font-medium aria-pressed:border-violet-600 aria-pressed:bg-violet-50 aria-pressed:text-violet-800 dark:aria-pressed:bg-violet-950 dark:aria-pressed:text-violet-200">{type === "performance" ? time ? "Processing days" : "Performance" : "Application volume"}</button>)}</div>}
         {mode === "table" ? (
-          rows.length ? <div className="overflow-x-auto rounded-xl border"><Table><TableHeader><TableRow>{columns.map((column) => <TableHead key={column} className="whitespace-nowrap">{formatHeading(column)}</TableHead>)}</TableRow></TableHeader><TableBody>{rows.map((row, index) => <TableRow key={index}>{columns.map((column) => <TableCell key={column} className="max-w-[320px] whitespace-nowrap">{formatValue(row[column])}</TableCell>)}</TableRow>)}</TableBody></Table></div> : <div className="grid h-64 place-items-center text-sm text-muted-foreground">No data available for this period.</div>
-        ) : (chartType === "volume" ? total === 0 : performanceData.length === 0) ? <p className="grid h-[280px] place-items-center text-center text-sm text-muted-foreground">No numeric values available for this chart. Use the table to inspect the returned records.</p> : chartType === "volume" ? (
-          <ResponsiveContainer key={chartType} minWidth={0} width="100%" height={280}><PieChart><Pie data={chartData} dataKey="total" nameKey="name" cx="50%" cy="50%" innerRadius={58} outerRadius={98} paddingAngle={3} label={({ name, percent }) => `${String(name).slice(0, 12)} ${((percent ?? 0) * 100).toFixed(0)}%`}>{chartData.map((_, index) => <Cell key={index} fill={PALETTE[index % PALETTE.length]} />)}</Pie><Tooltip formatter={(value) => [Number(value).toLocaleString(), "Applications"]} /></PieChart></ResponsiveContainer>
+          rows.length ? (
+            <TableFullscreen title={report.label} description={`${rows.length} categories`}>
+              {breakdownTable}
+            </TableFullscreen>
+          ) : (
+            breakdownTable
+          )
         ) : (
-          <div className="h-[280px] overflow-y-auto"><ResponsiveContainer key={chartType} minWidth={0} width="100%" height={Math.max(280, performanceData.length * 38)}><BarChart data={performanceData} layout="vertical" margin={{ left: 8, right: 18 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" tickFormatter={(value) => `${value}${isPercent ? "%" : ""}`} /><YAxis dataKey="name" type="category" width={150} tick={{ fontSize: 11 }} interval={0} /><Tooltip formatter={(value) => [`${Number(value).toFixed(1)}${isPercent ? "%" : ""}`, "Value"]} /><Bar dataKey="value" radius={[0, 4, 4, 0]}>{performanceData.map((_, index) => <Cell key={index} fill={PALETTE[index % PALETTE.length]} />)}</Bar></BarChart></ResponsiveContainer></div>
+          <DataChart
+            data={chartData.map((row) => ({ name: row.name, value: row.value }))}
+            label={time ? "Processing time" : "Performance"}
+            unit={time ? " days" : "%"}
+            defaultType="bar"
+            ordered={/stage timeline/i.test(report.label)}
+          />
         )}
         {chain && <DetailRecords reportId={chain.detail} filters={filters} />}
       </div>
@@ -118,7 +157,36 @@ function DetailRecords({ reportId, filters }: { reportId: number; filters: GMPAp
     {open && <div className="mt-3 space-y-3">
       <p className="text-xs text-muted-foreground">Records for this report and selected dates. No individual breakdown category filter is applied.</p>
       {loading ? <p role="status">Loading records…</p> : error ? <div role="alert">Detailed records could not be loaded. <Button variant="outline" onClick={() => void query.refetch()}>Retry</Button></div> : result && <>
-        {result.rows.length ? <div className="max-h-[360px] overflow-auto rounded-xl border"><Table><TableHeader><TableRow>{columns.map(column => <TableHead key={column} className="whitespace-nowrap">{formatHeading(column)}</TableHead>)}</TableRow></TableHeader><TableBody>{result.rows.map((row, index) => <TableRow key={index}>{columns.map(column => <TableCell key={column} className="whitespace-nowrap">{formatValue(row[column])}</TableCell>)}</TableRow>)}</TableBody></Table></div> : <p>No records found for this page.</p>}
+        {result.rows.length ? (
+          <TableFullscreen title="Detailed records" description={`Page ${page + 1}${result.totalRecords !== undefined ? ` · ${result.totalRecords} records` : ""}`}>
+            <div className="max-h-[360px] overflow-auto rounded-xl border [[data-slot=table-fullscreen-body]_&]:max-h-none">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {columns.map((column) => (
+                      <TableHead key={column} className="whitespace-nowrap">
+                        {formatHeading(column)}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {result.rows.map((row, index) => (
+                    <TableRow key={index}>
+                      {columns.map((column) => (
+                        <TableCell key={column} className="whitespace-nowrap">
+                          {formatValue(row[column])}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TableFullscreen>
+        ) : (
+          <p>No records found for this page.</p>
+        )}
         <div className="flex flex-wrap items-center gap-2"><Button variant="outline" disabled={page === 0} onClick={() => setPage(value => value - 1)}>Previous</Button><span className="text-xs">Page {page + 1}{result.totalRecords !== undefined ? ` · ${result.totalRecords} records` : ""}</span><Button variant="outline" disabled={result.totalRecords !== undefined ? (page + 1) * pageSize >= result.totalRecords : result.rows.length < pageSize} onClick={() => setPage(value => value + 1)}>Next</Button><Button variant="outline" disabled={!result.rows.length} onClick={() => downloadCsv(`gmp-${reportId}-page-${page + 1}.csv`, result.rows)}>Export this page</Button></div>
       </>}
     </div>}
@@ -150,6 +218,7 @@ export function GMPApiDrilldownDetail(props: GMPApiDrilldownDetailProps) {
           </div>
         </div>
 
+        <div className="px-4 py-4 sm:px-6"><GMPJointInspectionBanner /></div>
         <section className="space-y-2 border-b bg-white/70 px-6 py-4 dark:bg-slate-950/50" aria-label="KPI calculation"><h2 className="font-semibold">How this indicator is calculated</h2><p className="text-sm">{guidance.calculation}</p><p className="text-sm text-muted-foreground">{guidance.context}</p></section>
         <div className="min-w-0 bg-slate-50/80 px-3 py-5 sm:px-6 sm:py-6 dark:bg-slate-950">
           {isWip ? <div className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/70 px-6 py-20 text-center dark:border-slate-700 dark:bg-slate-900/40"><span className="grid size-14 place-items-center rounded-2xl bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300"><ConstructionIcon className="size-7" /></span><h3 className="mt-5 text-lg font-bold text-slate-900 dark:text-white">Work in progress</h3><p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">Detailed analysis for this indicator is being prepared.</p></div>

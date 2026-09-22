@@ -2,12 +2,12 @@
 
 import { downloadCsv } from "@/lib/export-csv";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo } from "react";
+import { DataChart } from "@/components/charts/data-chart";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   BarChart3Icon,
-  PieChartIcon,
   DownloadIcon,
   ActivityIcon,
   TargetIcon,
@@ -16,19 +16,6 @@ import {
   Loader2Icon,
   CalendarDaysIcon,
 } from "lucide-react";
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell,
-  ReferenceLine,
-} from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MALiveIndicator } from "@/components/kpi/ma-live-indicator";
 import { cn } from "@/lib/utils";
@@ -48,31 +35,6 @@ import {
 } from "@/lib/ma-api/drilldown";
 import type { MAKPIId, MAReportProduct } from "@/types/ma-api";
 
-type ChartType = "stacked" | "volume" | "bar" | "horizontalBar" | "doughnut";
-
-interface ChartOption {
-  id: ChartType;
-  label: string;
-  icon: React.ReactNode;
-}
-
-const CHART_OPTIONS: ChartOption[] = [
-  { id: "stacked", label: "SLA split", icon: <BarChart3Icon className="h-3.5 w-3.5" /> },
-  { id: "volume", label: "Volume", icon: <BarChart3Icon className="h-3.5 w-3.5" /> },
-  { id: "bar", label: "Bar", icon: <BarChart3Icon className="h-3.5 w-3.5" /> },
-  { id: "horizontalBar", label: "H-Bar", icon: <BarChart3Icon className="h-3.5 w-3.5 rotate-90" /> },
-  { id: "doughnut", label: "Volume share", icon: <PieChartIcon className="h-3.5 w-3.5" /> },
-];
-
-const PALETTE = [
-  "#6366f1", "#22c55e", "#f59e0b", "#0ea5e9", "#ef4444",
-  "#8b5cf6", "#14b8a6", "#f97316", "#ec4899", "#64748b",
-];
-
-function pickBestFitChart(view: KPIDimensionView): ChartType {
-  return view.label.toLowerCase().includes("time band") || view.label.toLowerCase().includes("processing time") ? "volume" : "stacked";
-}
-
 interface MADrillDownDetailProps {
   data: KPIDrillDownData;
   drilldownSource?: MAReportProduct;
@@ -82,11 +44,9 @@ interface MADrillDownDetailProps {
 
 interface CategoryChartCardProps {
   view: KPIDimensionView;
-  defaultChartType: ChartType;
 }
 
-function CategoryChartCard({ view, defaultChartType }: CategoryChartCardProps) {
-  const [chartType, setChartType] = useState<ChartType>(defaultChartType);
+function CategoryChartCard({ view }: CategoryChartCardProps) {
 
   const chartData = useMemo(
     () =>
@@ -118,122 +78,6 @@ function CategoryChartCard({ view, defaultChartType }: CategoryChartCardProps) {
       ? " · mixed SLAs"
       : "";
 
-  const renderChart = useCallback(() => {
-    if (!chartData.length) {
-      return (
-        <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-          No data available
-        </div>
-      );
-    }
-
-    const sorted = [...chartData].sort((a, b) => b.total - a.total);
-    if (chartType === "stacked" || chartType === "volume") {
-      const rows = chartData.map(row => ({ ...row, other: Math.max(0, row.total - row.onTime) }));
-      return <div><p className="mb-3 text-xs leading-5 text-muted-foreground">{chartType === "stacked" ? "On-time cases versus other completed cases (including missing or invalid timing)." : "Application counts in each category."}</p><ResponsiveContainer key={chartType} minWidth={0} width="100%" height={Math.max(280, rows.length * 48)}><BarChart data={rows} layout="vertical" margin={{ right: 15 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" allowDecimals={false} /><YAxis dataKey="name" type="category" width={110} tick={{ fontSize: 10 }} interval={0} /><Tooltip />{chartType === "volume" ? <Bar dataKey="total" name="Applications" fill="#7c3aed" radius={[0, 4, 4, 0]} /> : <><Bar dataKey="onTime" name="On time" stackId="cases" fill="#10b981" /><Bar dataKey="other" name="Other completed" stackId="cases" fill="#cbd5e1" radius={[0, 4, 4, 0]} /></>}</BarChart></ResponsiveContainer></div>;
-    }
-
-    if (chartType === "doughnut") {
-      return (
-        <ResponsiveContainer key={chartType} minWidth={0} width="100%" height={260}>
-          <PieChart>
-            <Pie
-              data={sorted}
-              dataKey="total"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              innerRadius={55}
-              outerRadius={95}
-              paddingAngle={2}
-              label={({ name, percent }) => {
-                const safeName = String(name ?? "");
-                const labelName = safeName.length > 14 ? `${safeName.slice(0, 12)}...` : safeName;
-                return `${labelName} ${((percent ?? 0) * 100).toFixed(0)}%`;
-              }}
-              labelLine={{ strokeWidth: 1 }}
-            >
-              {sorted.map((_, i) => (
-                <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-              ))}
-            </Pie>
-            <Tooltip
-              formatter={(_value, _name, entry) => {
-                const payload = entry?.payload as
-                  | { name?: string; percentage?: number; onTime?: number; total?: number; targetDays?: number }
-                  | undefined;
-                if (!payload) return ["No data", "Value"];
-                return [
-                  `${payload.onTime ?? 0}/${payload.total ?? 0} (${(payload.percentage ?? 0).toFixed(1)}%)${payload.targetDays != null ? ` · SLA ${payload.targetDays} days` : ""}`,
-                  payload.name ?? "Category",
-                ];
-              }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-      );
-    }
-
-    if (chartType === "horizontalBar") {
-      return (
-        <ResponsiveContainer key={chartType} minWidth={0} width="100%" height={Math.max(200, sorted.length * 38)}>
-          <BarChart data={sorted} layout="vertical" margin={{ left: 8, right: 16 }}>
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-            <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-            <YAxis
-              dataKey="name"
-              type="category"
-              width={140}
-              tick={{ fontSize: 12 }}
-              interval={0}
-            />
-            <Tooltip
-              formatter={(value, _name, entry) => {
-                const payload = entry?.payload as { onTime?: number; total?: number } | undefined;
-                return [
-                  `${Number(value).toFixed(1)}% (${payload?.onTime ?? 0}/${payload?.total ?? 0})`,
-                  "On-time",
-                ];
-              }}
-            />
-            <Bar dataKey="percentage" radius={[0, 4, 4, 0]} fill="#6366f1">
-              {sorted.map((entry, i) => (
-                <Cell key={i} fill={entry.percentage >= 90 ? "#22c55e" : entry.percentage >= 50 ? "#f59e0b" : "#ef4444"} />
-              ))}
-            </Bar>
-            <ReferenceLine x={90} stroke="#6366f1" strokeDasharray="4 4" strokeWidth={1.5} />
-          </BarChart>
-        </ResponsiveContainer>
-      );
-    }
-
-
-    return (
-      <ResponsiveContainer key={chartType} minWidth={0} width="100%" height={260}>
-        <BarChart data={sorted} margin={{ left: 8, right: 16, bottom: 40 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-30} textAnchor="end" height={60} />
-          <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-          <Tooltip
-            formatter={(value, _name, entry) => {
-              const payload = entry?.payload as { onTime?: number; total?: number } | undefined;
-              return [
-                `${Number(value).toFixed(1)}% (${payload?.onTime ?? 0}/${payload?.total ?? 0})`,
-                "On-time",
-              ];
-            }}
-          />
-          <Bar dataKey="percentage" radius={[4, 4, 0, 0]}>
-            {sorted.map((entry, i) => (
-              <Cell key={i} fill={entry.percentage >= 90 ? "#22c55e" : entry.percentage >= 50 ? "#f59e0b" : "#ef4444"} />
-            ))}
-          </Bar>
-          <ReferenceLine y={90} stroke="#6366f1" strokeDasharray="4 4" strokeWidth={1.5} />
-        </BarChart>
-      </ResponsiveContainer>
-    );
-  }, [chartData, chartType]);
-
   return (
     <section className="group min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_16px_40px_-32px_rgba(15,23,42,.65)] transition-shadow duration-300 hover:shadow-[0_22px_52px_-34px_rgba(91,33,182,.45)] dark:border-slate-800 dark:bg-slate-950/70">
       <div className="flex flex-col gap-4 border-b border-violet-100 bg-linear-to-r from-violet-50/90 via-white to-fuchsia-50/40 px-5 py-4 dark:border-violet-900/50 dark:from-violet-950/35 dark:via-slate-950 dark:to-fuchsia-950/20">
@@ -247,25 +91,7 @@ function CategoryChartCard({ view, defaultChartType }: CategoryChartCardProps) {
         </div>
         <Badge className="border-0 bg-violet-100 text-[10px] text-violet-700 shadow-none dark:bg-violet-950 dark:text-violet-300">90% target{targetDaysLabel}</Badge>
         </div>
-        <div className="flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white/80 p-1 dark:border-slate-800 dark:bg-slate-950/70" aria-label={`Chart type for ${view.label}`}>
-          {CHART_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setChartType(opt.id)}
-              className={cn(
-                "flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold transition-all duration-200",
-                chartType === opt.id
-                  ? "bg-violet-600 text-white shadow-sm shadow-violet-600/20"
-                  : "text-slate-500 hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-950/40 dark:hover:text-violet-300"
-              )}
-              aria-pressed={chartType === opt.id}
-            >
-              {opt.icon}
-              <span>{opt.label}</span>
-            </button>
-          ))}
-        </div>
+
       </div>
 
       <div className="px-5 py-4">
@@ -289,7 +115,15 @@ function CategoryChartCard({ view, defaultChartType }: CategoryChartCardProps) {
           </div>
         </div>
 
-        {renderChart()}
+        <DataChart
+          data={chartData.map(row => ({ name: row.name, value: /time band|processing time/i.test(view.label) ? row.total : row.total > 0 ? row.percentage : null }))}
+          label={/time band|processing time/i.test(view.label) ? "Applications" : "On-time applications"}
+          unit={/time band|processing time/i.test(view.label) ? "" : "%"}
+          additive={/time band|processing time/i.test(view.label)}
+          ordered={/time band|processing time|month|quarter|year/i.test(view.label)}
+          defaultType="bar"
+          target={/time band|processing time/i.test(view.label) ? undefined : 90}
+        />
       </div>
     </section>
   );
@@ -394,14 +228,6 @@ export function MADrillDownDetail({
 
   const meetsTarget = (resolvedData?.currentValue.percentage ?? 0) >= 90;
   const headlineTargetDays = resolvedData?.currentValue.targetDays;
-
-  const categoryChartDefaults = useMemo(
-    () =>
-      Object.fromEntries(
-        dimensionViews.map((v) => [v.id, pickBestFitChart(v)])
-      ) as Record<string, ChartType>,
-    [dimensionViews]
-  );
 
   return (
       <article className="min-w-0 overflow-hidden rounded-2xl border border-violet-200/70 bg-slate-50 shadow-sm dark:border-violet-900/60 dark:bg-slate-950">
@@ -508,7 +334,6 @@ export function MADrillDownDetail({
                 <CategoryChartCard
                   key={view.id}
                   view={view}
-                  defaultChartType={categoryChartDefaults[view.id] ?? "bar"}
                 />
               ))}
             </div>
