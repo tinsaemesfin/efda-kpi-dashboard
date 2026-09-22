@@ -178,6 +178,21 @@
   }
 }
 
+/* The dashboard owns its scroll area. Keep the document itself stationary,
+   including during anchor navigation, viewport resizing, and overscroll.
+   Authentication pages retain normal document scrolling. */
+html:has([data-dashboard-shell]),
+body:has([data-dashboard-shell]) {
+  width: 100%;
+  height: 100%;
+  overflow: clip;
+  overscroll-behavior: none;
+}
+
+[data-dashboard-shell] [data-slot="sidebar-container"] {
+  height: 100dvh;
+}
+
 /* Recharts defaults use light surfaces and fixed gray text. */
 .dark .recharts-default-tooltip {
   background-color: var(--popover) !important;

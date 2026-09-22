@@ -567,7 +567,7 @@ export function getExecutiveSignals(): ExecutiveSignal[] {
       id: "slowest-ma",
       label: "Slowest MA median processing (new applications)",
       value: `${slowest.days.toFixed(0)} days`,
-      helper: `${PRODUCT_LINE_LABELS[slowest.pl]} — compare with other product lines in slides below.`,
+      helper: `${PRODUCT_LINE_LABELS[slowest.pl]} — open Market Authorizations to explore processing times.`,
     },
     {
       id: "best-line",
