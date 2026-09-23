@@ -20,6 +20,15 @@ function wrapOidcNetworkError(error: unknown, config: UserManagerSettings): Erro
   );
 }
 
+/** Only same-origin app paths are allowed, so the login flow can't become an open redirect. */
+export function safeReturnPath(value: unknown): string {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//') || value.startsWith('/\\')) {
+    return '/';
+  }
+  if (value === '/auth' || value.startsWith('/auth?') || value.startsWith('/auth-callback')) return '/';
+  return value;
+}
+
 class AuthService {
   private userManager: UserManager | null = null;
   private currentUser: User | null = null;
@@ -43,7 +52,7 @@ class AuthService {
       await this.userManager!.removeUser();
       this.currentUser = null;
       if (typeof window !== 'undefined') {
-        window.location.href = '/auth';
+        window.location.href = '/auth?reason=signed-out';
       }
     });
 
@@ -89,10 +98,10 @@ class AuthService {
     }
   }
 
-  async login(): Promise<void> {
+  async login(returnUrl?: string): Promise<void> {
     if (typeof window === 'undefined' || !this.userManager) return;
     try {
-      await this.userManager.signinRedirect();
+      await this.userManager.signinRedirect({ state: { returnUrl: safeReturnPath(returnUrl) } });
     } catch (error) {
       throw wrapOidcNetworkError(error, getAuthConfig());
     }
