@@ -92,6 +92,22 @@ function GMPInspectionsContent() {
   const filters = useMemo<GMPApiFilterParams>(() => ({ startDate: dateFrom, endDate: dateTo }), [dateFrom, dateTo]);
   const { metrics, loading, error } = useGMPFaceMetrics(filters, true);
   const visibleKpis = KPI_DEFINITIONS.filter((kpi) => `${kpi.id} ${kpi.title} ${kpi.description}`.toLowerCase().includes(searchTerm.trim().toLowerCase()));
+  const standardKpis = visibleKpis.filter((kpi) => (metrics[kpi.id]?.segments.length ?? 0) < 3);
+  const expandedKpis = visibleKpis.filter((kpi) => (metrics[kpi.id]?.segments.length ?? 0) >= 3);
+  const orderedKpis = [...standardKpis, ...expandedKpis];
+
+  const renderKpiCard = (definition: (typeof KPI_DEFINITIONS)[number], index: number) => {
+    const metric = metrics[definition.id];
+    const hasThreeFaceMetrics = (metric?.segments.length ?? 0) >= 3;
+    const isEmpty = metric?.state === "work-in-progress";
+    const numericValue = metric?.value;
+    const displayValue = numericValue !== undefined ? numericValue.toFixed(1) : "0";
+    const sideBySideMetrics = metric && metric.segments.length > 1 ? metric.segments.map((segment) => ({ id: segment.id, label: segment.label, value: segment.value, suffix: segment.unit === "days" ? "days" : "%", numerator: segment.numerator, denominator: segment.denominator, isEmpty: segment.state === "work-in-progress" })) : undefined;
+    const heightClass = cardDensity === "condensed"
+      ? hasThreeFaceMetrics ? "h-[470px]" : "h-[370px]"
+      : hasThreeFaceMetrics ? "h-[440px]" : "h-[340px]";
+    return <MAKPICard key={definition.id} className={cn("gap-0 py-0 [&_h3]:line-clamp-none [&_h3]:max-w-none", heightClass)} kpiCode={definition.id} title={definition.title} description={definition.description} value={displayValue} suffix={metric?.unit === "days" ? "days" : "%"} numerator={metric?.numerator} denominator={metric?.denominator} sideBySideMetrics={sideBySideMetrics} dataAttribution={metric?.state === "live" ? "live" : "none"} status={statusFor(definition.id, numericValue)} compact={cardDensity === "condensed"} animationDelayMs={index * 45} isLoading={loading && !metric} isEmpty={isEmpty} emptyMessage={definition.id === "GMP-KPI-2" ? "Reports not yet available" : "No data found"} onClick={() => { router.push(`/gmp-inspections/drilldown/${definition.id}?${drilldownQuery(filters)}`); }} />;
+  };
 
   const applyPreset = (preset: string) => {
     const [from, to] = periodForPreset(preset);
@@ -151,16 +167,9 @@ function GMPInspectionsContent() {
             <div className="rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-800 dark:bg-slate-950"><div className="flex items-center gap-1"><Button type="button" variant={cardDensity === "grid" ? "default" : "ghost"} size="sm" className="h-8 gap-1.5 rounded-lg px-3 text-xs" onClick={() => setCardDensity("grid")}><LayoutGridIcon className="size-3.5" /> Grid</Button><Button type="button" variant={cardDensity === "condensed" ? "default" : "ghost"} size="sm" className="h-8 gap-1.5 rounded-lg px-3 text-xs" onClick={() => setCardDensity("condensed")}><Rows3Icon className="size-3.5" /> Compact</Button></div></div>
           </div>
 
-          <div className={cn("grid auto-rows-fr items-stretch gap-4", cardDensity === "grid" ? "md:grid-cols-2 xl:grid-cols-3" : "md:grid-cols-2 xl:grid-cols-3")}>
-            {visibleKpis.map((definition, index) => {
-              const metric = metrics[definition.id];
-              const isEmpty = metric?.state === "work-in-progress";
-              const numericValue = metric?.value;
-              const displayValue = numericValue !== undefined ? numericValue.toFixed(1) : "0";
-              const sideBySideMetrics = metric && metric.segments.length > 1 ? metric.segments.map((segment) => ({ id: segment.id, label: segment.label, value: segment.value, suffix: segment.unit === "days" ? "days" : "%", numerator: segment.numerator, denominator: segment.denominator, isEmpty: segment.state === "work-in-progress" })) : undefined;
-              return <MAKPICard key={definition.id} className={cn("h-full [&_h3]:line-clamp-none [&_h3]:max-w-none")} kpiCode={definition.id} title={definition.title} description={definition.description} value={displayValue} suffix={metric?.unit === "days" ? "days" : "%"} numerator={metric?.numerator} denominator={metric?.denominator} sideBySideMetrics={sideBySideMetrics} dataAttribution={metric?.state === "live" ? "live" : "none"} status={statusFor(definition.id, numericValue)} compact={cardDensity === "condensed"} animationDelayMs={index * 45} isLoading={loading && !metric} isEmpty={isEmpty} emptyMessage={definition.id === "GMP-KPI-2" ? "Reports not yet available" : "No data found"} onClick={() => { router.push(`/gmp-inspections/drilldown/${definition.id}?${drilldownQuery(filters)}`); }} />;
-            })}
-          </div>
+          {orderedKpis.length > 0 && <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {orderedKpis.map(renderKpiCard)}
+          </div>}
 
           {visibleKpis.length === 0 && <Card className="border-dashed"><CardContent className="pt-6 text-sm text-muted-foreground">No KPI cards match this search.</CardContent></Card>}
 
