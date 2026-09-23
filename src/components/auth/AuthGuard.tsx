@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { authService } from '@/lib/services/auth.service';
 import { useSessionStore } from '@/lib/stores/session.store';
 import { createSessionFromUser } from '@/lib/models/session.model';
+import { AuthStatusScreen } from '@/components/auth/auth-status-screen';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -31,7 +32,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
         setSession(session);
         setIsAuthenticated(true);
       } else {
-        router.push(`/auth?return=${encodeURIComponent(pathname + window.location.search)}`);
+        router.replace(`/auth?return=${encodeURIComponent(pathname + window.location.search)}`);
       }
       
       setIsLoading(false);
@@ -41,14 +42,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   }, [router, pathname, setSession]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Loading...</h1>
-          <p className="text-gray-600">Please wait while we verify your authentication.</p>
-        </div>
-      </div>
-    );
+    return <AuthStatusScreen title="Verifying your session…" description="Please wait while we confirm your sign-in." />;
   }
 
   if (!isAuthenticated) {
