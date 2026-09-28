@@ -312,7 +312,7 @@ export interface MAProductKpiSeedItem {
   faceDataMissing?: boolean;
   /** Product policy: KPI not tracked (show N/A empty state instead of dummy metrics). */
   notApplicableReason?: string;
-  /** MA-KPI-8: per-module percentages shown under the overall total. */
+  /** MA-KPI-8: per-module percentages shown under the overall total. MA-KPI-5: application-type lanes. */
   moduleBreakdown?: MAProductKpiModuleBreakdownItem[];
 }
 
@@ -373,8 +373,8 @@ export const maProductKpiSeed: Record<MAProductKey, MAProductKpiSeed> = {
       },
       {
         id: "MED-5",
-        title: "Queries/FIRs on Time",
-        description: "Queries completed within SLA",
+        title: "FIR response to team leader on time",
+        description: "Applications whose FIR response reached the team leader within the target",
         value: 87.4,
         numerator: 201,
         denominator: 230,
@@ -406,8 +406,8 @@ export const maProductKpiSeed: Record<MAProductKey, MAProductKpiSeed> = {
       },
       {
         id: "MED-8",
-        title: "PARs Published on Time",
-        description: "Public reports published within timeline",
+        title: "EtPAR Uploads Within 60 Days",
+        description: "EtPAR upload date is a proxy for public publication",
         value: 83.5,
         numerator: 142,
         denominator: 170,
@@ -467,8 +467,8 @@ export const maProductKpiSeed: Record<MAProductKey, MAProductKpiSeed> = {
       },
       {
         id: "FOOD-5",
-        title: "Queries/FIRs on Time",
-        description: "Queries completed within SLA",
+        title: "FIR response to team leader on time",
+        description: "Applications whose FIR response reached the team leader within the target",
         value: 84.0,
         numerator: 79,
         denominator: 94,
@@ -500,8 +500,8 @@ export const maProductKpiSeed: Record<MAProductKey, MAProductKpiSeed> = {
       },
       {
         id: "FOOD-8",
-        title: "PARs Published on Time",
-        description: "Public reports published within timeline",
+        title: "EtPAR Uploads Within 60 Days",
+        description: "EtPAR upload date is a proxy for public publication",
         value: 81.0,
         numerator: 34,
         denominator: 42,
@@ -561,8 +561,8 @@ export const maProductKpiSeed: Record<MAProductKey, MAProductKpiSeed> = {
       },
       {
         id: "MD-5",
-        title: "Queries/FIRs on Time",
-        description: "Queries completed within SLA",
+        title: "FIR response to team leader on time",
+        description: "Applications whose FIR response reached the team leader within the target",
         value: 80.5,
         numerator: 70,
         denominator: 87,
@@ -594,8 +594,8 @@ export const maProductKpiSeed: Record<MAProductKey, MAProductKpiSeed> = {
       },
       {
         id: "MD-8",
-        title: "PARs Published on Time",
-        description: "Public reports published within timeline",
+        title: "EtPAR Uploads Within 60 Days",
+        description: "EtPAR upload date is a proxy for public publication",
         value: 79.2,
         numerator: 19,
         denominator: 24,
@@ -644,8 +644,8 @@ export const maProductKpiSeed: Record<MAProductKey, MAProductKpiSeed> = {
       },
       {
         id: "COS-5",
-        title: "Queries/FIRs on Time",
-        description: "Queries completed within SLA",
+        title: "FIR response to team leader on time",
+        description: "Applications whose FIR response reached the team leader within the target",
         value: 76.5,
         numerator: 52,
         denominator: 68,
