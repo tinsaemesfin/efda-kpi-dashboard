@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  mergeFirCardsWithStrictFaceData,
   mergeFoodCardsWithStrictFaceData,
   mergeMedicalDeviceCardsWithStrictFaceData,
   mergeCosmeticsCardsWithStrictFaceData,
   mergeMedicineCardsWithStrictFaceData,
 } from "@/lib/ma-api/merge";
+import { normalizeMAFirFaceData } from "@/lib/ma-api/fir-normalizer";
 import { maProductKpiSeed } from "@/data/ma-dummy-data";
+import type { MAApiDataRow } from "@/types/ma-api";
 
 describe("mergeMedicineCardsWithStrictFaceData", () => {
   const medicineSeed = maProductKpiSeed.medicine.cards;
@@ -102,6 +105,49 @@ describe("mergeMedicalDeviceCardsWithStrictFaceData", () => {
     expect(merged.find((c) => c.drilldownId === "MA-KPI-3")?.faceDataMissing).toBe(false);
     expect(merged.find((c) => c.drilldownId === "MA-KPI-4")?.faceDataMissing).toBe(false);
     expect(merged.find((c) => c.drilldownId === "MA-KPI-4")?.value).toBe(50);
+  });
+});
+
+describe("mergeFirCardsWithStrictFaceData", () => {
+  const sharedRows: MAApiDataRow[] = [
+    { module_code: "REN", submoduletype_code: "MDCN", target_days: 30, on_time_count: 1767, total_count: 2298, percentage: 76.89 },
+    { module_code: "VAR", submoduletype_code: "MDCN", target_days: 30, on_time_count: 1561, total_count: 2373, percentage: 65.78 },
+    { module_code: "VAR", submoduletype_code: "FD", target_days: 30, on_time_count: 92, total_count: 99, percentage: 92.93 },
+    { module_code: "REN", submoduletype_code: "MD", target_days: 30, on_time_count: 991, total_count: 1053, percentage: 94.11 },
+    { module_code: "NMR", submoduletype_code: "CO", target_days: 30, on_time_count: 8, total_count: 10, percentage: 80 },
+  ];
+
+  it("shows only the selected product on the FIR card", () => {
+    const result = normalizeMAFirFaceData(sharedRows);
+    const merged = mergeFirCardsWithStrictFaceData(maProductKpiSeed.medicine.cards, "medicine", result);
+    const fir = merged.find((card) => card.drilldownId === "MA-KPI-5");
+    const renewal = merged.find((card) => card.drilldownId === "MA-KPI-2");
+    const foodFir = mergeFirCardsWithStrictFaceData(maProductKpiSeed.food.cards, "food", result).find(
+      (card) => card.drilldownId === "MA-KPI-5"
+    );
+
+    expect(fir?.faceDataMissing).toBe(false);
+    expect(fir?.numerator).toBe(1767 + 1561);
+    expect(fir?.denominator).toBe(2298 + 2373);
+    expect(fir?.targetDays).toBe(30);
+    expect(fir?.moduleBreakdown?.map((lane) => lane.code)).toEqual(["Renewal", "Variation"]);
+    expect(foodFir?.numerator).toBe(92);
+    expect(foodFir?.denominator).toBe(99);
+    expect(renewal?.value).toBe(maProductKpiSeed.medicine.cards.find((card) => card.drilldownId === "MA-KPI-2")?.value);
+  });
+
+  it("hides sample FIR numbers when the selected product has no rows", () => {
+    const result = normalizeMAFirFaceData(sharedRows);
+    const merged = mergeFirCardsWithStrictFaceData(maProductKpiSeed.food.cards, "foodNotification", result);
+    const fir = merged.find((card) => card.drilldownId === "MA-KPI-5");
+    expect(fir?.faceDataMissing).toBe(true);
+    expect(fir?.value).toBe(0);
+    expect(fir?.moduleBreakdown).toBeUndefined();
+  });
+
+  it("marks FIR missing while the report has not loaded", () => {
+    const merged = mergeFirCardsWithStrictFaceData(maProductKpiSeed.cosmetics.cards, "cosmetics", null);
+    expect(merged.find((card) => card.drilldownId === "MA-KPI-5")?.faceDataMissing).toBe(true);
   });
 });
 

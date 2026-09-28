@@ -546,7 +546,11 @@ export function MATimeDrillDownView({ data, liveData, showLoading, timeError, fi
   filters?: MAApiFilterParams;
 }) {
   const [viewMode, setViewMode] = useState<ViewMode>("chart");
-  const filterChipLabels = useMemo(() => getMAApiFilterChipLabels(filters), [filters]);
+  const filterChipLabels = useMemo(() => {
+    const labels = getMAApiFilterChipLabels(filters);
+    if (labels.length > 0) labels[0] = "Filtered by completion decision date";
+    return labels;
+  }, [filters]);
   const isMedian = data.kpiId === "MA-KPI-6";
   const resolvedData = liveData ?? data;
   const categoryViews = resolvedData.categoryViews;

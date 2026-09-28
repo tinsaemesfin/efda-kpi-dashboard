@@ -168,7 +168,7 @@ export function MAKPICard({
   const numericValue = Number(value);
   const safeValue = Number.isFinite(numericValue) ? numericValue : 0;
   const isTimeMetric = suffix?.trim().toLowerCase() === "days";
-  const isTransparencyMetric = kpiCode === "MA-KPI-8" || Boolean(moduleBreakdown?.length);
+  const isTransparencyMetric = kpiCode === "MA-KPI-8";
   const hasSideBySideMetrics = Boolean(sideBySideMetrics?.length);
   const metricKind = isTimeMetric ? "time" : isTransparencyMetric ? "transparency" : "sla";
   const targetValue = isTimeMetric ? (targetDays ?? 270) : targetPercentage;
@@ -312,7 +312,7 @@ export function MAKPICard({
         </div>}
 
         {!compact && moduleBreakdown && moduleBreakdown.length > 0 && (
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className={cn("mt-4 grid gap-2", moduleBreakdown.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4")}>
             {moduleBreakdown.map((item) => (
               <div key={item.code} className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center dark:border-slate-800 dark:bg-slate-900/60" title={`${item.label}: ${item.percentage.toFixed(1)}%`}>
                 <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{item.code}</p>

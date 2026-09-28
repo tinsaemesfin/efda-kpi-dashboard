@@ -159,7 +159,13 @@ export function MADrillDownDetail({
   drilldownSource = "medicine",
   filters,
 }: MADrillDownDetailProps) {
-  const filterChipLabels = useMemo(() => getMAApiFilterChipLabels(filters), [filters]);
+  const filterChipLabels = useMemo(() => {
+    const labels = getMAApiFilterChipLabels(filters);
+    if (labels.length > 0) {
+      labels[0] = data.kpiId === "MA-KPI-8" ? "Filtered by grant decision date" : "Filtered by submission date";
+    }
+    return labels;
+  }, [filters, data.kpiId]);
 
   const isKpi1 = data.kpiId === "MA-KPI-1";
   const isKpi2 = data.kpiId === "MA-KPI-2";
