@@ -44,9 +44,15 @@ interface MADrillDownDetailProps {
 
 interface CategoryChartCardProps {
   view: KPIDimensionView;
+  /** Rate is the Market Authorization card. Volume and days keep the same card for other measures. */
+  chart?: "volume" | "days";
+  /** Rate-card count caption. Market Authorization leaves this as on-time. */
+  countLabel?: string;
+  /** Rate-card chart series name. Market Authorization leaves this as on-time applications. */
+  seriesLabel?: string;
 }
 
-function CategoryChartCard({ view }: CategoryChartCardProps) {
+export function CategoryChartCard({ view, chart, countLabel = "On-time", seriesLabel = "On-time applications" }: CategoryChartCardProps) {
 
   const chartData = useMemo(
     () =>
@@ -55,6 +61,7 @@ function CategoryChartCard({ view }: CategoryChartCardProps) {
         percentage: item.percentage ?? (item.total > 0 ? (item.count / item.total) * 100 : 0),
         onTime: item.count,
         total: item.total,
+        measure: item.value,
         targetDays: item.targetDays,
       })),
     [view.data]
@@ -77,6 +84,66 @@ function CategoryChartCard({ view }: CategoryChartCardProps) {
     : targetDays.length > 1
       ? " · mixed SLAs"
       : "";
+  const recordCount = useMemo(() => chartData.reduce((sum, row) => sum + row.total, 0), [chartData]);
+  const largest = useMemo(() => [...chartData].sort((a, b) => b.total - a.total)[0], [chartData]);
+  const averageDays = useMemo(() => {
+    const count = chartData.reduce((sum, row) => sum + row.onTime, 0);
+    const weighted = chartData.reduce((sum, row) => sum + row.measure * row.onTime, 0);
+    return count > 0 ? weighted / count : 0;
+  }, [chartData]);
+  const slowest = useMemo(() => [...chartData].sort((a, b) => b.measure - a.measure)[0], [chartData]);
+
+  if (chart === "volume" || chart === "days") {
+    const days = chart === "days";
+    return (
+      <section className="group min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_16px_40px_-32px_rgba(15,23,42,.65)] transition-shadow duration-300 hover:shadow-[0_22px_52px_-34px_rgba(91,33,182,.45)] dark:border-slate-800 dark:bg-slate-950/70">
+        <div className="flex flex-col gap-4 border-b border-violet-100 bg-linear-to-r from-violet-50/90 via-white to-fuchsia-50/40 px-5 py-4 dark:border-violet-900/50 dark:from-violet-950/35 dark:via-slate-950 dark:to-fuchsia-950/20">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 w-full">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.15em] text-violet-600 dark:text-violet-300">Breakdown view</p>
+              <h3 className="break-words text-base font-bold tracking-tight text-slate-900 dark:text-white">{view.label}</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {chartData.length} categories &middot; {(days ? chartData.reduce((sum, row) => sum + row.onTime, 0) : recordCount).toLocaleString()} {days ? "applications" : "records"}
+              </p>
+            </div>
+            <Badge className="border-0 bg-violet-100 text-[10px] text-violet-700 shadow-none dark:bg-violet-950 dark:text-violet-300">
+              {days ? (targetDays.length === 1 ? `Target ${targetDays[0]} days` : "Average days") : "Record count"}
+            </Badge>
+          </div>
+        </div>
+        <div className="px-5 py-4">
+          <div className="mb-4 grid grid-cols-3 gap-3">
+            <div className="rounded-xl border border-violet-100 bg-violet-50/60 px-3 py-2.5 dark:border-violet-900/60 dark:bg-violet-950/25">
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{days ? "Average" : "Records"}</div>
+              <div className="text-lg font-bold">{days ? `${averageDays.toFixed(1)} days` : recordCount.toLocaleString()}</div>
+            </div>
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5 dark:border-emerald-900/60 dark:bg-emerald-950/25">
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{days ? "Applications" : "Categories"}</div>
+              <div className="text-lg font-bold">{days ? chartData.reduce((sum, row) => sum + row.onTime, 0).toLocaleString() : chartData.length.toLocaleString()}</div>
+            </div>
+            <div className="rounded-xl border border-sky-100 bg-sky-50/60 px-3 py-2.5 dark:border-sky-900/60 dark:bg-sky-950/25">
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{days ? "Slowest" : "Largest"}</div>
+              <div className="text-sm font-semibold truncate" title={days ? slowest?.name : largest?.name}>
+                {(days ? slowest?.name : largest?.name) ?? "—"}
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                {days && slowest ? `${slowest.measure.toFixed(1)} days` : largest ? largest.total.toLocaleString() : ""}
+              </div>
+            </div>
+          </div>
+          <DataChart
+            data={chartData.map(row => ({ name: row.name, value: days ? row.measure : row.total > 0 ? row.total : null }))}
+            label={days ? "Average days" : "Records"}
+            unit={days ? " days" : ""}
+            additive={!days}
+            ordered={/time band|processing time|month|quarter|year|status/i.test(view.label)}
+            defaultType="bar"
+            target={days && targetDays.length === 1 ? targetDays[0] : undefined}
+          />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="group min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_16px_40px_-32px_rgba(15,23,42,.65)] transition-shadow duration-300 hover:shadow-[0_22px_52px_-34px_rgba(91,33,182,.45)] dark:border-slate-800 dark:bg-slate-950/70">
@@ -101,7 +168,7 @@ function CategoryChartCard({ view }: CategoryChartCardProps) {
             <div className="text-lg font-bold">{overallPct.toFixed(1)}%</div>
           </div>
           <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5 dark:border-emerald-900/60 dark:bg-emerald-950/25">
-            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">On-time</div>
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{countLabel}</div>
             <div className="text-lg font-bold">{totalOnTime.toLocaleString()}</div>
           </div>
           <div className="rounded-xl border border-sky-100 bg-sky-50/60 px-3 py-2.5 dark:border-sky-900/60 dark:bg-sky-950/25">
@@ -117,7 +184,7 @@ function CategoryChartCard({ view }: CategoryChartCardProps) {
 
         <DataChart
           data={chartData.map(row => ({ name: row.name, value: /time band|processing time/i.test(view.label) ? row.total : row.total > 0 ? row.percentage : null }))}
-          label={/time band|processing time/i.test(view.label) ? "Applications" : "On-time applications"}
+          label={/time band|processing time/i.test(view.label) ? "Applications" : seriesLabel}
           unit={/time band|processing time/i.test(view.label) ? "" : "%"}
           additive={/time band|processing time/i.test(view.label)}
           ordered={/time band|processing time|month|quarter|year/i.test(view.label)}
@@ -129,7 +196,7 @@ function CategoryChartCard({ view }: CategoryChartCardProps) {
   );
 }
 
-function SkeletonChartCard() {
+export function SkeletonChartCard() {
   return (
     <div className="rounded-xl border bg-card shadow-sm overflow-hidden animate-pulse">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b bg-muted/30 px-5 py-4">
