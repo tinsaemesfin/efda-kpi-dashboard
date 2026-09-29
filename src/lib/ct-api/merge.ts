@@ -4,26 +4,32 @@ import type { CTFaceKPIId, CTKPITransformedData, CTKPITransformedRow } from "@/t
 
 function isUsableFaceRow(row: CTKPITransformedRow | undefined): row is CTKPITransformedRow {
   if (!row) return false;
-  if (
-    !Number.isFinite(row.numerator) ||
-    !Number.isFinite(row.denominator) ||
-    !Number.isFinite(row.percentage)
-  ) {
-    return false;
+  if (!Number.isFinite(row.numerator) || !Number.isFinite(row.denominator)) return false;
+  if (row.kind === "turnaround") {
+    return row.denominator > 0 && row.averageDays != null && Number.isFinite(row.averageDays);
   }
-  return row.denominator > 0;
+  return Number.isFinite(row.percentage) && row.denominator > 0;
 }
 
 /**
- * CT-KPI-1 and CT-KPI-2: only show values from the face API.
- * If a KPI has no usable row, mark `faceDataMissing` (no seed fallback).
- * CT-KPI-3..8 remain sample seed values.
+ * Live CT cards show the face API only. A missing row stays empty.
+ * CT-KPI-6 stays not applicable and never uses sample numbers.
  */
 export function mergeCTCardsWithStrictFaceData(
   seedCards: CTKpiSeedItem[],
   kpiFaceDataById: CTKPITransformedData | null
 ): CTKpiSeedItem[] {
   return seedCards.map((card) => {
+    if (card.notApplicableReason) {
+      return {
+        ...card,
+        faceDataMissing: false,
+        value: 0,
+        numerator: 0,
+        denominator: 0,
+      };
+    }
+
     const isApiBacked = CT_FACE_KPI_IDS.includes(card.drilldownId as CTFaceKPIId);
     if (!isApiBacked) return card;
 
@@ -39,12 +45,25 @@ export function mergeCTCardsWithStrictFaceData(
       };
     }
 
+    if (apiRow.kind === "turnaround") {
+      return {
+        ...card,
+        faceDataMissing: false,
+        value: apiRow.averageDays ?? 0,
+        numerator: apiRow.numerator,
+        denominator: apiRow.denominator,
+        targetDays: apiRow.targetDays,
+        decimals: 1,
+      };
+    }
+
     return {
       ...card,
       faceDataMissing: false,
       value: apiRow.percentage,
       numerator: apiRow.numerator,
       denominator: apiRow.denominator,
+      targetDays: apiRow.targetDays,
       decimals: 1,
     };
   });

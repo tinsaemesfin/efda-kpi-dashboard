@@ -1,20 +1,26 @@
-import type { CTApiFilterParams } from "@/types/ct-api";
-import {
-  getOrFetchMaApiCache,
-  peekMaApiCache,
-} from "@/lib/ma-api/cache";
+import type { CTApiFilterParams, CTFaceKPIId } from "@/types/ct-api";
+import { getOrFetchMaApiCache, peekMaApiCache } from "@/lib/ma-api/cache";
 
-/** Reuse MA client cache store with CT-prefixed keys. */
 function stableFiltersKey(filters?: CTApiFilterParams): string {
   return JSON.stringify(filters ?? null);
 }
 
-export function ctKpi1FaceDataCacheKey(filters?: CTApiFilterParams): string {
-  return `ct-kpi1-face:${stableFiltersKey(filters)}`;
+export function ctFaceDataCacheKey(kpiId: CTFaceKPIId, filters?: CTApiFilterParams): string {
+  return `ct-face:${kpiId}:${stableFiltersKey(filters)}`;
 }
 
+export function ctDrilldownCacheKey(kpiId: string, filters?: CTApiFilterParams): string {
+  return `ct-drill:${kpiId}:${stableFiltersKey(filters)}`;
+}
+
+/** @deprecated Use ctFaceDataCacheKey */
+export function ctKpi1FaceDataCacheKey(filters?: CTApiFilterParams): string {
+  return ctFaceDataCacheKey("CT-KPI-1", filters);
+}
+
+/** @deprecated Use ctFaceDataCacheKey */
 export function ctKpi2FaceDataCacheKey(filters?: CTApiFilterParams): string {
-  return `ct-kpi2-face:${stableFiltersKey(filters)}`;
+  return ctFaceDataCacheKey("CT-KPI-2", filters);
 }
 
 export function peekCtApiCache<T>(key: string): T | null {
