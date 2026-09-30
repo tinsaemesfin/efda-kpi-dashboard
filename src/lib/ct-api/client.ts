@@ -60,7 +60,7 @@ export async function fetchCTFaceTabularData(
   filters?: CTApiFilterParams,
   options?: CTApiFetchOptions
 ): Promise<CTApiResponse<CTApiDataRow>> {
-  const key = ctFaceDataCacheKey(kpiId, filters);
+  const key = ctFaceDataCacheKey(kpiId, reportId, filters);
   return getOrFetchCtApiCache(key, options?.force ?? false, () =>
     fetchCTTabularData(accessToken, reportId, filters)
   );
@@ -73,7 +73,7 @@ export async function fetchCTDrilldownTabularData(
   filters?: CTApiFilterParams,
   options?: CTApiFetchOptions
 ): Promise<CTApiResponse<CTDrilldownRow>> {
-  const key = ctDrilldownCacheKey(kpiId, filters);
+  const key = ctDrilldownCacheKey(kpiId, reportId, filters);
   return getOrFetchCtApiCache(key, options?.force ?? false, () =>
     fetchCTTabularData<CTDrilldownRow>(accessToken, reportId, filters, "500")
   );
