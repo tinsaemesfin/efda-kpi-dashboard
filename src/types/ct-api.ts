@@ -1,6 +1,6 @@
 /**
  * Clinical Trial API types.
- * Face reports: 33, 34, 219–226. CT-KPI-6 has no report.
+ * Face reports: 33, 34, 241–248. CT-KPI-6 has no report.
  */
 
 export type CTRatioKPIId =

@@ -10,3 +10,4 @@ export { MATimeDrillDownDetail } from './ma-time-drilldown-detail';
 export { GMPKPICard } from './gmp-kpi-card';
 export { GMPDrillDownModal } from './gmp-drilldown-modal';
 
+export { GMPOverviewHero } from './gmp-overview-hero';

@@ -6,21 +6,17 @@ import { KPI_DEFINITIONS } from "@/data/gmp-kpi-definitions";
 
 import { Suspense, useMemo, useState } from "react";
 import {
-  ActivityIcon,
   CalendarDaysIcon,
-  CheckCircle2Icon,
-  ClipboardCheckIcon,
-  FileSearchIcon,
   LayoutGridIcon,
   RotateCcwIcon,
   Rows3Icon,
   SearchIcon,
   ShieldCheckIcon,
   SlidersHorizontalIcon,
-  TargetIcon,
 } from "lucide-react";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { DashboardLayout } from "@/components/layout";
+import { GMPOverviewHero } from "@/components/kpi/gmp-overview-hero";
 import { MAKPICard } from "@/components/kpi/ma-kpi-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -69,12 +65,6 @@ const statusFor = (kpiId: GMPKPIId, value?: number): "excellent" | "good" | "war
   return "critical";
 };
 
-const focusAreas = [
-  { label: "Local GMP inspection application", description: "Local pharmaceutical manufacturing facilities", icon: <TargetIcon className="size-5" />, color: "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-300" },
-  { label: "Abroad GMP inspection application", description: "Pharmaceutical manufacturing facilities abroad", icon: <ShieldCheckIcon className="size-5" />, color: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300" },
-  { label: "Abroad waiver inspection application", description: "GMP inspection waiver applications for facilities abroad", icon: <ClipboardCheckIcon className="size-5" />, color: "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-300" },
-];
-
 export default function GMPInspectionsPage() {
   return <Suspense fallback={<div className="p-8">Loading dashboard…</div>}><GMPInspectionsContent /></Suspense>;
 }
@@ -98,15 +88,11 @@ function GMPInspectionsContent() {
 
   const renderKpiCard = (definition: (typeof KPI_DEFINITIONS)[number], index: number) => {
     const metric = metrics[definition.id];
-    const hasThreeFaceMetrics = (metric?.segments.length ?? 0) >= 3;
     const isEmpty = metric?.state === "work-in-progress";
     const numericValue = metric?.value;
     const displayValue = numericValue !== undefined ? numericValue.toFixed(1) : "0";
     const sideBySideMetrics = metric && metric.segments.length > 1 ? metric.segments.map((segment) => ({ id: segment.id, label: segment.label, value: segment.value, suffix: segment.unit === "days" ? "days" : "%", numerator: segment.numerator, denominator: segment.denominator, isEmpty: segment.state === "work-in-progress" })) : undefined;
-    const heightClass = cardDensity === "condensed"
-      ? hasThreeFaceMetrics ? "h-[470px]" : "h-[370px]"
-      : hasThreeFaceMetrics ? "h-[440px]" : "h-[340px]";
-    return <MAKPICard key={definition.id} className={cn("gap-0 py-0 [&_h3]:line-clamp-none [&_h3]:max-w-none", heightClass)} kpiCode={definition.id} title={definition.title} description={definition.description} value={displayValue} suffix={metric?.unit === "days" ? "days" : "%"} numerator={metric?.numerator} denominator={metric?.denominator} sideBySideMetrics={sideBySideMetrics} dataAttribution={metric?.state === "live" ? "live" : "none"} status={statusFor(definition.id, numericValue)} compact={cardDensity === "condensed"} animationDelayMs={index * 45} isLoading={loading && !metric} isEmpty={isEmpty} emptyMessage={definition.id === "GMP-KPI-2" ? "Reports not yet available" : "No data found"} onClick={() => { router.push(`/gmp-inspections/drilldown/${definition.id}?${drilldownQuery(filters)}`); }} />;
+    return <MAKPICard key={definition.id} className="h-full gap-0 py-0 [&_h3]:line-clamp-none [&_h3]:max-w-none" kpiCode={definition.id} title={definition.title} description={definition.description} value={displayValue} suffix={metric?.unit === "days" ? "days" : "%"} numerator={metric?.numerator} denominator={metric?.denominator} sideBySideMetrics={sideBySideMetrics} dataAttribution={metric?.state === "live" ? "live" : "none"} status={statusFor(definition.id, numericValue)} compact={cardDensity === "condensed"} animationDelayMs={index * 45} isLoading={loading && !metric} isEmpty={isEmpty} emptyMessage={definition.id === "GMP-KPI-2" ? "Reports not yet available" : "No data found"} onClick={() => { router.push(`/gmp-inspections/drilldown/${definition.id}?${drilldownQuery(filters)}`); }} />;
   };
 
   const applyPreset = (preset: string) => {
@@ -120,33 +106,7 @@ function GMPInspectionsContent() {
     <AuthGuard>
       <DashboardLayout>
         <div className="mx-auto max-w-[1600px] space-y-6">
-          <section className="relative overflow-hidden rounded-[2rem] border border-violet-200/70 bg-[linear-gradient(135deg,#ffffff_0%,#faf8ff_48%,#f1edff_100%)] shadow-[0_30px_80px_-55px_rgba(76,29,149,0.7)] dark:border-violet-900/60 dark:bg-[linear-gradient(135deg,#0f172a_0%,#111024_52%,#18112e_100%)]">
-            <div className="pointer-events-none absolute -right-24 -top-32 size-[26rem] rounded-full border border-violet-300/30" />
-            <div className="pointer-events-none absolute -right-6 -top-24 size-[20rem] rounded-full border border-fuchsia-300/20" />
-            <div className="relative grid lg:grid-cols-[0.85fr_1.15fr]">
-              <div className="flex flex-col justify-between border-b border-violet-100 p-6 sm:p-8 lg:min-h-[260px] lg:border-b-0 lg:border-r dark:border-violet-900/50">
-                <div>
-                  <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white/80 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-violet-700 shadow-sm backdrop-blur dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-300"><ActivityIcon className="size-3.5" /> GMP inspections</div>
-                  <h1 className="max-w-xl text-3xl font-bold tracking-[-0.045em] text-slate-950 sm:text-4xl dark:text-white">From inspection plan to <span className="text-violet-600 dark:text-violet-400">regulatory outcome.</span></h1>
-                  <p className="mt-4 max-w-lg text-sm leading-6 text-slate-600 sm:text-base dark:text-slate-300">Explore coverage, compliance, processing speed, and publication performance across GMP inspection activities.</p>
-                </div>
-                <div className="mt-8 flex flex-wrap gap-3 text-xs font-medium text-slate-500 dark:text-slate-400">
-                  <span className="inline-flex items-center gap-1.5"><CheckCircle2Icon className="size-4 text-emerald-500" /> Performance monitoring</span>
-                  <span className="inline-flex items-center gap-1.5"><FileSearchIcon className="size-4 text-violet-500" /> Indicator-level exploration</span>
-                </div>
-              </div>
-              <div className="relative p-5 sm:p-7">
-                <div className="mb-4"><p className="text-sm font-bold text-slate-900 dark:text-white">GMP application types</p><p className="mt-1 text-xs text-slate-500">Three application categories covered by GMP reporting.</p></div>
-                <div className="grid gap-3">
-                  {focusAreas.map((area) => (
-                    <div key={area.label} className="group rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur transition-all duration-300 dark:border-slate-800 dark:bg-slate-950/55">
-                      <div className="flex items-start gap-3"><span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", area.color)}>{area.icon}</span><div><p className="font-bold text-slate-900 dark:text-white">{area.label}</p><p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{area.description}</p></div></div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
+          <GMPOverviewHero />
 
           <section className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_50px_-38px_rgba(15,23,42,0.55)] dark:border-slate-800 dark:bg-slate-950/70" aria-label="Dashboard filters">
             {loading && <div className="absolute inset-x-0 top-0 z-10 h-1 bg-linear-to-r from-violet-500 via-fuchsia-400 to-sky-400" />}
@@ -167,7 +127,7 @@ function GMPInspectionsContent() {
             <div className="rounded-xl border border-slate-200 bg-white p-1 shadow-sm dark:border-slate-800 dark:bg-slate-950"><div className="flex items-center gap-1"><Button type="button" variant={cardDensity === "grid" ? "default" : "ghost"} size="sm" className="h-8 gap-1.5 rounded-lg px-3 text-xs" onClick={() => setCardDensity("grid")}><LayoutGridIcon className="size-3.5" /> Grid</Button><Button type="button" variant={cardDensity === "condensed" ? "default" : "ghost"} size="sm" className="h-8 gap-1.5 rounded-lg px-3 text-xs" onClick={() => setCardDensity("condensed")}><Rows3Icon className="size-3.5" /> Compact</Button></div></div>
           </div>
 
-          {orderedKpis.length > 0 && <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {orderedKpis.length > 0 && <div className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
             {orderedKpis.map(renderKpiCard)}
           </div>}
 

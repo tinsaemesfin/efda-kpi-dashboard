@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchGMPReports } from "@/lib/gmp-api/client";
-import { GMP_DRILLDOWN_REPORTS, GMP_FACE_REPORTS, GMP_KPI_IDS } from "@/lib/gmp-api/constants";
-import { normalizeGMPFaceMetric } from "@/lib/gmp-api/normalizer";
+import { GMP_DRILLDOWN_REPORTS, GMP_FACE_REPORTS, GMP_KPI_IDS, GMP_OVERVIEW_REPORT_IDS } from "@/lib/gmp-api/constants";
+import { normalizeGMPFaceMetric, normalizeGMPOverview } from "@/lib/gmp-api/normalizer";
 import type { GMPApiFilterParams, GMPFaceMetric, GMPKPIId } from "@/types/gmp-api";
 
 export function useGMPFaceMetrics(filters: GMPApiFilterParams, enabled = true) {
@@ -57,4 +57,17 @@ export function useGMPDrilldown(kpiId: GMPKPIId | null, filters: GMPApiFilterPar
     error: query.error ?? (reports.some(report => report.error) ? new Error("Some drilldown reports could not be loaded.") : null),
     supported: reportIds.length > 0,
   };
+}
+
+/** All-time overview counts for the page hero. Deliberately ignores the page date filters. */
+export function useGMPOverview() {
+  const { accessToken, isAuthenticated } = useAuth();
+  const query = useQuery({
+    queryKey: ["gmp-overview", accessToken],
+    queryFn: () => fetchGMPReports(accessToken!, GMP_OVERVIEW_REPORT_IDS),
+    enabled: !!accessToken && isAuthenticated,
+    staleTime: 5 * 60 * 1000,
+  });
+  const groups = useMemo(() => normalizeGMPOverview(query.data ?? []), [query.data]);
+  return { groups, loading: query.isPending, error: query.error };
 }

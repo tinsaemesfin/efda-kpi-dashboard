@@ -71,6 +71,13 @@ export const GMP_REPORT_LABELS: Record<number, string> = {
   152: "Stage timeline details · Local",
   153: "Stage timeline details · Abroad",
   154: "Stage timeline details · Abroad waiver",
+  218: "Approved · Local",
+  219: "Approved · Abroad",
+  220: "Approved · Abroad waiver",
+  224: "Assigned for inspection · Local",
+  225: "Assigned for inspection · Abroad",
+  237: "CAPA requested · Local",
+  238: "CAPA requested · Abroad",
 };
 
 export const GMP_KPI_IDS = Object.keys(GMP_FACE_REPORTS) as GMPKPIId[];
@@ -88,3 +95,34 @@ export const GMP_REPORT_CHAINS = [
   { face: 139, drilldown: 140, detail: 214, location: "Local" },
   { face: 141, drilldown: 142, detail: 215, location: "Abroad" },
 ] as const;
+
+export type GMPOverviewScope = "Local" | "Abroad" | "Waiver";
+
+// All-time overview counts shown in the page hero; not tied to the date filters.
+export const GMP_OVERVIEW_GROUPS: readonly {
+  id: string;
+  title: string;
+  caption: string;
+  reports: readonly { id: number; scope: GMPOverviewScope }[];
+}[] = [
+  {
+    id: "approved",
+    title: "Approved GMP",
+    caption: "Full or partial compliance certificate issued",
+    reports: [{ id: 218, scope: "Local" }, { id: 219, scope: "Abroad" }, { id: 220, scope: "Waiver" }],
+  },
+  {
+    id: "assigned",
+    title: "Assigned for inspection",
+    caption: "Currently in the inspection pipeline",
+    reports: [{ id: 224, scope: "Local" }, { id: 225, scope: "Abroad" }],
+  },
+  {
+    id: "capa",
+    title: "CAPA requested",
+    caption: "Applications that received a CAPA plan request",
+    reports: [{ id: 237, scope: "Local" }, { id: 238, scope: "Abroad" }],
+  },
+];
+
+export const GMP_OVERVIEW_REPORT_IDS = GMP_OVERVIEW_GROUPS.flatMap((group) => group.reports.map((report) => report.id));

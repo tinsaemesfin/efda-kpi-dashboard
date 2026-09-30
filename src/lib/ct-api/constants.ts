@@ -9,14 +9,14 @@ import type { CTApiFilterParams, CTFaceKPIId, CTKPIId, CTRatioKPIId, CTSubmodule
 export const CT_TABULAR_KPI1_FACE_REPORT_ID = 33;
 /** CT-KPI-2 — approved CT amendments within the evaluation target (CTAMAPP). */
 export const CT_TABULAR_KPI2_FACE_REPORT_ID = 34;
-export const CT_TABULAR_KPI3_FACE_REPORT_ID = 219;
-export const CT_TABULAR_KPI4_FACE_REPORT_ID = 220;
-export const CT_TABULAR_KPI5_FACE_REPORT_ID = 221;
-export const CT_TABULAR_KPI7_FACE_REPORT_ID = 222;
-export const CT_TABULAR_KPI8_FACE_REPORT_ID = 223;
-export const CT_TABULAR_KPI9_FACE_REPORT_ID = 224;
-export const CT_TABULAR_KPI10_FACE_REPORT_ID = 225;
-export const CT_TABULAR_KPI11_FACE_REPORT_ID = 226;
+export const CT_TABULAR_KPI3_FACE_REPORT_ID = 241;
+export const CT_TABULAR_KPI4_FACE_REPORT_ID = 242;
+export const CT_TABULAR_KPI5_FACE_REPORT_ID = 243;
+export const CT_TABULAR_KPI7_FACE_REPORT_ID = 244;
+export const CT_TABULAR_KPI8_FACE_REPORT_ID = 245;
+export const CT_TABULAR_KPI9_FACE_REPORT_ID = 246;
+export const CT_TABULAR_KPI10_FACE_REPORT_ID = 247;
+export const CT_TABULAR_KPI11_FACE_REPORT_ID = 248;
 
 export const CT_FACE_REPORTS = [
   { kpiId: "CT-KPI-1", reportId: CT_TABULAR_KPI1_FACE_REPORT_ID, kind: "ratio" },
@@ -56,7 +56,7 @@ export function isCTRatioKPIId(kpiId: CTFaceKPIId): kpiId is CTRatioKPIId {
 
 /** Tabular list behind each live face card. CT-KPI-6 has no list. */
 export const CT_DRILLDOWN_REPORT_IDS: Partial<Record<CTKPIId, number>> = {
-  "CT-KPI-1": 227,
+  "CT-KPI-1": 249,
   "CT-KPI-2": 228,
   "CT-KPI-3": 229,
   "CT-KPI-4": 230,

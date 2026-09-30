@@ -52,7 +52,7 @@ export function useCTKPIDataFacade(filters?: CTApiFilterParams): CTKPIDataFacade
 
       if (!force) {
         const cachedEntries = CT_FACE_REPORTS.map((report) => {
-          const cached = peekCtApiCache<CTApiResponse<CTApiDataRow>>(ctFaceDataCacheKey(report.kpiId, filters));
+          const cached = peekCtApiCache<CTApiResponse<CTApiDataRow>>(ctFaceDataCacheKey(report.kpiId, report.reportId, filters));
           return cached ? ([report.kpiId, cached] as const) : null;
         });
         if (cachedEntries.every(Boolean)) {

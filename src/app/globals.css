@@ -266,7 +266,23 @@ body:has([data-dashboard-shell]) {
   animation: ma-filter-loading 1.35s ease-in-out infinite;
 }
 
+@keyframes gmp-slide-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* Drives the GMP overview slider: the slide advances on animationend. */
+.gmp-slide-progress {
+  transform-origin: left;
+  animation: gmp-slide-progress 4s linear forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .gmp-slide-progress {
+    animation: none !important;
+    transform: none;
+  }
+
   .ma-enter,
   .ma-product-option,
   .ma-orbit,
