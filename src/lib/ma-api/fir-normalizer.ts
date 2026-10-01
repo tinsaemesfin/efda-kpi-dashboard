@@ -73,7 +73,7 @@ function percentage(numerator: number, denominator: number): number {
 }
 
 /**
- * Report 218 returns one row per application type and product line.
+ * FIR reports return one row per application type and product line.
  * Each product total is the sum of its rows. Pathways keep New, Renewal, and Variation visible.
  */
 export function normalizeMAFirFaceData(rows: MAApiDataRow[]): MAFirNormalizeResult {

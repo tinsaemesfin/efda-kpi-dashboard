@@ -43,9 +43,11 @@ Before updates, all **195 report rows and every column** were backed up with cat
 
 The database update is committed. The frontend changes require merging and deployment before they appear on the hosted dashboard. Authenticated browser/API deployment identity has not been verified. Reload an already-open dashboard after deploying the frontend to clear its in-memory report cache. Full-table backups and generated duplicate SQL files remain local; the repository includes the exact report definitions, deployment receipt and verification evidence.
 
-## FIR exception
+## FIR restoration
 
-KPI 5 has one configured report, 218, rather than submission/decision variants. The connected catalogue currently identifies 218 as **GMP-MDCN-Face-KPI10-Approved-Local**, not an MA FIR report. This update leaves that GMP definition untouched. The frontend now rejects its inspection-module rows as FIR data and shows FIR data as unavailable instead of displaying inspection counts as FIR completion. The filter panel explicitly identifies KPI 5 as following its report-specific date filter. A valid FIR source and its two date definitions are separate work.
+KPI 5 is mandatory and now uses dedicated FIR reports **250 (submission date)** and **251 (decision date)**. The original FIR SQL was recovered from the backend project and its cycle calculation retained: every completed immediate FIRR → STL cycle must meet the configured target, currently 30 calendar days. Pending cycles and transitions to other statuses are excluded. Decision cohorts use the same effective decision rules as other MA reports. The old FIR report filtered application creation dates; the restored selector explicitly filters submission or decision dates instead.
+
+Report 218 in this catalogue is a GMP report. It was preserved, along with all 195 pre-existing catalogue rows. Both FIR reports were added after a full catalogue backup, and verified with 2025 data and cycle fixtures. See [FIR restoration details](../ma-fir-restoration-2026-10-01/README.md).
 
 KPI 8 continues to measure EtPAR upload timing as the approved proxy for public publication; no public-availability timestamp was introduced.
 

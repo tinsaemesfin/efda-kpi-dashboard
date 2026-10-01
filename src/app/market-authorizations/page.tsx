@@ -550,7 +550,7 @@ function MarketAuthorizationsContent() {
                   ? "Cosmetics KPIs use eligible completed or granted applications submitted in this period."
                   : "KPI 1–4 count eligible applications received in this period, including those still pending. KPI 6–8 use the submission period of completed or granted applications."
                 : "KPI 1–4 and 6–8 use applications with a qualifying decision in this period. Applications without a decision date are excluded."}
-              {" "}KPI 5 uses its FIR report’s own date filter.
+              {" "}FIR performance uses the same selected date basis and period.
             </p>
           </section>
 

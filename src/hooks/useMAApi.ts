@@ -32,7 +32,7 @@ import {
   getMATimeReportId,
   getMAParReportId,
 } from '@/lib/ma-api/client';
-import { MA_FIR_FACE_REPORT_ID } from '@/lib/ma-api/constants';
+import { MA_FIR_FACE_REPORT_IDS_BY_DATE } from '@/lib/ma-api/constants';
 import { normalizeMAFirFaceData, type MAFirNormalizeResult } from '@/lib/ma-api/fir-normalizer';
 import {
   maFaceDataCacheKey,
@@ -566,12 +566,13 @@ export function useMAKPIDataMedicalDeviceFacade(
   );
 }
 
-/** MA-KPI-5 FIR face from tabular report 218 (medicine, food, cosmetics, and medical devices together). */
+/** MA-KPI-5 FIR face for the selected submission or decision cohort. */
 export function useMAFirFaceFacade(
   filters?: MAApiFilterParams,
   enabled = true
 ): { firFace: MAFirNormalizeResult | null; loading: boolean; error: Error | null; refetch: () => Promise<void> } {
-  const report = useMAReportData<MAApiDataRow>(MA_FIR_FACE_REPORT_ID, filters, enabled);
+  const reportId = MA_FIR_FACE_REPORT_IDS_BY_DATE[filters?.dateBasis ?? 'submission'];
+  const report = useMAReportData<MAApiDataRow>(reportId, filters, enabled);
   const firFace = useMemo(() => {
     if (!report.data) return null;
     return normalizeMAFirFaceData(report.data.data ?? []);

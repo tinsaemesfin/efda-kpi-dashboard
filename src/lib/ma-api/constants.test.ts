@@ -27,15 +27,17 @@ import {
   MA_PRODUCT_TIME_REPORT_IDS_BY_DATE,
   MA_PRODUCT_PAR_REPORT_IDS_BY_DATE,
   MA_FIR_FACE_REPORT_ID,
+  MA_FIR_FACE_REPORT_IDS_BY_DATE,
   buildMAFaceRequestBody,
   buildMATabularUrl,
 } from "@/lib/ma-api/constants";
 
 describe("MA tabular report ids", () => {
-  it("uses report 218 for the shared FIR face", () => {
-    expect(MA_FIR_FACE_REPORT_ID).toBe(218);
+  it("uses dedicated submission and decision reports for the shared FIR face", () => {
+    expect(MA_FIR_FACE_REPORT_ID).toBe(250);
+    expect(MA_FIR_FACE_REPORT_IDS_BY_DATE).toEqual({ submission: 250, decision: 251 });
     expect(buildMATabularUrl("https://example.test/api/kpi", MA_FIR_FACE_REPORT_ID)).toBe(
-      "https://example.test/api/kpi/tabular/218"
+      "https://example.test/api/kpi/tabular/250"
     );
   });
 
