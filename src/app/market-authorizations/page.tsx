@@ -36,6 +36,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ActivityIcon,
   ArrowRightIcon,
@@ -228,6 +229,16 @@ function MarketAuthorizationsContent() {
         : undefined,
     [dateFiltersReady, dateFrom, dateTo, dateBasis]
   );
+
+  useEffect(() => {
+    if (!apiDateFilters) return;
+    const query = new URLSearchParams(searchParams.toString());
+    const product = activeProduct === "food" ? activeFoodSubTab : activeProduct;
+    new URLSearchParams(drilldownQuery(apiDateFilters, product)).forEach((value, key) => query.set(key, value));
+    if (query.toString() !== searchParams.toString()) {
+      router.replace(`/market-authorizations?${query}`, { scroll: false });
+    }
+  }, [apiDateFilters, activeProduct, activeFoodSubTab, searchParams, router]);
 
   const {
     kpiFaceDataById: apiMedicineData,
@@ -513,10 +524,16 @@ function MarketAuthorizationsContent() {
             {isFaceRefreshing && <div className="ma-filter-loading absolute inset-x-0 top-0 z-10 h-1 bg-linear-to-r from-violet-500 via-fuchsia-400 to-sky-400" />}
             <div className="grid gap-3 p-3 md:grid-cols-2 xl:grid-cols-[0.85fr_1fr_1fr_1.25fr_auto]">
               <div className="min-w-0">
-                <div className="flex h-11 items-center gap-2.5 rounded-xl border border-violet-200 bg-violet-50/70 pl-1.5 pr-3 text-sm dark:border-violet-900/70 dark:bg-violet-950/30">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-violet-600 text-white shadow-sm shadow-violet-600/25"><SlidersHorizontalIcon className="size-4 text-white" /></span>
-                  <span className="truncate">Dates follow each KPI</span>
-                </div>
+                <label htmlFor="ma-date-basis" className="sr-only">Filter records by date type</label>
+                <Select value={dateBasis} onValueChange={(value) => setDateBasis(value as MADateBasis)}>
+                  <SelectTrigger id="ma-date-basis" className="h-11 w-full rounded-xl border-violet-200 bg-violet-50/70 py-1 pl-1.5 pr-3 hover:border-violet-300 dark:border-violet-900/70 dark:bg-violet-950/30">
+                    <div className="flex min-w-0 items-center gap-2.5"><span className="grid size-8 shrink-0 place-items-center rounded-lg bg-violet-600 text-white shadow-sm shadow-violet-600/25"><SlidersHorizontalIcon className="size-4 text-white" /></span><SelectValue /></div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="submission">Submission date</SelectItem>
+                    <SelectItem value="decision">Decision date</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="relative min-w-0"><label htmlFor="ma-date-from" className="sr-only">Start date</label><span className="pointer-events-none absolute left-1.5 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-lg bg-sky-500 text-white shadow-sm shadow-sky-500/25"><CalendarDaysIcon className="size-4" /></span><Input id="ma-date-from" type="date" max={todayIso} className="h-11 rounded-xl border-sky-200 bg-sky-50/60 pl-11 focus-visible:border-sky-400 focus-visible:ring-sky-300 dark:border-sky-900/70 dark:bg-sky-950/25" value={draftDateFrom} onChange={(e) => { const next = clampIsoDateToToday(e.target.value, todayIso); const nextTo = draftDatesRef.current.to && draftDatesRef.current.to < next ? next : draftDatesRef.current.to; setDraftDateFrom(next); setDraftDateTo(nextTo); draftDatesRef.current = { from: next, to: nextTo }; scheduleDateFilterCommit(); }} onBlur={() => commitDateFilters(draftDatesRef.current.from, draftDatesRef.current.to)} /></div>
               <div className="relative min-w-0"><label htmlFor="ma-date-to" className="sr-only">End date</label><span className="pointer-events-none absolute left-1.5 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-lg bg-indigo-500 text-white shadow-sm shadow-indigo-500/25"><CalendarDaysIcon className="size-4" /></span><Input id="ma-date-to" type="date" max={todayIso} className="h-11 rounded-xl border-indigo-200 bg-indigo-50/60 pl-11 focus-visible:border-indigo-400 focus-visible:ring-indigo-300 dark:border-indigo-900/70 dark:bg-indigo-950/25" value={draftDateTo} onChange={(e) => { const next = clampIsoDateToToday(e.target.value, todayIso); const nextFrom = draftDatesRef.current.from && draftDatesRef.current.from > next ? next : draftDatesRef.current.from; setDraftDateFrom(nextFrom); setDraftDateTo(next); draftDatesRef.current = { from: nextFrom, to: next }; scheduleDateFilterCommit(); }} onBlur={() => commitDateFilters(draftDatesRef.current.from, draftDatesRef.current.to)} min={draftDateFrom || undefined} /></div>
@@ -525,8 +542,16 @@ function MarketAuthorizationsContent() {
             </div>
             <div className="flex min-h-10 w-full flex-wrap items-center justify-between gap-2 border-t border-violet-100 bg-violet-50/60 px-4 py-2 text-xs dark:border-violet-900/60 dark:bg-violet-950/25">
               <span className="flex items-center gap-2 text-slate-600 dark:text-slate-300"><span className={cn("size-2 rounded-full", isFaceRefreshing ? "animate-pulse bg-amber-500" : "bg-emerald-600")} />{isFaceRefreshing ? "Updating indicators…" : "Filters applied"}</span>
-              <span className="font-semibold text-violet-700 dark:text-violet-300">KPI 1–4: received by submission date · KPI 5: FIR created date · KPI 6–8: decision date · {formatPeriodDate(dateFrom)} → {formatPeriodDate(dateTo)}{searchTerm && ` · “${searchTerm}”`}</span>
+              <span className="font-semibold text-violet-700 dark:text-violet-300">{dateBasis === "submission" ? "Submission date" : "Decision date"} · {formatPeriodDate(dateFrom)} → {formatPeriodDate(dateTo)}{searchTerm && ` · “${searchTerm}”`}</span>
             </div>
+            <p className="border-t border-violet-100 px-4 py-2 text-xs text-slate-600 dark:border-violet-900/60 dark:text-slate-300">
+              {dateBasis === "submission"
+                ? activeProduct === "cosmetics"
+                  ? "Cosmetics KPIs use eligible completed or granted applications submitted in this period."
+                  : "KPI 1–4 count eligible applications received in this period, including those still pending. KPI 6–8 use the submission period of completed or granted applications."
+                : "KPI 1–4 and 6–8 use applications with a qualifying decision in this period. Applications without a decision date are excluded."}
+              {" "}KPI 5 uses its FIR report’s own date filter.
+            </p>
           </section>
 
           {(warningMessage ||
@@ -766,7 +791,7 @@ function MarketAuthorizationsContent() {
                   isLoading={maFacePending}
                   isEmpty={cardIsEmpty}
                   isNotApplicable={Boolean(card.notApplicableReason)}
-                  emptyMessage={firCard ? "No FIR responses in this period" : card.notApplicableReason ?? "No data found"}
+                  emptyMessage={firCard ? "FIR data unavailable for this period" : card.notApplicableReason ?? "No data found"}
                   onClick={card.drilldownId === "MA-KPI-5" ? undefined : () => handleCardClick(card.drilldownId)}
                 />
               );

@@ -1,0 +1,9 @@
+# Full catalogue backups and generated duplicate SQL stay on the local machine.
+/backup-*/
+/full-table-backup.zip
+/review-snapshot.json
+/fir-*-before.sql
+/report-*-before.sql
+/report-*-proposed.sql
+/apply.sql
+/rollback.sql

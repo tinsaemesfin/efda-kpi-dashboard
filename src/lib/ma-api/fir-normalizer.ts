@@ -19,7 +19,7 @@ export interface MAFirProductFace {
 }
 
 export interface MAFirNormalizeWarning {
-  code: "MISSING_REQUIRED_FIELD" | "INVALID_NUMERIC_VALUE" | "UNKNOWN_SUBMODULE" | "EMPTY_RESULT";
+  code: "MISSING_REQUIRED_FIELD" | "INVALID_NUMERIC_VALUE" | "UNKNOWN_SUBMODULE" | "NON_MA_MODULE" | "EMPTY_RESULT";
   message: string;
   rowIndex?: number;
 }
@@ -92,6 +92,12 @@ export function normalizeMAFirFaceData(rows: MAApiDataRow[]): MAFirNormalizeResu
         message: "Row skipped because module, product, or counts are missing.",
         rowIndex,
       });
+      return;
+    }
+
+    // A catalogue ID can be reassigned to GMP; those inspection rows cannot represent MA FIRs.
+    if (["LOCAL", "ABROAD", "WAIVER"].includes(String(row.module_code).toUpperCase())) {
+      warnings.push({ code: "NON_MA_MODULE", message: "Inspection data cannot be used as MA FIR data.", rowIndex });
       return;
     }
 
