@@ -980,7 +980,7 @@ export function GMPDrillDownModal({ open, onOpenChange, data }: GMPDrillDownModa
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[calc(90dvh/var(--app-zoom,1))] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{data.kpiName}</DialogTitle>
           <DialogDescription>

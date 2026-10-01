@@ -108,7 +108,7 @@ export function LoginLanding() {
         : null;
 
   return (
-    <main className="relative isolate flex min-h-dvh w-full bg-efda-background lg:h-dvh lg:overflow-hidden">
+    <main className="relative isolate flex min-h-viewport w-full bg-efda-background lg:h-viewport lg:overflow-hidden">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_85%_10%,rgba(124,58,237,0.10),transparent_45%),radial-gradient(circle_at_70%_95%,rgba(37,99,235,0.08),transparent_40%)]"

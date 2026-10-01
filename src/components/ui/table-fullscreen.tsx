@@ -50,7 +50,7 @@ export function TableFullscreen({
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
-          className="flex h-[100dvh] max-h-[100dvh] w-[100vw] max-w-none translate-x-[-50%] translate-y-[-50%] flex-col gap-0 rounded-none border-0 p-0 sm:rounded-none"
+          className="flex h-viewport max-h-viewport w-viewport max-w-none translate-x-[-50%] translate-y-[-50%] flex-col gap-0 rounded-none border-0 p-0 sm:rounded-none"
           {...(!description ? { "aria-describedby": undefined } : {})}
         >
           <DialogHeader className="shrink-0 flex-row items-center justify-between space-y-0 border-b px-4 py-3 pr-14 text-left sm:px-6">

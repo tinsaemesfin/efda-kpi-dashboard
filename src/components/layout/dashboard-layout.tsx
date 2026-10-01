@@ -10,7 +10,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <SidebarProvider data-dashboard-shell className="fixed inset-0 h-dvh min-h-0 min-w-0 overflow-clip">
+    <SidebarProvider data-dashboard-shell className="fixed inset-0 h-viewport min-h-0 min-w-0 overflow-clip">
       <div className="flex h-full min-h-0 w-full min-w-0 overflow-clip bg-efda-background">
         <a
           href="#dashboard-main-content"
