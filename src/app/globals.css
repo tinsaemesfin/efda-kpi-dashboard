@@ -3,6 +3,53 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Zoom compensation (src/lib/zoom-bootstrap.ts): at 110-150% browser zoom the root is
+   scaled back so the page keeps its 100% layout. Media queries still see the narrower
+   zoomed viewport, so breakpoints also match the breakpoints listed in data-app-bp. */
+@custom-variant sm {
+  @media (width >= 40rem) { @slot; }
+  :where(:root[data-app-bp~="sm"]) & { @slot; }
+}
+@custom-variant md {
+  @media (width >= 48rem) { @slot; }
+  :where(:root[data-app-bp~="md"]) & { @slot; }
+}
+@custom-variant lg {
+  @media (width >= 64rem) { @slot; }
+  :where(:root[data-app-bp~="lg"]) & { @slot; }
+}
+@custom-variant xl {
+  @media (width >= 80rem) { @slot; }
+  :where(:root[data-app-bp~="xl"]) & { @slot; }
+}
+@custom-variant 2xl {
+  @media (width >= 96rem) { @slot; }
+  :where(:root[data-app-bp~="2xl"]) & { @slot; }
+}
+
+/* Viewport units are not scaled up by root zoom; divide by it to fill the screen. */
+@utility h-viewport {
+  height: calc(100dvh / var(--app-zoom, 1));
+}
+@utility min-h-viewport {
+  min-height: calc(100dvh / var(--app-zoom, 1));
+}
+@utility max-h-viewport {
+  max-height: calc(100dvh / var(--app-zoom, 1));
+}
+@utility w-viewport {
+  width: calc(100vw / var(--app-zoom, 1));
+}
+
+/* Radix/Floating UI positions popovers in screen pixels. Undo the root zoom on the
+   positioned wrapper so its offsets land correctly, then restore it on the content. */
+[data-radix-popper-content-wrapper] {
+  zoom: calc(1 / var(--app-zoom, 1));
+}
+[data-radix-popper-content-wrapper] > * {
+  zoom: var(--app-zoom, 1);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -190,7 +237,7 @@ body:has([data-dashboard-shell]) {
 }
 
 [data-dashboard-shell] [data-slot="sidebar-container"] {
-  height: 100dvh;
+  height: calc(100dvh / var(--app-zoom, 1));
 }
 
 /* Recharts defaults use light surfaces and fixed gray text. */

@@ -374,7 +374,7 @@ export function MAKPI1Modal({ open, onOpenChange }: MAKPI1ModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto p-0">
+      <DialogContent className="max-w-6xl max-h-[calc(90dvh/var(--app-zoom,1))] overflow-y-auto p-0">
         <DialogHeader>
           <div className="border-b bg-linear-to-r from-indigo-50 via-background to-cyan-50 px-6 py-5 dark:from-indigo-950/30 dark:to-cyan-950/20">
             <DialogTitle className="flex items-center gap-2 text-lg">

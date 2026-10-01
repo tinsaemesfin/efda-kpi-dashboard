@@ -12,7 +12,7 @@ type AuthStatusScreenProps = {
 export function AuthStatusScreen({ title, description, variant = "loading", action }: AuthStatusScreenProps) {
   const isError = variant === "error";
   return (
-    <main className="relative isolate grid min-h-dvh place-items-center bg-efda-background px-5">
+    <main className="relative isolate grid min-h-viewport place-items-center bg-efda-background px-5">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(124,58,237,0.10),transparent_55%)]"
