@@ -13,6 +13,15 @@ const screenshotRows: MAApiDataRow[] = [
 ];
 
 describe("normalizeMAFirFaceData", () => {
+  it("rejects GMP inspection rows when the configured report ID has been reassigned", () => {
+    const result = normalizeMAFirFaceData([
+      { module_code: "LOCAL", submoduletype_code: "MDCN", on_time_count: 2, total_count: 2, percentage: 100 },
+      { module_code: "ABROAD", submoduletype_code: "MDCN", on_time_count: 16, total_count: 16, percentage: 100 },
+    ]);
+    expect(result.byProduct.medicine).toBeUndefined();
+    expect(result.totals.acceptedRows).toBe(0);
+    expect(result.warnings.some(warning => warning.code === "NON_MA_MODULE")).toBe(true);
+  });
   it("sums every application type for a product and keeps the lanes separate", () => {
     const result = normalizeMAFirFaceData(screenshotRows);
     const medicine = result.byProduct.medicine;

@@ -228,8 +228,8 @@ export function MADrillDownDetail({
 }: MADrillDownDetailProps) {
   const filterChipLabels = useMemo(() => {
     const labels = getMAApiFilterChipLabels(filters);
-    if (labels.length > 0) {
-      labels[0] = data.kpiId === "MA-KPI-8" ? "Filtered by grant decision date" : "Filtered by submission date";
+    if (labels.length > 0 && data.kpiId === "MA-KPI-8" && filters?.dateBasis === "decision") {
+      labels[0] = "Filtered by grant decision date";
     }
     return labels;
   }, [filters, data.kpiId]);
@@ -324,7 +324,7 @@ export function MADrillDownDetail({
                     )}
                   </div>
                   <p className="mt-2 max-w-3xl text-sm">
-                    Percentage means on-time cases divided by all completed cases. The day SLA is supplied by the report and may vary by pathway; the selected date basis defines which cases enter the period.
+                    Percentage means on-time completed cases divided by eligible applications in the selected date cohort. Decision date selects applications with a qualifying decision in the period. The day SLA may vary by pathway.
                   </p>
                 </div>
                 {showLoading && (
