@@ -246,7 +246,7 @@ export function mergeParCardsWithStrictFaceData(
 }
 
 /**
- * MA-KPI-5 from tabular report 218.
+ * MA-KPI-5 from the FIR report for the selected date basis.
  * The card receives only the product currently selected on the page.
  */
 export function mergeFirCardsWithStrictFaceData(

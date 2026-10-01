@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { normalizeMAFirFaceData } from "@/lib/ma-api/fir-normalizer";
 import type { MAApiDataRow } from "@/types/ma-api";
+import deployed from "../../../analysis/ma-fir-restoration-2026-10-01/deployment.json";
 
 const screenshotRows: MAApiDataRow[] = [
   { module_code: "REN", submoduletype_code: "MD", target_days: 30, on_time_count: 991, total_count: 1053, percentage: 94.11 },
@@ -13,6 +14,20 @@ const screenshotRows: MAApiDataRow[] = [
 ];
 
 describe("normalizeMAFirFaceData", () => {
+  it("displays verified database totals for both restored FIR date cohorts", () => {
+    const submission = normalizeMAFirFaceData(deployed.results[0].rows as unknown as MAApiDataRow[]);
+    const decision = normalizeMAFirFaceData(deployed.results[1].rows as unknown as MAApiDataRow[]);
+    expect(submission.byProduct.medicine).toMatchObject({ numerator: 871, denominator: 1256, targetDays: 30 });
+    expect(submission.byProduct.medicalDevice).toMatchObject({ numerator: 1138, denominator: 1454 });
+    expect(submission.byProduct.food).toMatchObject({ numerator: 332, denominator: 402 });
+    expect(submission.byProduct.cosmetics).toMatchObject({ numerator: 1, denominator: 1 });
+    expect(decision.byProduct.medicine).toMatchObject({ numerator: 962, denominator: 1695, targetDays: 30 });
+    expect(decision.byProduct.medicalDevice).toMatchObject({ numerator: 908, denominator: 1224 });
+    expect(decision.byProduct.food).toMatchObject({ numerator: 236, denominator: 289 });
+    expect(decision.byProduct.cosmetics).toBeUndefined();
+    expect(submission.totals.acceptedRows).toBe(10);
+    expect(decision.totals.acceptedRows).toBe(9);
+  });
   it("rejects GMP inspection rows when the configured report ID has been reassigned", () => {
     const result = normalizeMAFirFaceData([
       { module_code: "LOCAL", submoduletype_code: "MDCN", on_time_count: 2, total_count: 2, percentage: 100 },
