@@ -1,4 +1,5 @@
-import type { GMPApiRow, GMPFaceMetric, GMPFaceSegment, GMPKPIId, GMPReportResult } from "@/types/gmp-api";
+import { GMP_OVERVIEW_GROUPS } from "@/lib/gmp-api/constants";
+import type { GMPApiRow, GMPFaceMetric, GMPFaceSegment, GMPKPIId, GMPOverviewGroup, GMPReportResult } from "@/types/gmp-api";
 
 const numberValue = (value: unknown): number | undefined => {
   if (value === null || value === undefined || value === "") return undefined;
@@ -76,4 +77,26 @@ export function normalizeGMPFaceMetric(kpiId: GMPKPIId, reports: GMPReportResult
     reports,
     segments,
   };
+}
+
+export function normalizeGMPOverview(reports: GMPReportResult[]): GMPOverviewGroup[] {
+  const byId = new Map(reports.map((report) => [report.reportId, report]));
+  return GMP_OVERVIEW_GROUPS.map((group) => {
+    const items = group.reports.map(({ id, scope }) => {
+      const report = byId.get(id);
+      if (!report) return { reportId: id, scope, error: "Report not loaded" };
+      if (report.error) return { reportId: id, scope, error: report.error };
+      const row = displayRows(report)[0];
+      const value = row ? numberValue(row.total_count) ?? numberValue(row.numerator) : undefined;
+      return { reportId: id, scope, value, error: value === undefined ? "No data found" : undefined };
+    });
+    const live = items.filter((item) => item.value !== undefined);
+    return {
+      id: group.id,
+      title: group.title,
+      caption: group.caption,
+      total: live.length ? live.reduce((sum, item) => sum + (item.value ?? 0), 0) : undefined,
+      items,
+    };
+  });
 }

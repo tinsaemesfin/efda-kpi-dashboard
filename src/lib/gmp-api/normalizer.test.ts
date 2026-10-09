@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeGMPFaceMetric } from "@/lib/gmp-api/normalizer";
+import { normalizeGMPFaceMetric, normalizeGMPOverview } from "@/lib/gmp-api/normalizer";
 import type { GMPReportResult } from "@/types/gmp-api";
 
 const report = (reportId: number, label: string, rows: GMPReportResult["rows"]): GMPReportResult => ({ reportId, label, rows });
@@ -69,3 +69,33 @@ describe("normalizeGMPFaceMetric", () => {
    ])]);
    expect(metric.segments[0]).toMatchObject({ value: 12, unit: "days" });
  });
+
+describe("normalizeGMPOverview", () => {
+  const count = (reportId: number, value: string | number) =>
+    report(reportId, `Report ${reportId}`, [{ category_name: "Overall", total_count: value, numerator: value }]);
+
+  it("groups all-time counts by scope and sums live values", () => {
+    const groups = normalizeGMPOverview([
+      count(218, "12"), count(219, 30), count(220, "8"),
+      count(224, 5), { reportId: 225, label: "Assigned · Abroad", rows: [], error: "HTTP 500" },
+      count(237, 0), count(238, 4),
+    ]);
+
+    expect(groups.map((group) => group.id)).toEqual(["approved", "assigned", "capa"]);
+    expect(groups[0]).toMatchObject({
+      title: "Approved GMP",
+      total: 50,
+      items: [{ scope: "Local", value: 12 }, { scope: "Abroad", value: 30 }, { scope: "Waiver", value: 8 }],
+    });
+    expect(groups[1].total).toBe(5);
+    expect(groups[1].items[1]).toMatchObject({ scope: "Abroad", error: "HTTP 500" });
+    expect(groups[1].items[1].value).toBeUndefined();
+    expect(groups[2]).toMatchObject({ total: 4, items: [{ value: 0 }, { value: 4 }] });
+  });
+
+  it("leaves the total empty when no report in a group has data", () => {
+    const [approved] = normalizeGMPOverview([]);
+    expect(approved.total).toBeUndefined();
+    expect(approved.items.every((item) => item.value === undefined)).toBe(true);
+  });
+});

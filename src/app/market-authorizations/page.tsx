@@ -15,6 +15,7 @@ import {
 } from "@/data/ma-dummy-data";
 import { maDrillDownData } from "@/data/ma-drilldown-data";
 import {
+  useMAFirFaceFacade,
   useMAKPIDataCosmeticsFacade,
   useMAKPIDataFoodFacade,
   useMAKPIDataFoodNotificationFacade,
@@ -25,6 +26,7 @@ import {
 } from "@/hooks/useMAApi";
 import {
   mergeCosmeticsCardsWithStrictFaceData,
+  mergeFirCardsWithStrictFaceData,
   mergeFoodCardsWithStrictFaceData,
   mergeMedicalDeviceCardsWithStrictFaceData,
   mergeMedicineCardsWithAllFaceData,
@@ -53,7 +55,7 @@ import {
   SparklesIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { MADateBasis, MAKPIId } from "@/types/ma-api";
+import type { MADateBasis, MAKPIId, MAReportProduct } from "@/types/ma-api";
 import {
   clampIsoDateToToday,
   getLocalTodayIso,
@@ -136,7 +138,7 @@ const MA_TARGET_DAYS_BY_KPI: Record<string, number> = {
   "MA-KPI-2": 90,
   "MA-KPI-3": 60,
   "MA-KPI-4": 60,
-  "MA-KPI-5": 60,
+  "MA-KPI-5": 30,
   "MA-KPI-6": 270,
   "MA-KPI-7": 270,
   "MA-KPI-8": 60,
@@ -151,6 +153,10 @@ function isApiKpiId(kpiId: string): kpiId is MAKPIId {
 
 function isTimeKpiId(kpiId: string): kpiId is (typeof TIME_KPI_IDS)[number] {
   return TIME_KPI_IDS.includes(kpiId as (typeof TIME_KPI_IDS)[number]);
+}
+
+function isFirKpiId(kpiId: string): boolean {
+  return kpiId === "MA-KPI-5";
 }
 
 function isParKpiId(kpiId: string): boolean {
@@ -223,6 +229,16 @@ function MarketAuthorizationsContent() {
         : undefined,
     [dateFiltersReady, dateFrom, dateTo, dateBasis]
   );
+
+  useEffect(() => {
+    if (!apiDateFilters) return;
+    const query = new URLSearchParams(searchParams.toString());
+    const product = activeProduct === "food" ? activeFoodSubTab : activeProduct;
+    new URLSearchParams(drilldownQuery(apiDateFilters, product)).forEach((value, key) => query.set(key, value));
+    if (query.toString() !== searchParams.toString()) {
+      router.replace(`/market-authorizations?${query}`, { scroll: false });
+    }
+  }, [apiDateFilters, activeProduct, activeFoodSubTab, searchParams, router]);
 
   const {
     kpiFaceDataById: apiMedicineData,
@@ -299,6 +315,14 @@ function MarketAuthorizationsContent() {
   const { parData: apiFoodNotificationParData, loading: apiFoodNotificationParLoading, error: apiFoodNotificationParError } =
     useMAProductParFaceFacade("foodNotification", apiDateFilters, dateFiltersReady);
 
+  const {
+    firFace: apiFirFace,
+    loading: apiFirLoading,
+    error: apiFirError,
+  } = useMAFirFaceFacade(apiDateFilters, dateFiltersReady);
+
+  const firProduct: MAReportProduct = activeProduct === "food" ? activeFoodSubTab : activeProduct;
+
   const isFoodFrontApiView =
     activeProduct === "food" && activeFoodSubTab === "food";
   const isFoodNotificationFaceApiView =
@@ -311,54 +335,46 @@ function MarketAuthorizationsContent() {
       ? foodSubTabs.find((tab) => tab.key === activeFoodSubTab)?.label ?? "Food"
       : productTabs.find((tab) => tab.key === activeProduct)?.label;
 
-  /** Medicine: /8 (KPI 1–4), /26 (KPI 6–7), /29 (KPI 8 PAR); Food/MD/CO also merge PAR faces. */
+  /** Medicine: /8 (KPI 1–4), /26 (KPI 6–7), /29 (KPI 8 PAR); Food/MD/CO also merge PAR faces. FIR uses /218. */
   const mergedCards = useMemo(() => {
     const seedCards = activeSeed.cards;
-    if (activeProduct === "medicine") {
-      return mergeMedicineCardsWithAllFaceData(
-        seedCards,
-        apiMedicineData,
-        apiMedicineTimeData,
-        apiMedicineParData
-      );
-    }
-    if (isFoodFrontApiView) {
-      return mergeParCardsWithStrictFaceData(
-        mergeMedicineTimeCardsWithStrictFaceData(
-          mergeFoodCardsWithStrictFaceData(seedCards, apiFoodData),
-          apiFoodTimeData
-        ),
-        apiFoodParData
-      );
-    }
-    if (isFoodNotificationFaceApiView) {
-      return mergeParCardsWithStrictFaceData(
-        mergeMedicineTimeCardsWithStrictFaceData(
-          mergeFoodCardsWithStrictFaceData(seedCards, apiFoodNotificationData),
-          apiFoodNotificationTimeData
-        ),
-        apiFoodNotificationParData
-      );
-    }
-    if (isMedicalDeviceFaceApiView) {
-      return mergeParCardsWithStrictFaceData(
-        mergeMedicineTimeCardsWithStrictFaceData(
-          mergeMedicalDeviceCardsWithStrictFaceData(seedCards, apiMedicalDeviceData),
-          apiMedicalDeviceTimeData
-        ),
-        apiMedicalDeviceParData
-      );
-    }
-    if (isCosmeticsFaceApiView) {
-      return mergeParCardsWithStrictFaceData(
-        mergeMedicineTimeCardsWithStrictFaceData(
-          mergeCosmeticsCardsWithStrictFaceData(seedCards, apiCosmeticsData),
-          apiCosmeticsTimeData
-        ),
-        apiCosmeticsParData
-      );
-    }
-    return seedCards;
+    const withFaces =
+      activeProduct === "medicine"
+        ? mergeMedicineCardsWithAllFaceData(seedCards, apiMedicineData, apiMedicineTimeData, apiMedicineParData)
+        : isFoodFrontApiView
+          ? mergeParCardsWithStrictFaceData(
+              mergeMedicineTimeCardsWithStrictFaceData(
+                mergeFoodCardsWithStrictFaceData(seedCards, apiFoodData),
+                apiFoodTimeData
+              ),
+              apiFoodParData
+            )
+          : isFoodNotificationFaceApiView
+            ? mergeParCardsWithStrictFaceData(
+                mergeMedicineTimeCardsWithStrictFaceData(
+                  mergeFoodCardsWithStrictFaceData(seedCards, apiFoodNotificationData),
+                  apiFoodNotificationTimeData
+                ),
+                apiFoodNotificationParData
+              )
+            : isMedicalDeviceFaceApiView
+              ? mergeParCardsWithStrictFaceData(
+                  mergeMedicineTimeCardsWithStrictFaceData(
+                    mergeMedicalDeviceCardsWithStrictFaceData(seedCards, apiMedicalDeviceData),
+                    apiMedicalDeviceTimeData
+                  ),
+                  apiMedicalDeviceParData
+                )
+              : isCosmeticsFaceApiView
+                ? mergeParCardsWithStrictFaceData(
+                    mergeMedicineTimeCardsWithStrictFaceData(
+                      mergeCosmeticsCardsWithStrictFaceData(seedCards, apiCosmeticsData),
+                      apiCosmeticsTimeData
+                    ),
+                    apiCosmeticsParData
+                  )
+                : seedCards;
+    return mergeFirCardsWithStrictFaceData(withFaces, firProduct, apiFirFace);
   }, [
     activeProduct,
     activeSeed.cards,
@@ -381,6 +397,8 @@ function MarketAuthorizationsContent() {
     isFoodNotificationFaceApiView,
     isMedicalDeviceFaceApiView,
     isCosmeticsFaceApiView,
+    apiFirFace,
+    firProduct,
   ]);
 
   const handleCardClick = (kpiId: string) => {
@@ -418,6 +436,7 @@ function MarketAuthorizationsContent() {
 
   const isFaceRefreshing =
     !dateFiltersReady ||
+    apiFirLoading ||
     (activeProduct === "medicine" &&
       (apiMedicineLoading || apiMedicineTimeLoading || apiMedicineParLoading)) ||
     (isFoodFrontApiView && (apiFoodLoading || apiFoodTimeLoading || apiFoodParLoading)) ||
@@ -525,9 +544,18 @@ function MarketAuthorizationsContent() {
               <span className="flex items-center gap-2 text-slate-600 dark:text-slate-300"><span className={cn("size-2 rounded-full", isFaceRefreshing ? "animate-pulse bg-amber-500" : "bg-emerald-600")} />{isFaceRefreshing ? "Updating indicators…" : "Filters applied"}</span>
               <span className="font-semibold text-violet-700 dark:text-violet-300">{dateBasis === "submission" ? "Submission date" : "Decision date"} · {formatPeriodDate(dateFrom)} → {formatPeriodDate(dateTo)}{searchTerm && ` · “${searchTerm}”`}</span>
             </div>
+            <p className="border-t border-violet-100 px-4 py-2 text-xs text-slate-600 dark:border-violet-900/60 dark:text-slate-300">
+              {dateBasis === "submission"
+                ? activeProduct === "cosmetics"
+                  ? "Cosmetics KPIs use eligible completed or granted applications submitted in this period."
+                  : "KPI 1–4 count eligible applications received in this period, including those still pending. KPI 6–8 use the submission period of completed or granted applications."
+                : "KPI 1–4 and 6–8 use applications with a qualifying decision in this period. Applications without a decision date are excluded."}
+              {" "}FIR performance uses the same selected date basis and period.
+            </p>
           </section>
 
           {(warningMessage ||
+            apiFirError ||
             (activeProduct === "medicine" &&
               (apiMedicineError || apiMedicineTimeError || apiMedicineParError)) ||
             (isFoodFrontApiView && (apiFoodError || apiFoodTimeError || apiFoodParError)) ||
@@ -538,22 +566,22 @@ function MarketAuthorizationsContent() {
               <CardContent className="pt-4 text-sm text-amber-800 dark:text-amber-200">
                 {activeProduct === "medicine" &&
                 (apiMedicineError || apiMedicineTimeError || apiMedicineParError)
-                  ? [apiMedicineError?.message, apiMedicineTimeError?.message, apiMedicineParError?.message]
+                  ? [apiMedicineError?.message, apiMedicineTimeError?.message, apiMedicineParError?.message, apiFirError?.message]
                       .filter(Boolean)
                       .join(" · ")
                   : isFoodFrontApiView && (apiFoodError || apiFoodTimeError || apiFoodParError)
-                    ? [apiFoodError?.message, apiFoodTimeError?.message, apiFoodParError?.message].filter(Boolean).join(" · ")
+                    ? [apiFoodError?.message, apiFoodTimeError?.message, apiFoodParError?.message, apiFirError?.message].filter(Boolean).join(" · ")
                     : isFoodNotificationFaceApiView && (apiFoodNotificationError || apiFoodNotificationTimeError || apiFoodNotificationParError)
-                      ? [apiFoodNotificationError?.message, apiFoodNotificationTimeError?.message, apiFoodNotificationParError?.message].filter(Boolean).join(" · ")
+                      ? [apiFoodNotificationError?.message, apiFoodNotificationTimeError?.message, apiFoodNotificationParError?.message, apiFirError?.message].filter(Boolean).join(" · ")
                       : isMedicalDeviceFaceApiView && (apiMedicalDeviceError || apiMedicalDeviceTimeError || apiMedicalDeviceParError)
-                        ? [apiMedicalDeviceError?.message, apiMedicalDeviceTimeError?.message, apiMedicalDeviceParError?.message]
+                        ? [apiMedicalDeviceError?.message, apiMedicalDeviceTimeError?.message, apiMedicalDeviceParError?.message, apiFirError?.message]
                             .filter(Boolean)
                             .join(" · ")
                         : isCosmeticsFaceApiView && (apiCosmeticsError || apiCosmeticsTimeError || apiCosmeticsParError)
-                          ? [apiCosmeticsError?.message, apiCosmeticsTimeError?.message, apiCosmeticsParError?.message]
+                          ? [apiCosmeticsError?.message, apiCosmeticsTimeError?.message, apiCosmeticsParError?.message, apiFirError?.message]
                               .filter(Boolean)
                               .join(" · ")
-                          : warningMessage}
+                          : [warningMessage, apiFirError?.message].filter(Boolean).join(" · ")}
               </CardContent>
             </Card>
           )}
@@ -567,7 +595,8 @@ function MarketAuthorizationsContent() {
                   <p className="text-xs text-muted-foreground">{visibleCards.length} indicators · select a card to explore details</p>
                 </div>
               </div>
-              {(activeProduct === "medicine" &&
+              {apiFirLoading ||
+              (activeProduct === "medicine" &&
                 (apiMedicineLoading || apiMedicineTimeLoading || apiMedicineParLoading)) ||
               (isFoodFrontApiView && (apiFoodLoading || apiFoodTimeLoading || apiFoodParLoading)) ||
               (isFoodNotificationFaceApiView && (apiFoodNotificationLoading || apiFoodNotificationTimeLoading || apiFoodNotificationParLoading)) ||
@@ -610,7 +639,9 @@ function MarketAuthorizationsContent() {
             )}
           >
             {visibleCards.map((card, index) => {
+              const firCard = isFirKpiId(card.drilldownId);
               const isLiveFaceSlot =
+                firCard ||
                 (activeProduct === "medicine" &&
                   (isApiKpiId(card.drilldownId) ||
                     isTimeKpiId(card.drilldownId) ||
@@ -628,6 +659,7 @@ function MarketAuthorizationsContent() {
               const maFacePending =
                 isLiveFaceSlot &&
                 (!dateFiltersReady ||
+                  (firCard && apiFirLoading) ||
                   (activeProduct === "medicine" &&
                     isApiKpiId(card.drilldownId) &&
                     apiMedicineLoading) ||
@@ -686,8 +718,9 @@ function MarketAuthorizationsContent() {
                 isCosmeticsFaceApiView &&
                 isCosmeticsThreeSlotFaceKpi(card.drilldownId) &&
                 Boolean(card.faceDataMissing);
+              const strictFirFaceEmpty = firCard && Boolean(card.faceDataMissing);
               const cardIsEmpty =
-                card.drilldownId === "MA-KPI-5" ||
+                strictFirFaceEmpty ||
                 apiKpi14StrictEmpty ||
                 strictTimeFaceEmpty ||
                 strictParFaceEmpty ||
@@ -698,10 +731,11 @@ function MarketAuthorizationsContent() {
               const showsLiveFaceMetric =
                 !maFacePending &&
                 !cardIsEmpty &&
-                ((activeProduct === "medicine" &&
-                  (isApiKpiId(card.drilldownId) ||
-                    isTimeKpiId(card.drilldownId) ||
-                    isParKpiId(card.drilldownId))) ||
+                (firCard ||
+                  (activeProduct === "medicine" &&
+                    (isApiKpiId(card.drilldownId) ||
+                      isTimeKpiId(card.drilldownId) ||
+                      isParKpiId(card.drilldownId))) ||
                   (isFoodFrontApiView &&
                     (isApiKpiId(card.drilldownId) || isTimeKpiId(card.drilldownId) || isParKpiId(card.drilldownId))) ||
                   (isFoodNotificationFaceApiView &&
@@ -716,7 +750,8 @@ function MarketAuthorizationsContent() {
               const strictLiveSlotEmpty =
                 cardIsEmpty &&
                 !card.notApplicableReason &&
-                (apiKpi14StrictEmpty ||
+                (strictFirFaceEmpty ||
+                  apiKpi14StrictEmpty ||
                   strictTimeFaceEmpty ||
                   strictParFaceEmpty ||
                   strictFoodFaceEmpty ||
@@ -726,7 +761,9 @@ function MarketAuthorizationsContent() {
                 cardIsEmpty || card.notApplicableReason
                   ? undefined
                   : showsLiveFaceMetric
-                    ? "Values from the reporting API for this product line."
+                    ? firCard
+                      ? `FIR response reached the team leader within the target for ${activeProductLabel}.`
+                      : "Values from the reporting API for this product line."
                     : `${activeProductLabel} view (sample data)`;
               const targetDays = card.targetDays ?? MA_TARGET_DAYS_BY_KPI[card.drilldownId];
               return (
@@ -754,7 +791,7 @@ function MarketAuthorizationsContent() {
                   isLoading={maFacePending}
                   isEmpty={cardIsEmpty}
                   isNotApplicable={Boolean(card.notApplicableReason)}
-                  emptyMessage={card.drilldownId === "MA-KPI-5" ? "FIR reporting is not connected yet" : card.notApplicableReason ?? "No data found"}
+                  emptyMessage={firCard ? "FIR data unavailable for this period" : card.notApplicableReason ?? "No data found"}
                   onClick={card.drilldownId === "MA-KPI-5" ? undefined : () => handleCardClick(card.drilldownId)}
                 />
               );

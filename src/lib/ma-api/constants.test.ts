@@ -26,11 +26,21 @@ import {
   MA_PRODUCT_STANDARD_DRILLDOWN_REPORT_IDS_BY_DATE,
   MA_PRODUCT_TIME_REPORT_IDS_BY_DATE,
   MA_PRODUCT_PAR_REPORT_IDS_BY_DATE,
+  MA_FIR_FACE_REPORT_ID,
+  MA_FIR_FACE_REPORT_IDS_BY_DATE,
   buildMAFaceRequestBody,
   buildMATabularUrl,
 } from "@/lib/ma-api/constants";
 
 describe("MA tabular report ids", () => {
+  it("uses dedicated submission and decision reports for the shared FIR face", () => {
+    expect(MA_FIR_FACE_REPORT_ID).toBe(250);
+    expect(MA_FIR_FACE_REPORT_IDS_BY_DATE).toEqual({ submission: 250, decision: 251 });
+    expect(buildMATabularUrl("https://example.test/api/kpi", MA_FIR_FACE_REPORT_ID)).toBe(
+      "https://example.test/api/kpi/tabular/250"
+    );
+  });
+
   it("uses report 18 only for the Food New MA drilldown", () => {
     expect(MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID).toBe(9);
     expect(MA_TABULAR_FOOD_KPI1_DRILLDOWN_REPORT_ID).toBe(18);

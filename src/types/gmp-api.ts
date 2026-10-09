@@ -56,3 +56,18 @@ export interface GMPFaceSegment {
   denominator?: number;
   state: "live" | "work-in-progress";
 }
+
+export interface GMPOverviewItem {
+  reportId: number;
+  scope: "Local" | "Abroad" | "Waiver";
+  value?: number;
+  error?: string;
+}
+
+export interface GMPOverviewGroup {
+  id: string;
+  title: string;
+  caption: string;
+  total?: number;
+  items: GMPOverviewItem[];
+}

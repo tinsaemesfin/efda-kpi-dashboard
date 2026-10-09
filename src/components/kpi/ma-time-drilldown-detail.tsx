@@ -2,10 +2,10 @@
 
 import { downloadCsv } from "@/lib/export-csv";
 
-import { TimeDistributionChart } from "./time-distribution-chart";
-import { combineTimeDistributions, timeComparison, timeDistribution } from "@/lib/ma-api/distribution";
+import { combineTimeDistributions } from "@/lib/ma-api/distribution";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState } from "react";
+import { DataChart } from "@/components/charts/data-chart";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TableFullscreen } from "@/components/ui/table-fullscreen";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MALiveIndicator } from "@/components/kpi/ma-live-indicator";
@@ -34,7 +35,6 @@ import {
 import { getMAApiFilterChipLabels } from "@/lib/ma-api/filter-labels";
 import {
   BarChart3Icon,
-  PieChartIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   DownloadIcon,
@@ -48,42 +48,7 @@ import {
   InfoIcon,
   TableIcon,
 } from "lucide-react";
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip as RechartsTooltip,
-  PieChart,
-  Pie,
-  Cell,
-  ReferenceLine,
-} from "recharts";
-
-type ChartType = "box" | "comparison" | "volume" | "bar" | "horizontalBar" | "doughnut";
 type ViewMode = "chart" | "table";
-
-interface ChartOption {
-  id: ChartType;
-  label: string;
-  icon: React.ReactNode;
-}
-
-const CHART_OPTIONS: ChartOption[] = [
-  { id: "box", label: "Box plot", icon: <BarChart3Icon className="h-3.5 w-3.5" /> },
-  { id: "comparison", label: "Mean / median", icon: <ActivityIcon className="h-3.5 w-3.5" /> },
-  { id: "volume", label: "Volume", icon: <BarChart3Icon className="h-3.5 w-3.5" /> },
-  { id: "bar", label: "Bar", icon: <BarChart3Icon className="h-3.5 w-3.5" /> },
-  { id: "horizontalBar", label: "H-Bar", icon: <BarChart3Icon className="h-3.5 w-3.5 rotate-90" /> },
-  { id: "doughnut", label: "Volume share", icon: <PieChartIcon className="h-3.5 w-3.5" /> },
-];
-
-const PALETTE = [
-  "#6366f1", "#22c55e", "#f59e0b", "#0ea5e9", "#ef4444",
-  "#8b5cf6", "#14b8a6", "#f97316", "#ec4899", "#64748b",
-];
 
 const EXTREME_OUTLIER_TOOLTIP =
   "Cases where decision time exceeds 200% of the target days (2× target) are classified as extreme outliers.";
@@ -123,19 +88,6 @@ function formatPct(value: number | null | undefined): string {
   return `${value.toFixed(1)}%`;
 }
 
-function daysBarColor(days: number, targetDays: number): string {
-  if (days <= targetDays) return "#22c55e";
-  if (days <= targetDays * 1.5) return "#f59e0b";
-  return "#ef4444";
-}
-
-function pickBestFitChart(view: MATimeDrillDownCategoryView, metric: "median" | "average"): ChartType {
-  if (view.items.some(item => timeDistribution(item, metric))) return "box";
-  if (view.items.some(item => timeComparison(item, metric))) return "comparison";
-  if (!view.items.some(item => item.decisionDays != null && Number.isFinite(item.decisionDays))) return "volume";
-  return view.items.length > 5 ? "horizontalBar" : "bar";
-}
-
 function ColumnHeaderWithTooltip({
   label,
   tooltip,
@@ -162,53 +114,6 @@ function ColumnHeaderWithTooltip({
       </Tooltip>
     </div>
   );
-}
-
-function buildTimeChartTooltip(
-  metricType: "median" | "average",
-  metricLabel: string
-) {
-  return function TimeChartTooltip({
-    active,
-    payload,
-  }: {
-    active?: boolean;
-    payload?: Array<{ payload?: TimeChartRow }>;
-  }) {
-    if (!active || !payload?.length) return null;
-    const row = payload[0]?.payload;
-    if (!row) return null;
-
-    return (
-      <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-md">
-        <p className="mb-1 font-semibold">{row.name}</p>
-        <p>
-          {metricLabel}: <span className="font-medium">{formatDays(row.decisionDays)} days</span>
-        </p>
-        <p>Row SLA: {formatDays(row.targetDays)} days</p>
-        <p>
-          On-time: {row.onTime}/{row.total} ({formatPct(row.percentage)})
-        </p>
-        {metricType === "average" && (
-          <>
-            <p>Max days: {formatDays(row.maxDecisionDays)}</p>
-            <p>
-              Extreme outliers: {(row.extremeOutlierCount ?? 0).toLocaleString()} (
-              {formatPct(row.extremeOutlierPct)})
-            </p>
-            <p className="mt-1 text-muted-foreground">{EXTREME_OUTLIER_TOOLTIP}</p>
-          </>
-        )}
-        {metricType === "median" && (
-          <>
-            <p>P25 / P75: {formatDays(row.p25Days)} / {formatDays(row.p75Days)}</p>
-            <p>P90: {formatDays(row.p90Days)} · IQR: {formatDays(row.iqrDays)}</p>
-            <p>Mean–median skew: {formatDays(row.meanMedianSkewDays)} days</p>
-          </>
-        )}
-      </div>
-    );
-  };
 }
 
 function TimeCategoryTableCard({
@@ -255,45 +160,49 @@ function TimeCategoryTableCard({
       </div>
 
       <div className="px-2 py-3 sm:px-4">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="min-w-[140px]">Category</TableHead>
-              <TableHead className="text-right">Target</TableHead>
-              <TableHead className="text-right">On-time</TableHead>
-              <TableHead className="text-right">%</TableHead>
-              <TableHead className="text-right">{metricLabel}</TableHead>
-              {metricType === "average" ? (
-                <>
-                  <TableHead className="text-right">Max Days</TableHead>
-                  <TableHead className="text-right">
-                    <ColumnHeaderWithTooltip label="Outliers" tooltip={EXTREME_OUTLIER_TOOLTIP} />
-                  </TableHead>
-                  <TableHead className="text-right">
-                    <ColumnHeaderWithTooltip label="Outlier %" tooltip={EXTREME_OUTLIER_TOOLTIP} />
-                  </TableHead>
-                </>
-              ) : (
-                <>
-                  <TableHead className="text-right">P25</TableHead>
-                  <TableHead className="text-right">P75</TableHead>
-                  <TableHead className="text-right">P90</TableHead>
-                  <TableHead className="text-right">IQR</TableHead>
-                  <TableHead className="text-right">Skew</TableHead>
-                </>
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {view.items.map((item) => (
-              <TimeDetailsRow
-                key={item.category}
-                item={item}
-                metricType={metricType}
-              />
-            ))}
-          </TableBody>
-        </Table>
+        <TableFullscreen title={view.label} description={`${view.items.length} values · ${totalApps.toLocaleString()} applications`}>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="min-w-[140px]">Category</TableHead>
+                  <TableHead className="text-right">Target</TableHead>
+                  <TableHead className="text-right">On-time</TableHead>
+                  <TableHead className="text-right">%</TableHead>
+                  <TableHead className="text-right">{metricLabel}</TableHead>
+                  {metricType === "average" ? (
+                    <>
+                      <TableHead className="text-right">Max Days</TableHead>
+                      <TableHead className="text-right">
+                        <ColumnHeaderWithTooltip label="Outliers" tooltip={EXTREME_OUTLIER_TOOLTIP} />
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <ColumnHeaderWithTooltip label="Outlier %" tooltip={EXTREME_OUTLIER_TOOLTIP} />
+                      </TableHead>
+                    </>
+                  ) : (
+                    <>
+                      <TableHead className="text-right">P25</TableHead>
+                      <TableHead className="text-right">P75</TableHead>
+                      <TableHead className="text-right">P90</TableHead>
+                      <TableHead className="text-right">IQR</TableHead>
+                      <TableHead className="text-right">Skew</TableHead>
+                    </>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {view.items.map((item) => (
+                  <TimeDetailsRow
+                    key={item.category}
+                    item={item}
+                    metricType={metricType}
+                  />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </TableFullscreen>
       </div>
     </div>
   );
@@ -301,27 +210,18 @@ function TimeCategoryTableCard({
 
 interface TimeCategoryChartCardProps {
   view: MATimeDrillDownCategoryView;
-  defaultChartType: ChartType;
   metricType: "median" | "average";
   targetDays: number;
 }
 
 function TimeCategoryChartCard({
   view,
-  defaultChartType,
   metricType,
   targetDays,
 }: TimeCategoryChartCardProps) {
-  const [selectedChartType, setChartType] = useState<ChartType | null>(null);
-  const requestedChartType = selectedChartType ?? defaultChartType;
-  const chartType = requestedChartType;
   const [detailsExpanded, setDetailsExpanded] = useState(false);
 
   const metricLabel = metricType === "median" ? "Median" : "Average";
-  const ChartTooltip = useMemo(
-    () => buildTimeChartTooltip(metricType, metricLabel),
-    [metricType, metricLabel]
-  );
 
   const chartData = useMemo<TimeChartRow[]>(
     () =>
@@ -362,111 +262,6 @@ function TimeCategoryChartCard({
   const chartTargetDays = viewTargetDays.length === 1 ? viewTargetDays[0] : targetDays;
   const targetLabel = viewTargetDays.length === 1 ? `Target ${chartTargetDays} days` : "Mixed SLA targets";
 
-  const daysDomainMax = useMemo(() => {
-    const maxDays = Math.max(
-      chartTargetDays * 1.2,
-      ...chartData.map((d) => d.decisionDays || 0)
-    );
-    return Math.ceil(maxDays / 50) * 50;
-  }, [chartData, chartTargetDays]);
-
-  const renderChart = useCallback(() => {
-    if (!chartData.length) {
-      return (
-        <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-          No data available
-        </div>
-      );
-    }
-
-    if (chartType === "box" || chartType === "comparison") return <TimeDistributionChart items={view.items} metric={metricType} comparison={chartType === "comparison"} />;
-    if (chartType === "volume") return <div><p className="mb-3 text-xs text-muted-foreground">Application counts by category. Time bands retain their report order.</p><ResponsiveContainer key={chartType} minWidth={0} width="100%" height={300}><BarChart data={chartData} margin={{ bottom: 65, left: 0, right: 12 }}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" interval={0} angle={-30} textAnchor="end" tick={{ fontSize: 10 }} /><YAxis allowDecimals={false} /><RechartsTooltip /><Bar dataKey="total" name="Applications" fill="#7c3aed" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div>;
-    const sorted = [...chartData].filter(row => chartType === "doughnut" || (row.decisionDays != null && Number.isFinite(row.decisionDays))).sort((a, b) => b.total - a.total);
-    if (!sorted.length) return <p className="py-12 text-center text-sm text-muted-foreground">No processing times are reported for this view. Select Volume to see application counts.</p>;
-
-    if (chartType === "doughnut") {
-      return (
-        <ResponsiveContainer key={chartType} minWidth={0} width="100%" height={260}>
-          <PieChart>
-            <Pie
-              data={sorted}
-              dataKey="total"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              innerRadius={55}
-              outerRadius={95}
-              paddingAngle={2}
-              label={({ name, percent }) => {
-                const safeName = String(name ?? "");
-                const labelName = safeName.length > 14 ? `${safeName.slice(0, 12)}...` : safeName;
-                return `${labelName} ${((percent ?? 0) * 100).toFixed(0)}%`;
-              }}
-              labelLine={{ strokeWidth: 1 }}
-            >
-              {sorted.map((_, i) => (
-                <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-              ))}
-            </Pie>
-            <RechartsTooltip
-              formatter={(_value, _name, entry) => {
-                const payload = entry?.payload as TimeChartRow | undefined;
-                if (!payload) return ["No data", "Value"];
-                return [
-                  `${payload.onTime}/${payload.total} · ${formatDays(payload.decisionDays)} days`,
-                  payload.name ?? "Category",
-                ];
-              }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-      );
-    }
-
-    if (chartType === "horizontalBar") {
-      return (
-        <ResponsiveContainer key={chartType} minWidth={0} width="100%" height={Math.max(200, sorted.length * 38)}>
-          <BarChart data={sorted} layout="vertical" margin={{ left: 8, right: 16 }}>
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-            <XAxis type="number" domain={[0, daysDomainMax]} tickFormatter={(v) => `${v}d`} />
-            <YAxis
-              dataKey="name"
-              type="category"
-              width={140}
-              tick={{ fontSize: 12 }}
-              interval={0}
-            />
-            <RechartsTooltip content={<ChartTooltip />} />
-            <Bar dataKey="decisionDays" radius={[0, 4, 4, 0]}>
-              {sorted.map((entry, i) => (
-                <Cell key={i} fill={daysBarColor(entry.decisionDays!, entry.targetDays)} />
-              ))}
-            </Bar>
-            <ReferenceLine x={chartTargetDays} stroke="#6366f1" strokeDasharray="4 4" strokeWidth={1.5} />
-          </BarChart>
-        </ResponsiveContainer>
-      );
-    }
-
-
-    return (
-      <ResponsiveContainer key={chartType} minWidth={0} width="100%" height={260}>
-        <BarChart data={sorted} margin={{ left: 8, right: 16, bottom: 40 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-30} textAnchor="end" height={60} />
-          <YAxis domain={[0, daysDomainMax]} tickFormatter={(v) => `${v}d`} />
-          <RechartsTooltip content={<ChartTooltip />} />
-          <Bar dataKey="decisionDays" radius={[4, 4, 0, 0]}>
-            {sorted.map((entry, i) => (
-              <Cell key={i} fill={daysBarColor(entry.decisionDays!, entry.targetDays)} />
-            ))}
-          </Bar>
-          <ReferenceLine y={chartTargetDays} stroke="#6366f1" strokeDasharray="4 4" strokeWidth={1.5} />
-        </BarChart>
-      </ResponsiveContainer>
-    );
-  }, [chartData, chartType, view.items, metricType, chartTargetDays, daysDomainMax, ChartTooltip]);
-
   return (
     <section className="group min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_16px_40px_-32px_rgba(15,23,42,.65)] transition-shadow duration-300 hover:shadow-[0_22px_52px_-34px_rgba(91,33,182,.45)] dark:border-slate-800 dark:bg-slate-950/70">
       <div className="flex flex-col gap-4 border-b border-violet-100 bg-linear-to-r from-violet-50/90 via-white to-sky-50/40 px-5 py-4 dark:border-violet-900/50 dark:from-violet-950/35 dark:via-slate-950 dark:to-sky-950/20">
@@ -480,25 +275,7 @@ function TimeCategoryChartCard({
         </div>
         <Badge className="border-0 bg-violet-100 text-[10px] text-violet-700 shadow-none dark:bg-violet-950 dark:text-violet-300">{targetLabel} · 90% performance target</Badge>
         </div>
-        <div className="flex flex-wrap items-center gap-1 rounded-xl border border-slate-200 bg-white/80 p-1 dark:border-slate-800 dark:bg-slate-950/70" aria-label={`Chart type for ${view.label}`}>
-          {CHART_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setChartType(opt.id)}
-              className={cn(
-                "flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold transition-all duration-200",
-                chartType === opt.id
-                  ? "bg-violet-600 text-white shadow-sm shadow-violet-600/20"
-                  : "text-slate-500 hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-950/40 dark:hover:text-violet-300"
-              )}
-              aria-pressed={chartType === opt.id}
-            >
-              {opt.icon}
-              <span>{opt.label}</span>
-            </button>
-          ))}
-        </div>
+
       </div>
 
       <div className="px-5 py-4">
@@ -522,7 +299,15 @@ function TimeCategoryChartCard({
           </div>
         </div>
 
-        {renderChart()}
+        <DataChart
+          data={chartData.map(row => ({ name: row.name, value: /time band/i.test(view.label) ? row.total : row.decisionDays }))}
+          label={/time band/i.test(view.label) ? "Applications" : `${metricLabel} processing time`}
+          unit={/time band/i.test(view.label) ? "" : " days"}
+          additive={/time band/i.test(view.label)}
+          ordered={/time band|month|quarter|year/i.test(view.label)}
+          defaultType="bar"
+          target={/time band/i.test(view.label) || viewTargetDays.length > 1 ? undefined : chartTargetDays}
+        />
 
         <div className="mt-4 border-t pt-3">
           <Button
@@ -540,46 +325,50 @@ function TimeCategoryChartCard({
           </Button>
 
           {detailsExpanded && (
-            <div className="mt-2 overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Target</TableHead>
-                    <TableHead className="text-right">On-time</TableHead>
-                    <TableHead className="text-right">%</TableHead>
-                    <TableHead className="text-right">{metricLabel} Days</TableHead>
-                    {metricType === "average" ? (
-                      <>
-                        <TableHead className="text-right">Max Days</TableHead>
-                        <TableHead className="text-right">
-                          <ColumnHeaderWithTooltip label="Outliers" tooltip={EXTREME_OUTLIER_TOOLTIP} />
-                        </TableHead>
-                        <TableHead className="text-right">
-                          <ColumnHeaderWithTooltip label="Outlier %" tooltip={EXTREME_OUTLIER_TOOLTIP} />
-                        </TableHead>
-                      </>
-                    ) : (
-                      <>
-                        <TableHead className="text-right">P25</TableHead>
-                        <TableHead className="text-right">P75</TableHead>
-                        <TableHead className="text-right">P90</TableHead>
-                        <TableHead className="text-right">IQR</TableHead>
-                        <TableHead className="text-right">Skew</TableHead>
-                      </>
-                    )}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {view.items.map((item) => (
-                    <TimeDetailsRow
-                      key={item.category}
-                      item={item}
-                      metricType={metricType}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="mt-2">
+              <TableFullscreen title={`${view.label} details`} description={`${view.items.length} categories`}>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead>Category</TableHead>
+                        <TableHead className="text-right">Target</TableHead>
+                        <TableHead className="text-right">On-time</TableHead>
+                        <TableHead className="text-right">%</TableHead>
+                        <TableHead className="text-right">{metricLabel} Days</TableHead>
+                        {metricType === "average" ? (
+                          <>
+                            <TableHead className="text-right">Max Days</TableHead>
+                            <TableHead className="text-right">
+                              <ColumnHeaderWithTooltip label="Outliers" tooltip={EXTREME_OUTLIER_TOOLTIP} />
+                            </TableHead>
+                            <TableHead className="text-right">
+                              <ColumnHeaderWithTooltip label="Outlier %" tooltip={EXTREME_OUTLIER_TOOLTIP} />
+                            </TableHead>
+                          </>
+                        ) : (
+                          <>
+                            <TableHead className="text-right">P25</TableHead>
+                            <TableHead className="text-right">P75</TableHead>
+                            <TableHead className="text-right">P90</TableHead>
+                            <TableHead className="text-right">IQR</TableHead>
+                            <TableHead className="text-right">Skew</TableHead>
+                          </>
+                        )}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {view.items.map((item) => (
+                        <TimeDetailsRow
+                          key={item.category}
+                          item={item}
+                          metricType={metricType}
+                        />
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TableFullscreen>
             </div>
           )}
         </div>
@@ -757,7 +546,11 @@ export function MATimeDrillDownView({ data, liveData, showLoading, timeError, fi
   filters?: MAApiFilterParams;
 }) {
   const [viewMode, setViewMode] = useState<ViewMode>("chart");
-  const filterChipLabels = useMemo(() => getMAApiFilterChipLabels(filters), [filters]);
+  const filterChipLabels = useMemo(() => {
+    const labels = getMAApiFilterChipLabels(filters);
+    if (labels.length > 0 && filters?.dateBasis === "decision") labels[0] = "Filtered by completion decision date";
+    return labels;
+  }, [filters]);
   const isMedian = data.kpiId === "MA-KPI-6";
   const resolvedData = liveData ?? data;
   const categoryViews = resolvedData.categoryViews;
@@ -790,15 +583,6 @@ export function MATimeDrillDownView({ data, liveData, showLoading, timeError, fi
   const formattedValue = `${formatDays(headlineDays)} days`;
   const meetsTarget = headlineDays <= targetDays;
   const daysGap = Math.max(0, headlineDays - targetDays);
-
-  const categoryChartDefaults = useMemo(
-    () =>
-      Object.fromEntries(
-        categoryViews.map((v) => [v.id, pickBestFitChart(v, resolvedData.metricType)])
-      ) as Record<string, ChartType>,
-    [categoryViews, resolvedData.metricType]
-  );
-
 
   return (
       <article className="min-w-0 overflow-hidden rounded-2xl border border-violet-200/70 bg-slate-50 shadow-sm dark:border-violet-900/60 dark:bg-slate-950">
@@ -962,7 +746,6 @@ export function MATimeDrillDownView({ data, liveData, showLoading, timeError, fi
                 <TimeCategoryChartCard
                   key={view.id}
                   view={view}
-                  defaultChartType={categoryChartDefaults[view.id] ?? "bar"}
                   metricType={resolvedData.metricType}
                   targetDays={targetDays}
                 />

@@ -1,4 +1,5 @@
 import type { MAProductKpiSeedItem } from "@/data/ma-dummy-data";
+import type { MAFirNormalizeResult } from "@/lib/ma-api/fir-normalizer";
 import type {
   MAKPIParTransformedData,
   MAKPITimeId,
@@ -6,6 +7,7 @@ import type {
   MAKPITimeTransformedRow,
   MAKPITransformedData,
   MAKPITransformedRow,
+  MAReportProduct,
 } from "@/types/ma-api";
 
 const API_KPI_IDS = ["MA-KPI-1", "MA-KPI-2", "MA-KPI-3", "MA-KPI-4"] as const;
@@ -239,6 +241,50 @@ export function mergeParCardsWithStrictFaceData(
       decimals: 1,
       moduleBreakdown: parData.modules,
       targetDays: parData.targetDays ?? card.targetDays,
+    };
+  });
+}
+
+/**
+ * MA-KPI-5 from the FIR report for the selected date basis.
+ * The card receives only the product currently selected on the page.
+ */
+export function mergeFirCardsWithStrictFaceData(
+  seedCards: MAProductKpiSeedItem[],
+  product: MAReportProduct,
+  result: MAFirNormalizeResult | null
+): MAProductKpiSeedItem[] {
+  return seedCards.map((card) => {
+    if (card.drilldownId !== "MA-KPI-5") return card;
+
+    const face = result?.byProduct[product];
+    if (!face || face.denominator <= 0) {
+      return {
+        ...card,
+        faceDataMissing: true,
+        value: 0,
+        numerator: 0,
+        denominator: 0,
+        decimals: 1,
+        moduleBreakdown: undefined,
+      };
+    }
+
+    return {
+      ...card,
+      faceDataMissing: false,
+      value: face.percentage,
+      numerator: face.numerator,
+      denominator: face.denominator,
+      targetDays: face.targetDays ?? card.targetDays,
+      decimals: 1,
+      moduleBreakdown: face.pathways.map((lane) => ({
+        code: lane.label,
+        label: `${lane.label}: ${lane.numerator.toLocaleString()} of ${lane.denominator.toLocaleString()}`,
+        numerator: lane.numerator,
+        denominator: lane.denominator,
+        percentage: lane.percentage,
+      })),
     };
   });
 }

@@ -3,6 +3,53 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Zoom compensation (src/lib/zoom-bootstrap.ts): at 110-150% browser zoom the root is
+   scaled back so the page keeps its 100% layout. Media queries still see the narrower
+   zoomed viewport, so breakpoints also match the breakpoints listed in data-app-bp. */
+@custom-variant sm {
+  @media (width >= 40rem) { @slot; }
+  :where(:root[data-app-bp~="sm"]) & { @slot; }
+}
+@custom-variant md {
+  @media (width >= 48rem) { @slot; }
+  :where(:root[data-app-bp~="md"]) & { @slot; }
+}
+@custom-variant lg {
+  @media (width >= 64rem) { @slot; }
+  :where(:root[data-app-bp~="lg"]) & { @slot; }
+}
+@custom-variant xl {
+  @media (width >= 80rem) { @slot; }
+  :where(:root[data-app-bp~="xl"]) & { @slot; }
+}
+@custom-variant 2xl {
+  @media (width >= 96rem) { @slot; }
+  :where(:root[data-app-bp~="2xl"]) & { @slot; }
+}
+
+/* Viewport units are not scaled up by root zoom; divide by it to fill the screen. */
+@utility h-viewport {
+  height: calc(100dvh / var(--app-zoom, 1));
+}
+@utility min-h-viewport {
+  min-height: calc(100dvh / var(--app-zoom, 1));
+}
+@utility max-h-viewport {
+  max-height: calc(100dvh / var(--app-zoom, 1));
+}
+@utility w-viewport {
+  width: calc(100vw / var(--app-zoom, 1));
+}
+
+/* Radix/Floating UI positions popovers in screen pixels. Undo the root zoom on the
+   positioned wrapper so its offsets land correctly, then restore it on the content. */
+[data-radix-popper-content-wrapper] {
+  zoom: calc(1 / var(--app-zoom, 1));
+}
+[data-radix-popper-content-wrapper] > * {
+  zoom: var(--app-zoom, 1);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -178,6 +225,21 @@
   }
 }
 
+/* The dashboard owns its scroll area. Keep the document itself stationary,
+   including during anchor navigation, viewport resizing, and overscroll.
+   Authentication pages retain normal document scrolling. */
+html:has([data-dashboard-shell]),
+body:has([data-dashboard-shell]) {
+  width: 100%;
+  height: 100%;
+  overflow: clip;
+  overscroll-behavior: none;
+}
+
+[data-dashboard-shell] [data-slot="sidebar-container"] {
+  height: calc(100dvh / var(--app-zoom, 1));
+}
+
 /* Recharts defaults use light surfaces and fixed gray text. */
 .dark .recharts-default-tooltip {
   background-color: var(--popover) !important;
@@ -251,7 +313,23 @@
   animation: ma-filter-loading 1.35s ease-in-out infinite;
 }
 
+@keyframes gmp-slide-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* Drives the GMP overview slider: the slide advances on animationend. */
+.gmp-slide-progress {
+  transform-origin: left;
+  animation: gmp-slide-progress 4s linear forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .gmp-slide-progress {
+    animation: none !important;
+    transform: none;
+  }
+
   .ma-enter,
   .ma-product-option,
   .ma-orbit,

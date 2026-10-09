@@ -168,7 +168,7 @@ export function MAKPICard({
   const numericValue = Number(value);
   const safeValue = Number.isFinite(numericValue) ? numericValue : 0;
   const isTimeMetric = suffix?.trim().toLowerCase() === "days";
-  const isTransparencyMetric = kpiCode === "MA-KPI-8" || Boolean(moduleBreakdown?.length);
+  const isTransparencyMetric = kpiCode === "MA-KPI-8";
   const hasSideBySideMetrics = Boolean(sideBySideMetrics?.length);
   const metricKind = isTimeMetric ? "time" : isTransparencyMetric ? "transparency" : "sla";
   const targetValue = isTimeMetric ? (targetDays ?? 270) : targetPercentage;
@@ -265,7 +265,7 @@ export function MAKPICard({
           <div className={cn("mt-5 grid gap-2", compact ? "grid-cols-1" : "grid-cols-2", !compact && (sideBySideMetrics?.length ?? 0) > 4 && "sm:grid-cols-3")}>
             {sideBySideMetrics?.map((item) => (
               <div key={item.id} className={cn("rounded-xl border px-3 py-3", item.isEmpty ? "border-dashed border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/40" : "border-violet-100 bg-violet-50/60 dark:border-violet-900/60 dark:bg-violet-950/25")}>
-                <p className="line-clamp-2 min-h-7 text-[9px] font-bold uppercase leading-3.5 tracking-[0.08em] text-slate-500 dark:text-slate-400">{item.label}</p>
+                <p className="line-clamp-2 min-h-7 text-[9px] font-bold uppercase leading-3.5 tracking-[0.08em] text-slate-500 dark:text-slate-400" title={item.label}>{item.label}</p>
                 {item.isEmpty ? <p className="mt-2 text-xs font-semibold text-slate-500">Work in progress</p> : <p className="mt-1 text-2xl font-bold tracking-[-0.04em] text-slate-950 dark:text-white">{item.value?.toFixed(1)}<span className="ml-1 text-xs font-semibold tracking-normal text-slate-500">{item.suffix}</span></p>}
                 {!compact && !item.isEmpty && item.numerator !== undefined && item.denominator !== undefined && <p className="mt-1 text-[10px] tabular-nums text-slate-500">{item.numerator.toLocaleString()} of {item.denominator.toLocaleString()}</p>}
               </div>
@@ -312,7 +312,7 @@ export function MAKPICard({
         </div>}
 
         {!compact && moduleBreakdown && moduleBreakdown.length > 0 && (
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className={cn("mt-4 grid gap-2", moduleBreakdown.length === 3 ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4")}>
             {moduleBreakdown.map((item) => (
               <div key={item.code} className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-center dark:border-slate-800 dark:bg-slate-900/60" title={`${item.label}: ${item.percentage.toFixed(1)}%`}>
                 <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{item.code}</p>
@@ -323,7 +323,7 @@ export function MAKPICard({
         )}
 
         {!compact && description && !moduleBreakdown?.length && (
-          <p className="mt-4 line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{description}</p>
+          <p className="mt-4 line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400" title={description}>{description}</p>
         )}
 
         <div className="mt-auto flex items-center justify-between gap-3 pt-4">

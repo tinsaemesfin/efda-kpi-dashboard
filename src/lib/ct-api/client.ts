@@ -6,20 +6,22 @@ import {
   getApiBaseUrl,
 } from "@/lib/ct-api/constants";
 import {
+  ctDrilldownCacheKey,
+  ctFaceDataCacheKey,
   ctKpi1FaceDataCacheKey,
   ctKpi2FaceDataCacheKey,
   getOrFetchCtApiCache,
 } from "@/lib/ct-api/cache";
-import type { CTApiDataRow, CTApiFilterParams, CTApiResponse } from "@/types/ct-api";
+import type { CTApiDataRow, CTApiFilterParams, CTApiResponse, CTDrilldownRow, CTFaceKPIId } from "@/types/ct-api";
 
 export type CTApiFetchOptions = { force?: boolean };
 
-async function fetchCTTabularData(
+export async function fetchCTTabularData<T = CTApiDataRow>(
   accessToken: string,
   reportId: number,
   filters?: CTApiFilterParams,
   lengthOverride?: string
-): Promise<CTApiResponse<CTApiDataRow>> {
+): Promise<CTApiResponse<T>> {
   const baseUrl = getApiBaseUrl();
   if (!baseUrl) {
     throw new Error("NEXT_PUBLIC_API_KPI or NEXT_PUBLIC_API_ROOT is not set");
@@ -43,12 +45,38 @@ async function fetchCTTabularData(
     throw new Error(`HTTP ${response.status}: ${text || response.statusText}`);
   }
 
-  const json: CTApiResponse<CTApiDataRow> = await response.json();
+  const json: CTApiResponse<T> = await response.json();
   if (json.error) {
     throw new Error(json.error);
   }
 
   return json;
+}
+
+export async function fetchCTFaceTabularData(
+  accessToken: string,
+  kpiId: CTFaceKPIId,
+  reportId: number,
+  filters?: CTApiFilterParams,
+  options?: CTApiFetchOptions
+): Promise<CTApiResponse<CTApiDataRow>> {
+  const key = ctFaceDataCacheKey(kpiId, reportId, filters);
+  return getOrFetchCtApiCache(key, options?.force ?? false, () =>
+    fetchCTTabularData(accessToken, reportId, filters)
+  );
+}
+
+export async function fetchCTDrilldownTabularData(
+  accessToken: string,
+  kpiId: string,
+  reportId: number,
+  filters?: CTApiFilterParams,
+  options?: CTApiFetchOptions
+): Promise<CTApiResponse<CTDrilldownRow>> {
+  const key = ctDrilldownCacheKey(kpiId, reportId, filters);
+  return getOrFetchCtApiCache(key, options?.force ?? false, () =>
+    fetchCTTabularData<CTDrilldownRow>(accessToken, reportId, filters, "500")
+  );
 }
 
 /** CT-KPI-1 face data from tabular report /33. */

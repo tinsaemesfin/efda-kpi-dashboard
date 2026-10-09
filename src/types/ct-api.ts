@@ -1,14 +1,27 @@
 /**
- * Clinical Trial API types
- * Face reports: /33 (CT-KPI-1, CTNAPP), /34 (CT-KPI-2, CTAMAPP)
+ * Clinical Trial API types.
+ * Face reports: 33, 34, 241–248. CT-KPI-6 has no report.
  */
 
-export type CTKPIId = "CT-KPI-1" | "CT-KPI-2" | "CT-KPI-3" | "CT-KPI-4" | "CT-KPI-5" | "CT-KPI-6" | "CT-KPI-7" | "CT-KPI-8";
+export type CTRatioKPIId =
+  | "CT-KPI-1"
+  | "CT-KPI-2"
+  | "CT-KPI-3"
+  | "CT-KPI-4"
+  | "CT-KPI-5"
+  | "CT-KPI-7"
+  | "CT-KPI-9"
+  | "CT-KPI-10"
+  | "CT-KPI-11";
 
-/** Face KPIs backed by live tabular reports. */
-export type CTFaceKPIId = "CT-KPI-1" | "CT-KPI-2";
+export type CTTurnaroundKPIId = "CT-KPI-8";
 
-export type CTSubmoduleCode = "CTNAPP" | "CTAMAPP" | (string & {});
+/** Indicators backed by a live tabular face report. */
+export type CTFaceKPIId = CTRatioKPIId | CTTurnaroundKPIId;
+
+export type CTKPIId = CTFaceKPIId | "CT-KPI-6";
+
+export type CTSubmoduleCode = "CTNAPP" | "CTAMAPP" | "CTGCP" | "CTSR" | "CTGCPCP" | "CT" | (string & {});
 
 export interface CTApiFilterParams {
   startDate?: string;
@@ -17,14 +30,17 @@ export interface CTApiFilterParams {
   year?: number;
 }
 
-/** Raw row from CT face tabular reports /33 and /34. */
+/** Raw row from a CT face tabular report. Ratio and turnaround reports share this shape. */
 export interface CTApiDataRow {
   rowNumber?: number;
-  submodule_code: CTSubmoduleCode;
-  target_days?: number;
-  on_time_count: number;
-  total_count: number;
-  percentage: number;
+  submodule_code?: CTSubmoduleCode;
+  target_days?: number | string | null;
+  on_time_count?: number | string | null;
+  total_count?: number | string | null;
+  percentage?: number | string | null;
+  total_days?: number | string | null;
+  average_days?: number | string | null;
+  report_type?: string | null;
 }
 
 export interface CTApiResponse<T = CTApiDataRow> {
@@ -38,10 +54,13 @@ export interface CTApiResponse<T = CTApiDataRow> {
 }
 
 export interface CTKPITransformedRow {
+  kind: "ratio" | "turnaround";
   numerator: number;
   denominator: number;
   percentage: number;
   targetDays?: number;
+  /** Set for CT-KPI-8. Combined periods use total days divided by the application count. */
+  averageDays?: number;
 }
 
 export type CTKPITransformedData = Partial<Record<CTFaceKPIId, CTKPITransformedRow>>;
@@ -66,3 +85,6 @@ export interface CTNormalizeResult {
     acceptedRows: number;
   };
 }
+
+/** One drill-down list row. Columns vary by KPI. */
+export type CTDrilldownRow = Record<string, string | number | boolean | null>;

@@ -18,6 +18,15 @@ export const MA_TABULAR_FOOD_NOTIFICATION_FACE_REPORT_ID = 15;
 export const MA_TABULAR_MEDICAL_DEVICE_FACE_REPORT_ID = 16;
 /** Cosmetics — face cards MA-KPI-1..3 only (variation is a single KPI; no KPI 4). */
 export const MA_TABULAR_COSMETICS_FACE_REPORT_ID = 17;
+/**
+ * FIR (MA-KPI-5): one report for medicine, food, cosmetics, and medical devices.
+ * Rows are module × product. Target days come from KPI_MA_FIRR_TO_STL_TARGET_DAYS.
+ */
+export const MA_FIR_FACE_REPORT_IDS_BY_DATE: Record<MADateBasis, number> = {
+  submission: 250,
+  decision: 251,
+};
+export const MA_FIR_FACE_REPORT_ID = MA_FIR_FACE_REPORT_IDS_BY_DATE.submission;
 export const MA_TABULAR_KPI1_DRILLDOWN_REPORT_ID = 9;
 /** Food / New MA drilldown only. Face KPI cards still use /14. */
 export const MA_TABULAR_FOOD_KPI1_DRILLDOWN_REPORT_ID = 18;

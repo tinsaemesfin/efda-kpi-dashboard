@@ -32,6 +32,8 @@ import {
   getMATimeReportId,
   getMAParReportId,
 } from '@/lib/ma-api/client';
+import { MA_FIR_FACE_REPORT_IDS_BY_DATE } from '@/lib/ma-api/constants';
+import { normalizeMAFirFaceData, type MAFirNormalizeResult } from '@/lib/ma-api/fir-normalizer';
 import {
   maFaceDataCacheKey,
   maFoodFaceDataCacheKey,
@@ -562,6 +564,26 @@ export function useMAKPIDataMedicalDeviceFacade(
     filters,
     enabled
   );
+}
+
+/** MA-KPI-5 FIR face for the selected submission or decision cohort. */
+export function useMAFirFaceFacade(
+  filters?: MAApiFilterParams,
+  enabled = true
+): { firFace: MAFirNormalizeResult | null; loading: boolean; error: Error | null; refetch: () => Promise<void> } {
+  const reportId = MA_FIR_FACE_REPORT_IDS_BY_DATE[filters?.dateBasis ?? 'submission'];
+  const report = useMAReportData<MAApiDataRow>(reportId, filters, enabled);
+  const firFace = useMemo(() => {
+    if (!report.data) return null;
+    return normalizeMAFirFaceData(report.data.data ?? []);
+  }, [report.data]);
+
+  return {
+    firFace,
+    loading: report.loading,
+    error: report.error,
+    refetch: report.refetch,
+  };
 }
 
 /** Cosmetics MA-KPI-1..3 face values from tabular report /17 (single variation KPI; minor+major → MA-KPI-3). */

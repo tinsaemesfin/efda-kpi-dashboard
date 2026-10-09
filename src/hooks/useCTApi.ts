@@ -2,16 +2,10 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  fetchCTKpi1FaceTabularData,
-  fetchCTKpi2FaceTabularData,
-} from "@/lib/ct-api/client";
-import {
-  ctKpi1FaceDataCacheKey,
-  ctKpi2FaceDataCacheKey,
-  peekCtApiCache,
-} from "@/lib/ct-api/cache";
-import { normalizeCTFaceReport } from "@/lib/ct-api/normalizer";
+import { fetchCTFaceTabularData } from "@/lib/ct-api/client";
+import { CT_FACE_REPORTS } from "@/lib/ct-api/constants";
+import { ctFaceDataCacheKey, peekCtApiCache } from "@/lib/ct-api/cache";
+import { normalizeCTReport } from "@/lib/ct-api/normalizer";
 import type {
   CTApiDataRow,
   CTApiFilterParams,
@@ -19,91 +13,6 @@ import type {
   CTKPITransformedData,
   CTNormalizationWarning,
 } from "@/types/ct-api";
-
-interface UseCTApiState<T> {
-  data: T | null;
-  loading: boolean;
-  error: Error | null;
-  refetch: () => Promise<void>;
-}
-
-type CTTabularFetcher = (
-  accessToken: string,
-  filters?: CTApiFilterParams,
-  options?: { force?: boolean }
-) => Promise<CTApiResponse<CTApiDataRow>>;
-
-function useCTTabularReportData(
-  fetcher: CTTabularFetcher,
-  filters: CTApiFilterParams | undefined,
-  enabled: boolean,
-  getCacheKey: (filters?: CTApiFilterParams) => string
-): UseCTApiState<CTApiResponse<CTApiDataRow>> {
-  const { isAuthenticated, loading: authLoading, accessToken } = useAuth();
-  const [data, setData] = useState<CTApiResponse<CTApiDataRow> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const cacheKey = useMemo(() => getCacheKey(filters), [filters, getCacheKey]);
-
-  const fetchData = useCallback(
-    async (force = false) => {
-      if (!enabled) {
-        setLoading(false);
-        return;
-      }
-      if (authLoading) return;
-      if (!isAuthenticated || !accessToken) {
-        setLoading(false);
-        return;
-      }
-
-      if (!force) {
-        const cached = peekCtApiCache<CTApiResponse<CTApiDataRow>>(cacheKey);
-        if (cached) {
-          setData(cached);
-          setLoading(false);
-          setError(null);
-          return;
-        }
-      }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const json = await fetcher(accessToken, filters, { force });
-        setData(json);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error("Failed to fetch CT KPI data"));
-      } finally {
-        setLoading(false);
-      }
-    },
-    [enabled, isAuthenticated, authLoading, accessToken, filters, fetcher, cacheKey]
-  );
-
-  useEffect(() => {
-    if (!enabled) {
-      setLoading(false);
-      return;
-    }
-    if (!authLoading && isAuthenticated && accessToken) {
-      void fetchData(false);
-    } else if (!authLoading && !isAuthenticated) {
-      setLoading(false);
-    }
-  }, [enabled, authLoading, isAuthenticated, accessToken, fetchData]);
-
-  const refetch = useCallback(() => fetchData(true), [fetchData]);
-
-  return {
-    data,
-    loading: loading || authLoading,
-    error,
-    refetch,
-  };
-}
 
 export interface CTKPIDataFacade {
   kpiFaceDataById: CTKPITransformedData | null;
@@ -120,22 +29,77 @@ export interface CTKPIDataFacade {
 }
 
 /**
- * CT face KPIs 1–2 from tabular reports /33 and /34.
- * Same stream as MA: fetch → normalize → merge on the page.
+ * Live CT face KPIs. Each report is fetched and normalized on its own,
+ * so one failed report does not hide the others.
  */
 export function useCTKPIDataFacade(filters?: CTApiFilterParams): CTKPIDataFacade {
-  const kpi1 = useCTTabularReportData(
-    fetchCTKpi1FaceTabularData,
-    filters,
-    true,
-    ctKpi1FaceDataCacheKey
+  const { isAuthenticated, loading: authLoading, accessToken } = useAuth();
+  const [reports, setReports] = useState<Partial<Record<string, CTApiResponse<CTApiDataRow>>> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  const filterKey = useMemo(() => JSON.stringify(filters ?? null), [filters]);
+
+  const fetchData = useCallback(
+    async (force: boolean) => {
+      if (authLoading) return;
+      if (!isAuthenticated || !accessToken) {
+        setLoading(false);
+        return;
+      }
+
+      if (!force) {
+        const cachedEntries = CT_FACE_REPORTS.map((report) => {
+          const cached = peekCtApiCache<CTApiResponse<CTApiDataRow>>(ctFaceDataCacheKey(report.kpiId, report.reportId, filters));
+          return cached ? ([report.kpiId, cached] as const) : null;
+        });
+        if (cachedEntries.every(Boolean)) {
+          setReports(Object.fromEntries(cachedEntries.filter((entry) => entry != null)));
+          setLoading(false);
+          setError(null);
+          setFetchedAt(new Date().toISOString());
+          return;
+        }
+      }
+
+      setLoading(true);
+      setError(null);
+      const next: Partial<Record<string, CTApiResponse<CTApiDataRow>>> = {};
+      const failures: string[] = [];
+
+      await Promise.all(
+        CT_FACE_REPORTS.map(async (report) => {
+          try {
+            next[report.kpiId] = await fetchCTFaceTabularData(
+              accessToken,
+              report.kpiId,
+              report.reportId,
+              filters,
+              { force }
+            );
+          } catch (err) {
+            failures.push(err instanceof Error ? err.message : `${report.kpiId} failed`);
+          }
+        })
+      );
+
+      setReports(next);
+      setFetchedAt(new Date().toISOString());
+      setError(failures.length ? new Error(failures.join("; ")) : null);
+      setLoading(false);
+    },
+    [isAuthenticated, authLoading, accessToken, filters]
   );
-  const kpi2 = useCTTabularReportData(
-    fetchCTKpi2FaceTabularData,
-    filters,
-    true,
-    ctKpi2FaceDataCacheKey
-  );
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && accessToken) {
+      void fetchData(reloadToken > 0);
+    } else if (!authLoading && !isAuthenticated) {
+      setLoading(false);
+    }
+  }, [authLoading, isAuthenticated, accessToken, fetchData, filterKey, reloadToken]);
 
   const transformed = useMemo(() => {
     const warnings: CTNormalizationWarning[] = [];
@@ -144,8 +108,12 @@ export function useCTKPIDataFacade(filters?: CTApiFilterParams): CTKPIDataFacade
     let filteredRows = 0;
     let acceptedRows = 0;
 
-    if (kpi1.data?.data) {
-      const result = normalizeCTFaceReport(kpi1.data.data, "CT-KPI-1");
+    if (!reports) return { kpiFaceDataById: null, warnings, totals: { totalRows, filteredRows, acceptedRows } };
+
+    for (const report of CT_FACE_REPORTS) {
+      const payload = reports[report.kpiId];
+      if (!payload?.data) continue;
+      const result = normalizeCTReport(payload.data, report.kpiId);
       Object.assign(kpiFaceDataById, result.kpiFaceDataById);
       warnings.push(...result.warnings);
       totalRows += result.totals.totalRows;
@@ -153,46 +121,24 @@ export function useCTKPIDataFacade(filters?: CTApiFilterParams): CTKPIDataFacade
       acceptedRows += result.totals.acceptedRows;
     }
 
-    if (kpi2.data?.data) {
-      const result = normalizeCTFaceReport(kpi2.data.data, "CT-KPI-2");
-      Object.assign(kpiFaceDataById, result.kpiFaceDataById);
-      warnings.push(...result.warnings);
-      totalRows += result.totals.totalRows;
-      filteredRows += result.totals.filteredRows;
-      acceptedRows += result.totals.acceptedRows;
-    }
-
-    const hasAnyData = Boolean(kpi1.data || kpi2.data);
-    return {
-      kpiFaceDataById: hasAnyData ? kpiFaceDataById : null,
-      warnings,
-      totals: { totalRows, filteredRows, acceptedRows },
-    };
-  }, [kpi1.data, kpi2.data]);
+    return { kpiFaceDataById, warnings, totals: { totalRows, filteredRows, acceptedRows } };
+  }, [reports]);
 
   useEffect(() => {
-    if (!transformed.warnings.length) return;
     transformed.warnings.forEach((warning) => {
       if (warning.code === "EMPTY_RESULT") return;
       console.warn(`[CT API] ${warning.code}: ${warning.message}`, warning.row ?? {});
     });
   }, [transformed.warnings]);
 
-  const refetchKpi1 = kpi1.refetch;
-  const refetchKpi2 = kpi2.refetch;
   const refetch = useCallback(async () => {
-    await Promise.all([refetchKpi1(), refetchKpi2()]);
-  }, [refetchKpi1, refetchKpi2]);
-
-  const combinedError = kpi1.error ?? kpi2.error;
-  const loading = kpi1.loading || kpi2.loading;
-  const fetchedAt =
-    kpi1.data || kpi2.data ? new Date().toISOString() : null;
+    setReloadToken((value) => value + 1);
+  }, []);
 
   return {
     kpiFaceDataById: transformed.kpiFaceDataById,
-    loading,
-    error: combinedError,
+    loading: loading || authLoading,
+    error,
     warnings: transformed.warnings,
     metadata: {
       totalRows: transformed.totals.totalRows,
